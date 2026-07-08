@@ -7,6 +7,28 @@ import App from './App.tsx';
 import './index.css';
 
 import { ConfirmDialogProvider } from './shared/contexts/ConfirmDialogContext';
+import posthog from 'posthog-js';
+import { FirebaseCrashlytics } from '@capacitor-firebase/crashlytics';
+
+import { ENV } from './core/config/env';
+
+// 1. PostHog Init
+posthog.init(ENV.POSTHOG_KEY, {
+  api_host: ENV.POSTHOG_HOST,
+  loaded: posthog => {
+    if (import.meta.env.DEV) posthog.opt_out_capturing(); // Dev modunda kapalı
+  }
+});
+
+// 2. Crashlytics Init (Capacitor)
+const initCrashlytics = async () => {
+  try {
+    await FirebaseCrashlytics.setEnabled({ enabled: true });
+  } catch (error) {
+    console.error('Crashlytics init failed (Expected on Web):', error);
+  }
+};
+initCrashlytics();
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

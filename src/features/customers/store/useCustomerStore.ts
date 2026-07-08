@@ -57,7 +57,10 @@ interface CustomerState {
     id: string,
     customerData: Partial<Omit<Customer, 'id' | 'createdAt'>>
   ) => Promise<void>;
-  addPayment: (customerId: string, amount: number) => Promise<void>;
+  addPayment: (
+    customerId: string,
+    amount: number
+  ) => Promise<string | undefined>;
   getCustomerTransactions: (
     customerId: string
   ) => Promise<CustomerTransaction[]>;
@@ -187,6 +190,7 @@ export const useCustomerStore = create<CustomerState>((set, get) => ({
 
       await batch.commit();
       set({ isLoading: false });
+      return paymentId;
     } catch (error) {
       console.error('Error adding payment:', error);
       set({ isLoading: false });

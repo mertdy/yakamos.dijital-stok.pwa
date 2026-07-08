@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -71,32 +71,37 @@ export const ProductFormView: React.FC = () => {
     }
   }, [items.length, loadItems]);
 
-  const searchProductByBarcode = async (barcodeToSearch: string) => {
-    if (!barcodeToSearch) return;
-    setIsSearching(true);
+  const searchProductByBarcode = useCallback(
+    async (barcodeToSearch: string) => {
+      if (!barcodeToSearch) return;
+      setIsSearching(true);
 
-    setApiProductData(null);
-    try {
-      const res = await fetch(
-        `https://world.openfoodfacts.org/api/v0/product/${barcodeToSearch}.json`
-      );
-      const data = await res.json();
-      if (data.status === 1 && data.product) {
-        if (data.product.product_name) {
-          setValue('name', data.product.product_name, { shouldValidate: true });
+      setApiProductData(null);
+      try {
+        const res = await fetch(
+          `https://world.openfoodfacts.org/api/v0/product/${barcodeToSearch}.json`
+        );
+        const data = await res.json();
+        if (data.status === 1 && data.product) {
+          if (data.product.product_name) {
+            setValue('name', data.product.product_name, {
+              shouldValidate: true
+            });
+          }
+          setApiProductData({
+            imageUrl: data.product.image_front_url || data.product.image_url,
+            brand: data.product.brands,
+            ingredients: data.product.ingredients_text
+          });
         }
-        setApiProductData({
-          imageUrl: data.product.image_front_url || data.product.image_url,
-          brand: data.product.brands,
-          ingredients: data.product.ingredients_text
-        });
+      } catch (error) {
+        console.error('API Search error', error);
+      } finally {
+        setIsSearching(false);
       }
-    } catch (error) {
-      console.error('API Search error', error);
-    } finally {
-      setIsSearching(false);
-    }
-  };
+    },
+    [setValue]
+  );
 
   useEffect(() => {
     if (isEditMode && items.length > 0) {

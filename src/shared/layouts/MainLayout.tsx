@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { SyncIndicator } from '../components/SyncIndicator';
+import { useAppHotkeys } from '../hooks/useAppHotkeys';
 import {
   Store,
   MonitorCheck,
@@ -12,7 +13,7 @@ import {
   History,
   LayoutDashboard
 } from 'lucide-react';
-import { useAuthStore } from '../../features/auth/store/useAuthStore';
+import { useAuthStore } from '../../features/auth';
 import { Button } from '@heroui/react';
 
 const navItems = [
@@ -24,6 +25,7 @@ const navItems = [
 ];
 
 export const MainLayout: React.FC = () => {
+  useAppHotkeys(); // Etkinleştir
   const { user, logout } = useAuthStore();
   const location = useLocation();
   const [isCollapsed, setIsCollapsed] = useState(false);

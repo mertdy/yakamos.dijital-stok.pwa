@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
   createColumnHelper,
   flexRender,
@@ -120,7 +120,7 @@ export const InventoryTable: React.FC = () => {
     })
   ];
 
-  const filteredItems = React.useMemo(() => {
+  const filteredItems = useMemo(() => {
     return items.filter(
       item =>
         item.name.toLowerCase().includes(globalFilter.toLowerCase()) ||

@@ -3,6 +3,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, CheckCircle2, Banknote, Loader2, Info } from 'lucide-react';
 import { Button } from '@heroui/react';
 import { useCustomerStore } from '../store/useCustomerStore';
+import { useReactToPrint } from 'react-to-print';
+import { Printer } from 'lucide-react';
+import { ReceiptTemplate } from '../../sales/components/ReceiptTemplate';
+import { useRef } from 'react';
 import { toast } from '@heroui/react';
 
 interface Props {
@@ -23,12 +27,20 @@ export const PaymentModal: React.FC<Props> = ({
   const [amount, setAmount] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [modalDebt, setModalDebt] = useState(currentDebt);
+  const [paymentId, setPaymentId] = useState<string | null>(null);
+  const receiptRef = useRef<HTMLDivElement>(null);
+
+  const handlePrint = useReactToPrint({
+    contentRef: receiptRef,
+    documentTitle: 'Tahsilat_Makbuzu'
+  });
   const { addPayment } = useCustomerStore();
 
   useEffect(() => {
     if (isOpen) {
       setModalDebt(currentDebt);
       setAmount('');
+      setPaymentId(null);
     }
   }, [isOpen, currentDebt]);
 
@@ -47,10 +59,13 @@ export const PaymentModal: React.FC<Props> = ({
 
     setIsSubmitting(true);
     try {
-      await addPayment(customerId, payAmount);
+      const newId = await addPayment(customerId, payAmount);
+      setPaymentId(newId || Date.now().toString());
+
       toast.success('Tahsilat başarıyla kaydedildi');
+
       onPaymentSuccess?.();
-      onClose();
+      onClose(); // Automatically close it now
     } catch {
       toast.danger('Tahsilat kaydedilirken bir hata oluştu');
     } finally {
@@ -95,6 +110,18 @@ export const PaymentModal: React.FC<Props> = ({
               className="flex h-8 w-8 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-gray-100">
               <X size={20} />
             </button>
+          </div>
+
+          {/* Hidden Receipt for Printing */}
+          <div className="hidden">
+            <ReceiptTemplate
+              ref={receiptRef}
+              sale={{
+                id: paymentId || 'new-payment',
+                createdAt: new Date().toISOString(),
+                amount: parseFloat(amount || '0')
+              }}
+            />
           </div>
 
           <form onSubmit={handleSubmit} className="p-6">
@@ -158,6 +185,17 @@ export const PaymentModal: React.FC<Props> = ({
                 </div>
               )}
             </div>
+
+            {paymentId && (
+              <div className="mt-4 flex justify-center">
+                <Button
+                  variant="secondary"
+                  onPress={() => handlePrint()}
+                  size="sm">
+                  <Printer size={16} className="mr-2" /> Son Makbuzu Yazdır
+                </Button>
+              </div>
+            )}
 
             <div className="mt-8 flex gap-3">
               <Button

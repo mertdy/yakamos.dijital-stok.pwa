@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback, Fragment } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -41,14 +41,14 @@ export const CustomerDetailView: React.FC = () => {
 
   const customer = customers.find(c => c.id === id);
 
-  const loadTransactions = async () => {
+  const loadTransactions = useCallback(async () => {
     setIsLoadingTx(true);
     if (id) {
       const txs = await getCustomerTransactions(id);
       setTransactions(txs);
     }
     setIsLoadingTx(false);
-  };
+  }, [id, getCustomerTransactions]);
 
   useEffect(() => {
     if (id) {
@@ -239,7 +239,7 @@ export const CustomerDetailView: React.FC = () => {
                 </tr>
               ) : (
                 transactions.map(tx => (
-                  <React.Fragment key={tx.id}>
+                  <Fragment key={tx.id}>
                     <tr
                       className={`border-b border-gray-50 transition-colors hover:bg-gray-50/30 ${tx.type === 'SALE' ? 'cursor-pointer' : ''}`}
                       onClick={() => tx.type === 'SALE' && toggleExpand(tx.id)}>
@@ -384,7 +384,7 @@ export const CustomerDetailView: React.FC = () => {
                         </td>
                       </tr>
                     )}
-                  </React.Fragment>
+                  </Fragment>
                 ))
               )}
             </tbody>

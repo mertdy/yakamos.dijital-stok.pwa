@@ -5,15 +5,16 @@ import {
   persistentLocalCache,
   persistentMultipleTabManager
 } from 'firebase/firestore';
+import { ENV } from '../config/env';
 
 const firebaseConfig = {
-  apiKey: 'AIzaSyASR3_u_z9SLk77L0YDuJAhkDKI-YP1cJo',
-  authDomain: 'dijital-stokk.firebaseapp.com',
-  projectId: 'dijital-stokk',
-  storageBucket: 'dijital-stokk.firebasestorage.app',
-  messagingSenderId: '526702915988',
-  appId: '1:526702915988:web:5ba3d31447d83fab8d9f81',
-  measurementId: 'G-3VGSXRNWW1'
+  apiKey: ENV.FIREBASE_API_KEY,
+  authDomain: ENV.FIREBASE_AUTH_DOMAIN,
+  projectId: ENV.FIREBASE_PROJECT_ID,
+  storageBucket: ENV.FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: ENV.FIREBASE_MESSAGING_SENDER_ID,
+  appId: ENV.FIREBASE_APP_ID,
+  measurementId: ENV.FIREBASE_MEASUREMENT_ID
 };
 
 // Initialize Firebase

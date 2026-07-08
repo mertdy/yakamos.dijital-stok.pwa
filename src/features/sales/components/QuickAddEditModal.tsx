@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   X,
@@ -117,7 +117,7 @@ export const QuickAddEditModal: React.FC<Props> = ({ isOpen, onClose }) => {
   const debouncedSearch = useDebounce(searchQuery, 300);
 
   // Initialize local state when modal opens
-  React.useEffect(() => {
+  useEffect(() => {
     if (isOpen) {
       setLocalQuickAddItems([...savedItems]);
       setSearchQuery('');

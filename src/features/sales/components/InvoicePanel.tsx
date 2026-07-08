@@ -15,6 +15,10 @@ import {
 } from 'lucide-react';
 import { Button } from '@heroui/react';
 import { Tooltip } from '@heroui/react';
+import { useReactToPrint } from 'react-to-print';
+import { Printer } from 'lucide-react';
+import { ReceiptTemplate } from './ReceiptTemplate';
+import { useRef } from 'react';
 
 interface Props {
   onOpenCustomerDrawer: () => void;
@@ -44,6 +48,13 @@ export const InvoicePanel: React.FC<Props> = ({
   ); // UI Mock
   const [givenAmount, setGivenAmount] = useState<number | ''>('');
   const [isCustomAmountFocused, setIsCustomAmountFocused] = useState(false);
+  const [lastSale, setLastSale] = useState<any>(null);
+  const receiptRef = useRef<HTMLDivElement>(null);
+
+  const handlePrint = useReactToPrint({
+    contentRef: receiptRef,
+    documentTitle: 'Satis_Fisi'
+  });
 
   const subtotal = cart.reduce(
     (sum, item) => sum + item.price * item.quantity,
@@ -69,10 +80,20 @@ export const InvoicePanel: React.FC<Props> = ({
     : true;
 
   const handleCheckout = async () => {
+    // Save current state for receipt before checkout clears it
+    const saleData = {
+      id: invoiceRef,
+      createdAt: new Date().toISOString(),
+      items: [...cart],
+      totalAmount: totalPayable
+    };
+
     const success = await checkout();
     if (success) {
-      toast.success('Satış başarıyla tamamlandı!');
       setGivenAmount('');
+      setLastSale(saleData);
+
+      toast.success('Satış başarıyla tamamlandı!');
     } else {
       toast.danger('Satış işlemi başarısız oldu.');
     }
@@ -98,6 +119,11 @@ export const InvoicePanel: React.FC<Props> = ({
 
   return (
     <div className="flex flex-col overflow-hidden rounded-3xl border border-gray-100 bg-white shadow-sm">
+      {/* Hidden Receipt for Printing */}
+      <div className="hidden">
+        <ReceiptTemplate ref={receiptRef} sale={lastSale} />
+      </div>
+
       <div className="flex items-center justify-between border-b border-gray-100 bg-gray-50/50 px-4 py-3">
         <h2 className="flex items-center gap-2 text-base font-bold tracking-tight text-gray-900">
           <Receipt className="text-primary" size={18} />
@@ -363,6 +389,16 @@ export const InvoicePanel: React.FC<Props> = ({
               Sepeti Temizle
             </Button>
           </div>
+
+          {lastSale && (
+            <Button
+              variant="secondary"
+              className="mt-1 h-10 w-full rounded-xl text-sm"
+              onPress={() => handlePrint()}>
+              <Printer className="mr-1.5" size={16} />
+              Son Fişi Yazdır
+            </Button>
+          )}
 
           {useSalesStore.getState().heldSales.length > 0 && (
             <Button

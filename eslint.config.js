@@ -18,7 +18,23 @@ export default defineConfig([
     rules: {
       '@typescript-eslint/no-explicit-any': 'off',
       'no-useless-assignment': 'off',
-      'react-hooks/set-state-in-effect': 'off'
+      'react-hooks/set-state-in-effect': 'off',
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: [
+                'src/features/*/*/*',
+                '../../features/*/*/*',
+                '../features/*/*/*'
+              ],
+              message:
+                'Lütfen feature modüllerini Public API (index.ts) üzerinden import edin (Örn: src/features/sales). Modül içine doğrudan sızmayın.'
+            }
+          ]
+        }
+      ]
     },
     languageOptions: {
       globals: globals.browser
