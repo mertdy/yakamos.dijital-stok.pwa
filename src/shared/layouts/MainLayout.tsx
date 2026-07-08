@@ -1,0 +1,162 @@
+import React, { useState, useEffect } from 'react';
+import { NavLink, Outlet, useLocation } from 'react-router-dom';
+import { SyncIndicator } from '../components/SyncIndicator';
+import { Store, MonitorCheck, Package, Users, LogOut, ChevronLeft, ChevronRight, History, LayoutDashboard } from 'lucide-react';
+import { useAuthStore } from '../../features/auth/store/useAuthStore';
+import { Button } from '@heroui/react';
+
+const navItems = [
+  { name: 'Anasayfa', path: '/', icon: LayoutDashboard },
+  { name: 'Satış', path: '/sales', icon: MonitorCheck },
+  { name: 'Satış Geçmişi', path: '/sales-history', icon: History },
+  { name: 'Müşteriler', path: '/customers', icon: Users },
+  { name: 'Envanter', path: '/inventory', icon: Package },
+];
+
+export const MainLayout: React.FC = () => {
+  const { user, logout } = useAuthStore();
+  const location = useLocation();
+  const [isCollapsed, setIsCollapsed] = useState(false);
+
+  // Auto collapse on sales screen
+  useEffect(() => {
+    if (location.pathname === '/sales') {
+      setIsCollapsed(true);
+    } else {
+      setIsCollapsed(false);
+    }
+  }, [location.pathname]);
+
+  return (
+    <div className="flex h-screen w-full bg-background flex-col md:flex-row overflow-hidden">
+      {/* Desktop Sidebar */}
+      <aside 
+        className={`hidden md:flex flex-col bg-background border-r border-gray-200/50 transition-all duration-300 ease-in-out relative ${
+          isCollapsed ? 'w-20 items-center' : 'w-64'
+        }`}
+      >
+        {/* Toggle Button */}
+        <button 
+          onClick={() => setIsCollapsed(!isCollapsed)}
+          className="absolute -right-3 top-6 bg-white border border-gray-200 rounded-full p-1 text-gray-500 hover:text-primary hover:border-primary shadow-sm z-50 transition-colors"
+        >
+          {isCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+        </button>
+
+        <div className={`p-6 border-b border-gray-100 flex flex-col gap-4 w-full ${isCollapsed ? 'items-center px-2' : ''}`}>
+          <h1 className={`text-xl font-bold text-primary flex items-center gap-2 ${isCollapsed ? 'justify-center' : ''}`}>
+            <Store className="text-2xl flex-shrink-0" />
+            {!isCollapsed && <span className="whitespace-nowrap">Dijital Stok</span>}
+          </h1>
+          
+          {!isCollapsed ? (
+            <SyncIndicator />
+          ) : (
+            <div className="w-2 h-2 rounded-full bg-green-500 shadow-sm" aria-label="Senkronize" />
+          )}
+
+          {/* User Profile Card */}
+          {user && (
+            <div className={`flex items-center gap-3 bg-gray-50 rounded-2xl border border-gray-100 mt-2 ${isCollapsed ? 'p-1.5 justify-center' : 'p-3'}`}>
+              <img 
+                src={user.photoURL || `https://ui-avatars.com/api/?name=${user.displayName || 'User'}&background=random`} 
+                alt="User avatar" 
+                className={`${isCollapsed ? 'w-8 h-8' : 'w-10 h-10'} rounded-full object-cover shadow-sm flex-shrink-0 transition-all`}
+              />
+              {!isCollapsed && (
+                <div className="flex flex-col overflow-hidden">
+                  <span className="text-sm font-semibold text-gray-900 truncate">
+                    {user.displayName || 'İsimsiz Kullanıcı'}
+                  </span>
+                  <span className="text-xs text-gray-500 truncate">
+                    {user.email}
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        <nav className={`flex-1 px-4 space-y-2 mt-4 w-full ${isCollapsed ? 'px-2' : ''}`}>
+          {navItems.map((item) => (
+            <NavLink
+              key={item.path}
+              to={item.path}
+              aria-label={isCollapsed ? item.name : undefined}
+              className={({ isActive }) =>
+                `flex items-center rounded-2xl transition-all duration-200 ${
+                  isCollapsed ? 'justify-center p-3' : 'gap-3 px-5 py-3'
+                } ${
+                  isActive
+                    ? 'bg-primary/10 text-primary font-semibold'
+                    : 'text-gray-600 hover:bg-gray-100/80 font-medium'
+                }`
+              }
+            >
+              <item.icon className="text-xl flex-shrink-0" />
+              {!isCollapsed && <span className="font-medium whitespace-nowrap">{item.name}</span>}
+            </NavLink>
+          ))}
+        </nav>
+
+        <div className={`p-4 border-t border-gray-100 w-full ${isCollapsed ? 'px-2' : ''}`}>
+          <Button 
+            variant="ghost" 
+            aria-label={isCollapsed ? "Çıkış Yap" : undefined}
+            className={`w-full text-danger hover:text-danger hover:bg-danger/10 ${isCollapsed ? 'justify-center px-0' : 'justify-start'}`} 
+            onPress={logout}
+          >
+            <LogOut className={isCollapsed ? '' : 'mr-2'} size={20} />
+            {!isCollapsed && <span>Çıkış Yap</span>}
+          </Button>
+        </div>
+      </aside>
+
+      {/* Main Content Area */}
+      <main className="flex-1 overflow-y-auto pb-20 md:pb-0 relative">
+        {/* Mobile Header */}
+        <header className="md:hidden bg-background border-b border-gray-200/50 p-4 sticky top-0 z-10 flex items-center justify-between">
+          <h1 className="text-lg font-bold text-primary flex items-center gap-2">
+            <Store className="text-xl" />
+            Dijital Stok
+          </h1>
+          <div className="flex items-center gap-3">
+            <SyncIndicator />
+            {user && (
+              <img 
+                src={user.photoURL || `https://ui-avatars.com/api/?name=${user.displayName || 'User'}&background=random`} 
+                alt="User avatar" 
+                className="w-8 h-8 rounded-full object-cover shadow-sm border border-gray-200"
+              />
+            )}
+            <Button variant="ghost" isIconOnly className="text-danger" onPress={logout}>
+              <LogOut size={20} />
+            </Button>
+          </div>
+        </header>
+
+        <div className="w-full h-full max-w-7xl mx-auto">
+          <Outlet />
+        </div>
+      </main>
+
+      {/* Mobile Bottom Navigation */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200/50 flex justify-around items-center h-16 px-2 pb-safe z-50">
+        {navItems.map((item) => (
+          <NavLink
+            key={item.path}
+            to={item.path}
+            className={({ isActive }) =>
+              `flex flex-col items-center justify-center w-full h-full space-y-1 transition-colors ${
+                isActive ? 'text-primary font-semibold' : 'text-gray-500 font-medium hover:text-gray-700'
+              }`
+            }
+          >
+            <item.icon className="text-2xl" />
+            <span className="text-[10px] font-medium">{item.name}</span>
+          </NavLink>
+        ))}
+      </nav>
+    </div>
+  );
+};

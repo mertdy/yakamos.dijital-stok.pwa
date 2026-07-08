@@ -1,0 +1,23 @@
+# HeroUI Button Migration Tasks
+
+- `[x]` Update implementation plan with user's feedback (secondary mapping)
+- `[x]` `src/features/auth/views/LoginView.tsx`
+- `[x]` `src/shared/layouts/MainLayout.tsx`
+- `[x]` `src/features/customers/components/CustomerDrawer.tsx`
+- `[x]` `src/features/customers/components/PaymentModal.tsx`
+- `[x]` `src/features/customers/views/CustomerDetailView.tsx`
+- `[x]` `src/features/customers/views/CustomerFormView.tsx`
+- `[x]` `src/features/customers/views/CustomerListView.tsx`
+- `[x]` `src/features/inventory/components/InventoryTable.tsx`
+- `[x]` `src/features/inventory/views/InventoryView.tsx`
+- `[x]` `src/features/inventory/views/ProductFormView.tsx`
+- `[x]` `src/features/sales-history/components/SalesHistoryFilters.tsx`
+- `[x]` `src/features/sales-history/components/SalesHistoryList.tsx`
+- `[x]` `src/features/sales/components/CartPanel.tsx`
+- `[x]` `src/features/sales/components/HeldSalesDrawer.tsx`
+- `[x]` `src/features/sales/components/InvoicePanel.tsx`
+- `[x]` `src/features/sales/components/QuickAddEditModal.tsx`
+- `[x]` `src/features/sales/components/ScannerModal.tsx`
+- `[x]` `src/shared/contexts/ConfirmDialogContext.tsx`
+- `[x]` Delete `src/shared/components/Button.tsx`
+- `[x]` Build and verify (Typescript check)

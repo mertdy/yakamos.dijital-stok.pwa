@@ -1,0 +1,244 @@
+import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
+import { writeBatch, doc, collection, increment } from 'firebase/firestore';
+import { db, auth } from '../../../core/firebase/config';
+
+export interface CartItem {
+  inventoryId: string;
+  name: string;
+  price: number;
+  quantity: number;
+  imageUrl?: string;
+  barcode?: string;
+}
+
+export type PaymentMethod = 'Cash' | 'Card' | 'Scan' | 'Credit';
+export type DiscountType = 'amount' | 'percentage';
+
+export interface HeldSale {
+  id: string;
+  cart: CartItem[];
+  customerId: string | null;
+  discountType: DiscountType;
+  discountValue: number;
+  paymentMethod: PaymentMethod;
+  timestamp: string;
+}
+
+interface SalesState {
+  cart: CartItem[];
+  isProcessing: boolean;
+  customerId: string | null;
+  discountType: DiscountType;
+  discountValue: number;
+  paymentMethod: PaymentMethod;
+  heldSales: HeldSale[];
+  addToCart: (item: CartItem) => void;
+  removeFromCart: (inventoryId: string) => void;
+  updateQuantity: (inventoryId: string, quantity: number) => void;
+  clearCart: () => void;
+  setCustomerId: (id: string | null) => void;
+  setDiscount: (type: DiscountType, value: number) => void;
+  setPaymentMethod: (method: PaymentMethod) => void;
+  checkout: () => Promise<boolean>;
+  holdSale: () => void;
+  restoreSale: (id: string) => void;
+  removeHeldSale: (id: string) => void;
+  clearHeldSales: () => void;
+}
+
+export const useSalesStore = create<SalesState>()(
+  persist(
+    (set, get) => ({
+      cart: [],
+      isProcessing: false,
+      customerId: null,
+      discountType: 'amount',
+      discountValue: 0,
+      paymentMethod: 'Cash',
+      heldSales: [],
+
+      addToCart: (newItem) => {
+        set((state) => {
+          const existing = state.cart.find((item) => item.inventoryId === newItem.inventoryId);
+          if (existing) {
+            return {
+              cart: state.cart.map((item) =>
+                item.inventoryId === newItem.inventoryId
+                  ? { ...item, quantity: item.quantity + newItem.quantity }
+                  : item
+              ),
+            };
+          }
+          return { cart: [...state.cart, newItem] };
+        });
+      },
+
+      removeFromCart: (inventoryId) => {
+        set((state) => ({
+          cart: state.cart.filter((item) => item.inventoryId !== inventoryId),
+        }));
+      },
+
+      updateQuantity: (inventoryId, quantity) => {
+        set((state) => ({
+          cart: state.cart.map((item) =>
+            item.inventoryId === inventoryId ? { ...item, quantity } : item
+          ),
+        }));
+      },
+
+      clearCart: () => set({ cart: [], customerId: null, discountType: 'amount', discountValue: 0 }),
+
+      setCustomerId: (id) => set({ customerId: id }),
+      setDiscount: (type, value) => set({ discountType: type, discountValue: value }),
+      setPaymentMethod: (method) => set({ paymentMethod: method }),
+
+      holdSale: () => {
+        const { cart, customerId, discountType, discountValue, paymentMethod, heldSales } = get();
+        if (cart.length === 0) return;
+
+        const newHeldSale: HeldSale = {
+          id: crypto.randomUUID(),
+          cart: [...cart],
+          customerId,
+          discountType,
+          discountValue,
+          paymentMethod,
+          timestamp: new Date().toISOString()
+        };
+
+        set({ 
+          heldSales: [newHeldSale, ...heldSales],
+          cart: [], 
+          customerId: null, 
+          discountType: 'amount', 
+          discountValue: 0, 
+          paymentMethod: 'Cash'
+        });
+      },
+
+      restoreSale: (id: string) => {
+        const { heldSales } = get();
+        const saleToRestore = heldSales.find(s => s.id === id);
+        if (!saleToRestore) return;
+
+        set({
+          cart: [...saleToRestore.cart],
+          customerId: saleToRestore.customerId,
+          discountType: saleToRestore.discountType || 'amount',
+          discountValue: saleToRestore.discountValue || 0,
+          paymentMethod: saleToRestore.paymentMethod,
+          heldSales: heldSales.filter(s => s.id !== id)
+        });
+      },
+
+      removeHeldSale: (id: string) => {
+        set((state) => ({
+          heldSales: state.heldSales.filter(s => s.id !== id)
+        }));
+      },
+
+      clearHeldSales: () => {
+        set({ heldSales: [] });
+      },
+
+      checkout: async () => {
+        const { cart, customerId, discountType, discountValue, paymentMethod } = get();
+        if (cart.length === 0) return false;
+
+        const user = auth.currentUser;
+        if (!user) {
+          console.error("User not authenticated");
+          return false;
+        }
+
+        if (paymentMethod === 'Credit' && !customerId) {
+          console.error("Veresiye satış için müşteri seçilmelidir.");
+          return false;
+        }
+
+        set({ isProcessing: true });
+        try {
+          const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+          
+          let discountAmount = 0;
+          if (discountType === 'percentage') {
+            discountAmount = subtotal * (discountValue / 100);
+          } else {
+            discountAmount = discountValue;
+          }
+
+          const totalAmount = subtotal - discountAmount;
+
+          const createdAt = new Date().toISOString();
+          const invoiceNumber = `INV-${Date.now().toString().slice(-6)}`;
+
+          // Initialize Firestore Batch
+          const batch = writeBatch(db);
+
+          // 1. Create Sale Document
+          const saleRef = doc(collection(db, 'sales'));
+          batch.set(saleRef, {
+            userId: user.uid,
+            invoiceNumber,
+            customerId,
+            subtotal,
+            discount: discountAmount, // keeping backward compatibility
+            discountType,
+            discountValue,
+            totalAmount,
+            paymentMethod,
+            status: 'Completed',
+            createdAt,
+            cart,
+          });
+
+          // 2. Add Sale Items and Decrement Inventory
+          for (const item of cart) {
+            // Sale Item
+            const saleItemRef = doc(collection(db, 'saleItems'));
+            batch.set(saleItemRef, {
+              saleId: saleRef.id,
+              userId: user.uid,
+              inventoryId: item.inventoryId,
+              quantity: item.quantity,
+              unitPrice: item.price
+            });
+
+            // Decrement Inventory
+            const invRef = doc(db, 'inventory', item.inventoryId);
+            batch.update(invRef, {
+              stock: increment(-item.quantity),
+              updatedAt: createdAt
+            });
+          }
+
+          // 3. Increment Customer Debt if Credit
+          if (paymentMethod === 'Credit' && customerId) {
+            const customerRef = doc(db, 'customers', customerId);
+            batch.update(customerRef, {
+              totalDebt: increment(totalAmount)
+            });
+          }
+
+          // Firestore will cache this batch and sync when online
+          batch.commit().catch(err => {
+            console.error('Firestore background batch sync failed', err);
+          });
+
+          set({ cart: [], isProcessing: false, customerId: null, discountType: 'amount', discountValue: 0, paymentMethod: 'Cash' });
+          return true;
+        } catch (error) {
+          console.error('Checkout failed:', error);
+          set({ isProcessing: false });
+          return false;
+        }
+      },
+    }),
+    {
+      name: 'sales-storage',
+      partialize: (state) => ({ heldSales: state.heldSales }),
+    }
+  )
+);

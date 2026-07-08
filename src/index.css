@@ -1,0 +1,42 @@
+@import "tailwindcss";
+@plugin "@tailwindcss/forms";
+@import "@heroui/styles";
+
+
+@theme {
+  --font-sans: "Inter", system-ui, sans-serif;
+  --color-primary: #1a73e8;
+  --color-danger: #d93025;
+  --color-success: #1e8e3e;
+  --color-warning: #f9ab00;
+  --color-background: #f8f9fa;
+
+  --animate-slide-in-right: slide-in-right 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  --animate-fade-in: fade-in 0.2s ease-out;
+
+  @keyframes slide-in-right {
+    0% {
+      transform: translateX(100%);
+    }
+
+    100% {
+      transform: translateX(0);
+    }
+  }
+
+  @keyframes fade-in {
+    0% {
+      opacity: 0;
+    }
+
+    100% {
+      opacity: 1;
+    }
+  }
+}
+
+body {
+  background-color: var(--color-background);
+  color: #202124;
+  -webkit-font-smoothing: antialiased;
+}
