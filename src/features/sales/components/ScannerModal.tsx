@@ -5,7 +5,7 @@ import {
   BarcodeFormat
 } from '@capacitor-mlkit/barcode-scanning';
 import { Capacitor } from '@capacitor/core';
-import { useInventoryStore } from '../../inventory/store/useInventoryStore';
+import { useInventoryStore } from '@/features/inventory';
 import { toast } from '@heroui/react';
 import { useSalesStore } from '../store/useSalesStore';
 import { useNavigate } from 'react-router-dom';

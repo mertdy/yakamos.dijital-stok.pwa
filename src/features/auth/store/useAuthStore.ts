@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { signInWithPopup, signOut, type User } from 'firebase/auth';
-import { auth, googleProvider } from '../../../core/firebase/config';
-import { useInventoryStore } from '../../inventory/store/useInventoryStore';
+import { auth, googleProvider } from '@/core/firebase/config';
+import { useInventoryStore } from '@/features/inventory';
 
 interface AuthState {
   user: User | null;

@@ -1,6 +1,6 @@
 import React, { useMemo, useEffect, useState } from 'react';
 import { Package, Settings2 } from 'lucide-react';
-import { useInventoryStore } from '../../inventory/store/useInventoryStore';
+import { useInventoryStore } from '@/features/inventory';
 import { useSalesStore } from '../store/useSalesStore';
 import { usePreferencesStore } from '../store/usePreferencesStore';
 import { QuickAddEditModal } from './QuickAddEditModal';

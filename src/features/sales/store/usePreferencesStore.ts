@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { db, auth } from '../../../core/firebase/config';
+import { db, auth } from '@/core/firebase/config';
 
 interface PreferencesState {
   quickAddItems: string[]; // Array of inventory IDs

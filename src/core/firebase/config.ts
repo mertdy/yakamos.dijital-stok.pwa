@@ -5,7 +5,7 @@ import {
   persistentLocalCache,
   persistentMultipleTabManager
 } from 'firebase/firestore';
-import { ENV } from '../config/env';
+import { ENV } from '@/core/config/env';
 
 const firebaseConfig = {
   apiKey: ENV.FIREBASE_API_KEY,

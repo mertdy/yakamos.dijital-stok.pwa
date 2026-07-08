@@ -1,6 +1,6 @@
 import { useHotkeys } from 'react-hotkeys-hook';
 import { useNavigate } from 'react-router-dom';
-import { useSalesStore } from '../../features/sales';
+import { useSalesStore } from '@/features/sales';
 
 export const useAppHotkeys = () => {
   const navigate = useNavigate();

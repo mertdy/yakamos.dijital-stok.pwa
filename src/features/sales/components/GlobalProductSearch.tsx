@@ -1,9 +1,9 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Search, ScanBarcode, Package } from 'lucide-react';
-import { useInventoryStore } from '../../inventory/store/useInventoryStore';
+import { useInventoryStore } from '@/features/inventory';
 import { useSalesStore } from '../store/useSalesStore';
-import { useDebounce } from '../../../shared/hooks/useDebounce';
-import { useGlobalBarcodeScanner } from '../../../shared/hooks/useGlobalBarcodeScanner';
+import { useDebounce } from '@/shared/hooks/useDebounce';
+import { useGlobalBarcodeScanner } from '@/shared/hooks/useGlobalBarcodeScanner';
 import { useNavigate } from 'react-router-dom';
 import { toast } from '@heroui/react';
 

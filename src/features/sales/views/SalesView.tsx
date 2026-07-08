@@ -2,7 +2,7 @@ import React, { useState, Suspense } from 'react';
 import { ProductList } from '../components/ProductList';
 import { OrderDetailsPanel } from '../components/OrderDetailsPanel';
 import { InvoicePanel } from '../components/InvoicePanel';
-import { CustomerDrawer } from '../../customers/components/CustomerDrawer';
+import { CustomerDrawer } from '@/features/customers';
 import { HeldSalesDrawer } from '../components/HeldSalesDrawer';
 import { GlobalProductSearch } from '../components/GlobalProductSearch';
 

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useSalesHistoryStore } from '../store/useSalesHistoryStore';
-import { useCustomerStore } from '../../customers/store/useCustomerStore';
+import { useCustomerStore } from '@/features/customers';
 import { Search, Filter, X } from 'lucide-react';
 import { Button } from '@heroui/react';
 import {

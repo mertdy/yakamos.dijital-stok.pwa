@@ -2,7 +2,7 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { vi } from 'vitest';
 import { CustomerDrawer } from './CustomerDrawer';
 import { useCustomerStore } from '../store/useCustomerStore';
-import { useSalesStore } from '../../sales/store/useSalesStore';
+import { useSalesStore } from '@/features/sales';
 import { useNavigate } from 'react-router-dom';
 
 vi.mock('lucide-react', () => ({

@@ -5,7 +5,7 @@ import { Button } from '@heroui/react';
 import { useCustomerStore } from '../store/useCustomerStore';
 import { useReactToPrint } from 'react-to-print';
 import { Printer } from 'lucide-react';
-import { ReceiptTemplate } from '../../sales/components/ReceiptTemplate';
+import { ReceiptTemplate } from '@/features/sales';
 import { useRef } from 'react';
 import { toast } from '@heroui/react';
 

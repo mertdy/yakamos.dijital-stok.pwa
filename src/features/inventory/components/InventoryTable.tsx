@@ -21,9 +21,9 @@ import {
 } from 'lucide-react';
 import { Button } from '@heroui/react';
 import { useNavigate } from 'react-router-dom';
-import { useGlobalBarcodeScanner } from '../../../shared/hooks/useGlobalBarcodeScanner';
+import { useGlobalBarcodeScanner } from '@/shared/hooks/useGlobalBarcodeScanner';
 import { toast } from '@heroui/react';
-import { useConfirm } from '../../../shared/contexts/ConfirmDialogContext';
+import { useConfirm } from '@/shared/contexts/ConfirmDialogContext';
 
 export const InventoryTable: React.FC = () => {
   const { items, deleteItem } = useInventoryStore();

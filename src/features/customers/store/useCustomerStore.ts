@@ -11,7 +11,7 @@ import {
   writeBatch,
   getDocs
 } from 'firebase/firestore';
-import { db, auth } from '../../../core/firebase/config';
+import { db, auth } from '@/core/firebase/config';
 
 export interface Customer {
   id: string;

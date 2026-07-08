@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { writeBatch, doc, collection, increment } from 'firebase/firestore';
-import { db, auth } from '../../../core/firebase/config';
+import { db, auth } from '@/core/firebase/config';
 
 export interface CartItem {
   inventoryId: string;

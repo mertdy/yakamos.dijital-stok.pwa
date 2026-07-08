@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
-import { SyncIndicator } from '../components/SyncIndicator';
-import { useAppHotkeys } from '../hooks/useAppHotkeys';
+import { SyncIndicator } from '@/shared/components/SyncIndicator';
+import { useAppHotkeys } from '@/shared/hooks/useAppHotkeys';
 import {
   Store,
   MonitorCheck,
@@ -13,7 +13,7 @@ import {
   History,
   LayoutDashboard
 } from 'lucide-react';
-import { useAuthStore } from '../../features/auth';
+import { useAuthStore } from '@/features/auth';
 import { Button } from '@heroui/react';
 
 const navItems = [

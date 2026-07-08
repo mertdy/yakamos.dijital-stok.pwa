@@ -1,16 +1,16 @@
 import { useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { MainLayout } from './shared/layouts/MainLayout';
-import { InventoryView } from './features/inventory/views/InventoryView';
-import { SalesView } from './features/sales/views/SalesView';
-import { LoginView } from './features/auth/views/LoginView';
-import { CustomerListView } from './features/customers/views/CustomerListView';
-import { CustomerFormView } from './features/customers/views/CustomerFormView';
-import { CustomerDetailView } from './features/customers/views/CustomerDetailView';
-import { ProductFormView } from './features/inventory/views/ProductFormView';
-import { SalesHistoryView } from './features/sales-history/views/SalesHistoryView';
-import { DashboardView } from './features/dashboard/views/DashboardView';
-import { useAuthStore } from './features/auth/store/useAuthStore';
+import { InventoryView, ProductFormView } from '@/features/inventory';
+import { SalesView } from '@/features/sales';
+import { LoginView, useAuthStore } from '@/features/auth';
+import {
+  CustomerListView,
+  CustomerFormView,
+  CustomerDetailView
+} from '@/features/customers';
+import { SalesHistoryView } from '@/features/sales-history';
+import { DashboardView } from '@/features/dashboard';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from './core/firebase/config';
 import { Loader2 } from 'lucide-react';

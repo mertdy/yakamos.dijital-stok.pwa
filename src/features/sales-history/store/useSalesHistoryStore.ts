@@ -9,9 +9,9 @@ import {
   writeBatch,
   getDoc
 } from 'firebase/firestore';
-import { db, auth } from '../../../core/firebase/config';
+import { db, auth } from '@/core/firebase/config';
 import { toast } from '@heroui/react';
-import type { CartItem } from '../../sales/store/useSalesStore';
+import type { CartItem } from '@/features/sales';
 
 export interface SaleTransaction {
   id: string;

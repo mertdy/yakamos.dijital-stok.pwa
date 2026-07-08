@@ -11,9 +11,9 @@ import {
   Plus
 } from 'lucide-react';
 import { Button } from '@heroui/react';
-import { useInventoryStore } from '../../inventory/store/useInventoryStore';
+import { useInventoryStore } from '@/features/inventory';
 import { usePreferencesStore } from '../store/usePreferencesStore';
-import { useDebounce } from '../../../shared/hooks/useDebounce';
+import { useDebounce } from '@/shared/hooks/useDebounce';
 import {
   DndContext,
   closestCenter,

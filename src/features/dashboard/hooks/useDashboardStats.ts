@@ -1,7 +1,7 @@
 import { useMemo, useEffect, useState } from 'react';
-import { useSalesHistoryStore } from '../../sales-history/store/useSalesHistoryStore';
-import { useInventoryStore } from '../../inventory/store/useInventoryStore';
-import { useCustomerStore } from '../../customers/store/useCustomerStore';
+import { useSalesHistoryStore } from '@/features/sales-history';
+import { useInventoryStore } from '@/features/inventory';
+import { useCustomerStore } from '@/features/customers';
 import dayjs from 'dayjs';
 import isSameOrAfter from 'dayjs/plugin/isSameOrAfter';
 

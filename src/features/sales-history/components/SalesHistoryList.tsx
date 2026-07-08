@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useSalesHistoryStore } from '../store/useSalesHistoryStore';
-import { useCustomerStore } from '../../customers/store/useCustomerStore';
+import { useCustomerStore } from '@/features/customers';
 import {
   ReceiptText,
   ChevronDown,
@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@heroui/react';
 import { useNavigate } from 'react-router-dom';
-import { useConfirm } from '../../../shared/contexts/ConfirmDialogContext';
+import { useConfirm } from '@/shared/contexts/ConfirmDialogContext';
 
 export const SalesHistoryList: React.FC = () => {
   const { sales, cancelSale } = useSalesHistoryStore();

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useCustomerStore } from '../store/useCustomerStore';
-import { useSalesStore } from '../../sales/store/useSalesStore';
+import { useSalesStore } from '@/features/sales';
 import { Button } from '@heroui/react';
 import { X, Search, UserPlus, CheckCircle2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';

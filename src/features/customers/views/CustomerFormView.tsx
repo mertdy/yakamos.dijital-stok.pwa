@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useCustomerStore } from '../store/useCustomerStore';
-import { useSalesStore } from '../../sales/store/useSalesStore';
+import { useSalesStore } from '@/features/sales';
 import { ArrowLeft, Save, Loader2 } from 'lucide-react';
 import { Button } from '@heroui/react';
 import { toast } from '@heroui/react';

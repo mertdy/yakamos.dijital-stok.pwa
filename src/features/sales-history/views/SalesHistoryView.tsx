@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { useSalesHistoryStore } from '../store/useSalesHistoryStore';
-import { useCustomerStore } from '../../customers/store/useCustomerStore';
+import { useCustomerStore } from '@/features/customers';
 import { SalesHistoryFilters } from '../components/SalesHistoryFilters';
 import { SalesHistoryList } from '../components/SalesHistoryList';
 import { Loader2 } from 'lucide-react';

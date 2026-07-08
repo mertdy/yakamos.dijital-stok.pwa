@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { useSalesStore } from '../store/useSalesStore';
 import type { HeldSale } from '../store/useSalesStore';
-import { useCustomerStore } from '../../customers/store/useCustomerStore';
-import { useConfirm } from '../../../shared/contexts/ConfirmDialogContext';
+import { useCustomerStore } from '@/features/customers';
+import { useConfirm } from '@/shared/contexts/ConfirmDialogContext';
 import { Button } from '@heroui/react';
 import { X, Clock, Trash2, ListRestart } from 'lucide-react';
 import { toast } from '@heroui/react';

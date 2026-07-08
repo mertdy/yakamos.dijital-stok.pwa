@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useSalesStore, type PaymentMethod } from '../store/useSalesStore';
-import { useCustomerStore } from '../../customers/store/useCustomerStore';
+import { useCustomerStore } from '@/features/customers';
 import { toast } from '@heroui/react';
 import {
   UserPlus,
