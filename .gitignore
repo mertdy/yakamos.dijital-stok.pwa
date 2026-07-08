@@ -27,3 +27,15 @@ dist-ssr
 .agents/implementation_plan.md
 .agents/task.md
 .agents/walkthrough.md
+
+# Environment Files
+.env
+.env.local
+.env.*.local
+
+# Testing and Coverage
+coverage/
+playwright-report/
+test-results/
+blob-report/
+.eslintcache
