@@ -6,11 +6,9 @@ import {
 } from '@capacitor-mlkit/barcode-scanning';
 import { Capacitor } from '@capacitor/core';
 import { useInventoryStore } from '@/features/inventory';
-import { toast } from '@heroui/react';
+import { toast, Button, Modal } from '@heroui/react';
 import { useSalesStore } from '../store/useSalesStore';
 import { useNavigate } from 'react-router-dom';
-import { X } from 'lucide-react';
-import { Button } from '@heroui/react';
 
 interface ScannerModalProps {
   isOpen: boolean;
@@ -268,41 +266,50 @@ const ScannerModal: React.FC<ScannerModalProps> = ({
     };
   }, [isOpen, startScan, stopScan]);
 
-  if (!isOpen) return null;
+  const isNativeScanning = Capacitor.getPlatform() !== 'web' && isScanning;
 
   return (
-    <div
-      className={`fixed inset-0 z-50 flex items-center justify-center ${Capacitor.getPlatform() !== 'web' && isScanning ? 'bg-transparent' : 'bg-black/40 backdrop-blur-sm'}`}>
-      <div
-        className={`w-full max-w-md overflow-hidden rounded-[28px] bg-white shadow-2xl ${Capacitor.getPlatform() !== 'web' && isScanning ? 'bg-transparent shadow-none' : ''}`}>
-        <div className="flex items-center justify-between border-b border-gray-100 bg-white p-6">
-          <h2 className="text-2xl font-bold tracking-tight text-gray-900">
-            Barkod Okut
-          </h2>
-          <Button variant="ghost" isIconOnly onPress={onClose}>
-            <X className="text-2xl" />
-          </Button>
-        </div>
-        <div className="flex flex-col items-center justify-center bg-white py-10">
-          {isScanning && Capacitor.getPlatform() === 'web' ? (
-            <div className="border-primary/50 relative flex h-64 w-64 flex-col items-center justify-center overflow-hidden rounded-3xl border-[3px] border-dashed bg-black">
-              <video ref={videoRef} className="h-full w-full object-cover" />
-              <div className="bg-primary absolute top-1/2 right-0 left-0 h-1 w-full animate-ping opacity-50" />
-            </div>
-          ) : (
-            <div className="border-primary/50 relative flex h-64 w-64 items-center justify-center overflow-hidden rounded-3xl border-[3px] border-dashed bg-gray-50/50">
-              <div className="absolute inset-0 bg-black/5" />
-              <div className="bg-primary absolute top-1/2 right-0 left-0 h-1 w-full animate-ping" />
-            </div>
-          )}
-        </div>
-        <div className="flex justify-end border-t border-gray-100 bg-white p-6">
-          <Button variant="ghost" onPress={onClose}>
-            İptal Et
-          </Button>
-        </div>
-      </div>
-    </div>
+    <Modal
+      isOpen={isOpen}
+      onOpenChange={open => {
+        if (!open) onClose();
+      }}>
+      <button style={{ display: 'none' }} aria-hidden="true" tabIndex={-1} />
+      <Modal.Backdrop className={isNativeScanning ? 'bg-transparent' : ''}>
+        <Modal.Container>
+          <Modal.Dialog
+            className={`w-full max-w-md overflow-hidden rounded-[28px] bg-white shadow-2xl outline-none ${isNativeScanning ? 'bg-transparent shadow-none' : ''}`}>
+            <Modal.CloseTrigger />
+            <Modal.Header>
+              <Modal.Heading className="text-xl">Barkod Okut</Modal.Heading>
+            </Modal.Header>
+            <Modal.Body>
+              <div className="flex flex-col items-center justify-center py-6">
+                {isScanning && Capacitor.getPlatform() === 'web' ? (
+                  <div className="border-primary/50 relative flex h-64 w-64 flex-col items-center justify-center overflow-hidden rounded-3xl border-[3px] border-dashed bg-black">
+                    <video
+                      ref={videoRef}
+                      className="h-full w-full object-cover"
+                    />
+                    <div className="bg-primary absolute top-1/2 right-0 left-0 h-1 w-full animate-ping opacity-50" />
+                  </div>
+                ) : (
+                  <div className="border-primary/50 relative flex h-64 w-64 items-center justify-center overflow-hidden rounded-3xl border-[3px] border-dashed bg-gray-50/50">
+                    <div className="absolute inset-0 bg-black/5" />
+                    <div className="bg-primary absolute top-1/2 right-0 left-0 h-1 w-full animate-ping" />
+                  </div>
+                )}
+              </div>
+            </Modal.Body>
+            <Modal.Footer className="flex justify-end border-t border-gray-100 bg-white p-6">
+              <Button variant="ghost" onPress={onClose}>
+                İptal Et
+              </Button>
+            </Modal.Footer>
+          </Modal.Dialog>
+        </Modal.Container>
+      </Modal.Backdrop>
+    </Modal>
   );
 };
 

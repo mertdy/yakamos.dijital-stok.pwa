@@ -31,7 +31,7 @@ To ensure codebase stability, prevent regressions, and enforce strict code quali
 
 1. **Format and Lint (Targeted):**
    - Run `npx prettier --write <path-to-modified-files>` only on the files you have added or modified.
-   - Run `pnpm lint` to check for syntax and style issues. If lint errors are found, fix them immediately.
+   - Run `npx eslint <path-to-modified-files>` to check for syntax and style issues only on the modified files. If lint errors are found, fix them immediately.
 
 2. **Test Cycle (Targeted & Global):**
    - **New Features:** Whenever you add a new feature, component, hook, or utility, you MUST write its accompanying unit tests in the same directory (as described in the "Component Testing" rule).

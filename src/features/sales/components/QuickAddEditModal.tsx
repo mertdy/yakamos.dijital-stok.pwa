@@ -1,7 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import {
-  X,
   Search,
   Package,
   GripVertical,
@@ -10,7 +8,7 @@ import {
   Minus,
   Plus
 } from 'lucide-react';
-import { Button } from '@heroui/react';
+import { Button, Modal, toast } from '@heroui/react';
 import { useInventoryStore } from '@/features/inventory';
 import { usePreferencesStore } from '../store/usePreferencesStore';
 import { useDebounce } from '@/shared/hooks/useDebounce';
@@ -31,7 +29,6 @@ import {
   useSortable
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { toast } from '@heroui/react';
 
 interface Props {
   isOpen: boolean;
@@ -172,167 +169,168 @@ export const QuickAddEditModal: React.FC<Props> = ({ isOpen, onClose }) => {
     }
   };
 
-  if (!isOpen) return null;
-
   return (
-    <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm sm:p-6">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95, y: 20 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          className="relative flex h-[80vh] w-full max-w-5xl flex-col overflow-hidden rounded-3xl bg-white shadow-xl">
-          <div className="flex items-center justify-between border-b border-gray-100 p-6">
-            <div>
-              <h2 className="text-xl font-bold text-gray-900">
-                Hızlı Ekle Kısayollarını Düzenle
-              </h2>
-              <p className="mt-1 text-sm text-gray-500">
-                Ürünleri arayın, sağ tarafa ekleyin ve sürükleyerek sıralayın.
-              </p>
-            </div>
-            <button
-              onClick={onClose}
-              className="flex h-8 w-8 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-gray-100">
-              <X size={20} />
-            </button>
-          </div>
+    <Modal
+      isOpen={isOpen}
+      onOpenChange={open => {
+        if (!open) onClose();
+      }}>
+      <button style={{ display: 'none' }} aria-hidden="true" tabIndex={-1} />
+      <Modal.Backdrop>
+        <Modal.Container>
+          <Modal.Dialog className="relative flex h-[80vh] w-full max-w-5xl flex-col overflow-hidden rounded-3xl bg-white shadow-xl outline-none">
+            <Modal.CloseTrigger />
+            <Modal.Header>
+              <div>
+                <Modal.Heading className="text-xl">
+                  Hızlı Ekle Kısayollarını Düzenle
+                </Modal.Heading>
+                <p className="mt-1 text-sm font-normal text-gray-500">
+                  Ürünleri arayın, sağ tarafa ekleyin ve sürükleyerek sıralayın.
+                </p>
+              </div>
+            </Modal.Header>
 
-          <div className="flex min-h-0 flex-1 overflow-hidden bg-gray-50/30">
-            {/* Left Panel: Search & Add */}
-            <div className="flex min-h-0 w-1/2 flex-col border-r border-gray-200 bg-white">
-              <div className="border-b border-gray-100 p-4">
-                <div className="relative">
-                  <Search
-                    className="absolute top-1/2 left-3 -translate-y-1/2 text-gray-400"
-                    size={18}
-                  />
-                  <input
-                    type="text"
-                    placeholder="Envanterde ara..."
-                    value={searchQuery}
-                    onChange={e => setSearchQuery(e.target.value)}
-                    className="focus:ring-primary w-full rounded-xl border border-gray-200 bg-gray-50 py-2.5 pr-4 pl-10 text-sm transition-all outline-none focus:ring-2"
-                  />
+            <Modal.Body>
+              <div className="flex min-h-0 flex-1 flex-row overflow-hidden bg-gray-50/30">
+                {/* Left Panel: Search & Add */}
+                <div className="flex min-h-0 w-1/2 flex-col border-r border-gray-200 bg-white">
+                  <div className="border-b border-gray-100 p-4">
+                    <div className="relative">
+                      <Search
+                        className="absolute top-1/2 left-3 -translate-y-1/2 text-gray-400"
+                        size={18}
+                      />
+                      <input
+                        type="text"
+                        placeholder="Envanterde ara..."
+                        value={searchQuery}
+                        onChange={e => setSearchQuery(e.target.value)}
+                        className="focus:ring-primary w-full rounded-xl border border-gray-200 bg-gray-50 py-2.5 pr-4 pl-10 text-sm transition-all outline-none focus:ring-2"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex-1 space-y-2 overflow-y-auto p-4">
+                    {searchResults.length === 0 ? (
+                      <div className="py-10 text-center text-sm text-gray-400">
+                        Ürün bulunamadı.
+                      </div>
+                    ) : (
+                      searchResults.map(item => {
+                        const isAdded = localQuickAddItems.includes(item.id);
+                        return (
+                          <div
+                            key={item.id}
+                            className="flex items-center justify-between rounded-xl border border-gray-100 p-3 transition-colors hover:bg-gray-50">
+                            <div className="flex min-w-0 items-center gap-3">
+                              <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-gray-100 text-gray-400">
+                                {item.imageUrl ? (
+                                  <img
+                                    src={item.imageUrl}
+                                    alt={item.name}
+                                    className="h-full w-full rounded-lg object-cover"
+                                  />
+                                ) : (
+                                  <Package size={20} />
+                                )}
+                              </div>
+                              <div className="min-w-0">
+                                <p className="truncate text-sm font-semibold text-gray-900">
+                                  {item.name}
+                                </p>
+                                <p className="text-xs font-medium text-gray-500">
+                                  ₺{item.price.toFixed(2)}
+                                </p>
+                              </div>
+                            </div>
+                            <button
+                              disabled={isAdded}
+                              onClick={() => handleAddItem(item.id)}
+                              className={`flex-shrink-0 rounded-lg p-2 transition-colors ${isAdded ? 'bg-success/10 text-success' : 'bg-primary/10 text-primary hover:bg-primary/20'}`}>
+                              {isAdded ? (
+                                <CheckCircle2 size={18} />
+                              ) : (
+                                <Plus size={18} />
+                              )}
+                            </button>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+
+                {/* Right Panel: Current Shortcuts & Sort */}
+                <div className="flex min-h-0 w-1/2 flex-col">
+                  <div className="flex items-center justify-between border-b border-gray-200 bg-gray-50 p-4">
+                    <h3 className="font-semibold text-gray-700">
+                      Seçili Kısayollar ({localQuickAddItems.length})
+                    </h3>
+                    <span className="rounded-md border border-gray-200 bg-white px-2 py-1 text-xs text-gray-500 shadow-sm">
+                      Sürükle bırak ile sırala
+                    </span>
+                  </div>
+                  <div className="flex-1 overflow-y-auto bg-gray-50/50 p-4">
+                    {localQuickAddItems.length === 0 ? (
+                      <div className="flex h-full flex-col items-center justify-center gap-3 text-gray-400">
+                        <Package className="text-6xl opacity-20" />
+                        <p className="text-sm font-medium">
+                          Kısayol eklenmemiş
+                        </p>
+                        <p className="px-8 text-center text-xs">
+                          Soldaki listeden sık kullandığınız ürünleri buraya
+                          ekleyin.
+                        </p>
+                      </div>
+                    ) : (
+                      <DndContext
+                        sensors={sensors}
+                        collisionDetection={closestCenter}
+                        onDragEnd={handleDragEnd}>
+                        <SortableContext
+                          items={localQuickAddItems}
+                          strategy={verticalListSortingStrategy}>
+                          {localQuickAddItems.map(id => {
+                            const item = items.find(i => i.id === id);
+                            return (
+                              <SortableItem
+                                key={id}
+                                id={id}
+                                item={item}
+                                onRemove={handleRemoveItem}
+                              />
+                            );
+                          })}
+                        </SortableContext>
+                      </DndContext>
+                    )}
+                  </div>
                 </div>
               </div>
-              <div className="flex-1 space-y-2 overflow-y-auto p-4">
-                {searchResults.length === 0 ? (
-                  <div className="py-10 text-center text-sm text-gray-400">
-                    Ürün bulunamadı.
-                  </div>
-                ) : (
-                  searchResults.map(item => {
-                    const isAdded = localQuickAddItems.includes(item.id);
-                    return (
-                      <div
-                        key={item.id}
-                        className="flex items-center justify-between rounded-xl border border-gray-100 p-3 transition-colors hover:bg-gray-50">
-                        <div className="flex min-w-0 items-center gap-3">
-                          <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-gray-100 text-gray-400">
-                            {item.imageUrl ? (
-                              <img
-                                src={item.imageUrl}
-                                alt={item.name}
-                                className="h-full w-full rounded-lg object-cover"
-                              />
-                            ) : (
-                              <Package size={20} />
-                            )}
-                          </div>
-                          <div className="min-w-0">
-                            <p className="truncate text-sm font-semibold text-gray-900">
-                              {item.name}
-                            </p>
-                            <p className="text-xs font-medium text-gray-500">
-                              ₺{item.price.toFixed(2)}
-                            </p>
-                          </div>
-                        </div>
-                        <button
-                          disabled={isAdded}
-                          onClick={() => handleAddItem(item.id)}
-                          className={`flex-shrink-0 rounded-lg p-2 transition-colors ${isAdded ? 'bg-success/10 text-success' : 'bg-primary/10 text-primary hover:bg-primary/20'}`}>
-                          {isAdded ? (
-                            <CheckCircle2 size={18} />
-                          ) : (
-                            <Plus size={18} />
-                          )}
-                        </button>
-                      </div>
-                    );
-                  })
-                )}
-              </div>
-            </div>
+            </Modal.Body>
 
-            {/* Right Panel: Current Shortcuts & Sort */}
-            <div className="flex min-h-0 w-1/2 flex-col">
-              <div className="flex items-center justify-between border-b border-gray-200 bg-gray-50 p-4">
-                <h3 className="font-semibold text-gray-700">
-                  Seçili Kısayollar ({localQuickAddItems.length})
-                </h3>
-                <span className="rounded-md border border-gray-200 bg-white px-2 py-1 text-xs text-gray-500 shadow-sm">
-                  Sürükle bırak ile sırala
-                </span>
-              </div>
-              <div className="flex-1 overflow-y-auto bg-gray-50/50 p-4">
-                {localQuickAddItems.length === 0 ? (
-                  <div className="flex h-full flex-col items-center justify-center gap-3 text-gray-400">
-                    <Package className="text-6xl opacity-20" />
-                    <p className="text-sm font-medium">Kısayol eklenmemiş</p>
-                    <p className="px-8 text-center text-xs">
-                      Soldaki listeden sık kullandığınız ürünleri buraya
-                      ekleyin.
-                    </p>
-                  </div>
+            <Modal.Footer className="flex justify-end gap-3 border-t border-gray-100 bg-white p-6">
+              <Button
+                variant="secondary"
+                onPress={onClose}
+                isDisabled={isLoading}>
+                İptal
+              </Button>
+              <Button
+                variant="primary"
+                onPress={handleSave}
+                isDisabled={isLoading}>
+                {isLoading ? (
+                  <Loader2 className="mr-2 animate-spin" size={18} />
                 ) : (
-                  <DndContext
-                    sensors={sensors}
-                    collisionDetection={closestCenter}
-                    onDragEnd={handleDragEnd}>
-                    <SortableContext
-                      items={localQuickAddItems}
-                      strategy={verticalListSortingStrategy}>
-                      {localQuickAddItems.map(id => {
-                        const item = items.find(i => i.id === id);
-                        return (
-                          <SortableItem
-                            key={id}
-                            id={id}
-                            item={item}
-                            onRemove={handleRemoveItem}
-                          />
-                        );
-                      })}
-                    </SortableContext>
-                  </DndContext>
+                  <CheckCircle2 className="mr-2" size={18} />
                 )}
-              </div>
-            </div>
-          </div>
-
-          <div className="flex justify-end gap-3 border-t border-gray-100 bg-white p-6">
-            <Button
-              variant="secondary"
-              onPress={onClose}
-              isDisabled={isLoading}>
-              İptal
-            </Button>
-            <Button
-              variant="primary"
-              onPress={handleSave}
-              isDisabled={isLoading}>
-              {isLoading ? (
-                <Loader2 className="mr-2 animate-spin" size={18} />
-              ) : (
-                <CheckCircle2 className="mr-2" size={18} />
-              )}
-              Değişiklikleri Kaydet
-            </Button>
-          </div>
-        </motion.div>
-      </div>
-    </AnimatePresence>
+                Değişiklikleri Kaydet
+              </Button>
+            </Modal.Footer>
+          </Modal.Dialog>
+        </Modal.Container>
+      </Modal.Backdrop>
+    </Modal>
   );
 };

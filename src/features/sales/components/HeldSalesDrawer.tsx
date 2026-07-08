@@ -3,9 +3,8 @@ import { useSalesStore } from '../store/useSalesStore';
 import type { HeldSale } from '../store/useSalesStore';
 import { useCustomerStore } from '@/features/customers';
 import { useConfirm } from '@/shared/contexts/ConfirmDialogContext';
-import { Button } from '@heroui/react';
+import { Button, toast, Modal } from '@heroui/react';
 import { X, Clock, Trash2, ListRestart } from 'lucide-react';
-import { toast } from '@heroui/react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface Props {
@@ -208,42 +207,43 @@ export const HeldSalesDrawer: React.FC<Props> = ({ isOpen, onClose }) => {
         )}
       </AnimatePresence>
 
-      <AnimatePresence>
-        {isAlertOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl">
-              <h3 className="mb-2 text-lg font-bold text-gray-900">
-                Sepet Üzerine Yazılacak
-              </h3>
-              <p className="mb-6 text-sm text-gray-600">
-                Mevcut sepetinizde ürünler bulunuyor. Bekleyen satışı
-                yüklediğinizde{' '}
-                <strong>aktif sepetinizdeki tüm ürünler silinecek</strong> ve
-                yerini bu satış alacaktır.
-                <br />
-                <br />
-                Onaylıyor musunuz?
-              </p>
-              <div className="flex justify-end gap-3">
+      <Modal
+        isOpen={isAlertOpen}
+        onOpenChange={open => {
+          if (!open) onAlertClose();
+        }}>
+        <button style={{ display: 'none' }} aria-hidden="true" tabIndex={-1} />
+        <Modal.Backdrop>
+          <Modal.Container>
+            <Modal.Dialog className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl outline-none">
+              <Modal.Header>
+                <Modal.Heading className="text-xl">
+                  Sepet Üzerine Yazılacak
+                </Modal.Heading>
+              </Modal.Header>
+              <Modal.Body>
+                <p className="mb-6 text-sm text-gray-600">
+                  Mevcut sepetinizde ürünler bulunuyor. Bekleyen satışı
+                  yüklediğinizde{' '}
+                  <strong>aktif sepetinizdeki tüm ürünler silinecek</strong> ve
+                  yerini bu satış alacaktır.
+                  <br />
+                  <br />
+                  Onaylıyor musunuz?
+                </p>
+              </Modal.Body>
+              <Modal.Footer className="flex justify-end gap-3 p-0">
                 <Button variant="ghost" onPress={onAlertClose}>
                   İptal
                 </Button>
                 <Button variant="danger" onPress={confirmRestore}>
                   Evet, Üzerine Yaz
                 </Button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+              </Modal.Footer>
+            </Modal.Dialog>
+          </Modal.Container>
+        </Modal.Backdrop>
+      </Modal>
     </>
   );
 };

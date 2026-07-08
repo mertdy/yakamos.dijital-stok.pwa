@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useInventoryStore } from '../store/useInventoryStore';
-import ScannerModal from '@/features/sales';
+import { ScannerModal } from '@/features/sales';
 import { Button } from '@heroui/react';
 import {
   ArrowLeft,
