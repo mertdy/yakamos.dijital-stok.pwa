@@ -1,27 +1,33 @@
 import React from 'react';
 import { useSalesStore } from '../store/useSalesStore';
-import { Trash2, ShoppingBasket, Minus, Plus, Package, ShoppingCart } from 'lucide-react';
+import {
+  Trash2,
+  ShoppingBasket,
+  Minus,
+  Plus,
+  Package,
+  ShoppingCart
+} from 'lucide-react';
 
 export const OrderDetailsPanel: React.FC = () => {
   const { cart, removeFromCart, updateQuantity, clearCart } = useSalesStore();
 
   return (
-    <div className="flex flex-col h-full bg-white rounded-[28px] shadow-sm border border-gray-100 overflow-hidden">
-      <div className="px-4 py-3 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+    <div className="flex h-full flex-col overflow-hidden rounded-[28px] border border-gray-100 bg-white shadow-sm">
+      <div className="flex items-center justify-between border-b border-gray-100 bg-gray-50/50 px-4 py-3">
         <div className="flex items-center gap-3">
-          <h2 className="text-base font-bold tracking-tight text-gray-900 flex items-center gap-2">
+          <h2 className="flex items-center gap-2 text-base font-bold tracking-tight text-gray-900">
             <ShoppingCart className="text-primary" size={18} />
             Sipariş Detayları
           </h2>
-          <span className="bg-green-100 text-green-700 text-xs font-semibold px-2.5 py-0.5 rounded-full">
+          <span className="rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-semibold text-green-700">
             Ürün: {cart.length}
           </span>
         </div>
         {cart.length > 0 && (
-          <button 
+          <button
             onClick={clearCart}
-            className="text-danger flex items-center gap-1 text-sm font-semibold hover:bg-danger/10 px-3 py-1.5 rounded-full transition-colors"
-          >
+            className="text-danger hover:bg-danger/10 flex items-center gap-1 rounded-full px-3 py-1.5 text-sm font-semibold transition-colors">
             Tümünü Sil <Trash2 size={16} />
           </button>
         )}
@@ -29,14 +35,14 @@ export const OrderDetailsPanel: React.FC = () => {
 
       <div className="flex-1 overflow-y-auto">
         {cart.length === 0 ? (
-          <div className="h-full flex flex-col items-center justify-center text-gray-400 gap-3">
+          <div className="flex h-full flex-col items-center justify-center gap-3 text-gray-400">
             <ShoppingBasket className="text-6xl opacity-30" />
             <p className="font-medium text-gray-500">Sepetiniz boş</p>
           </div>
         ) : (
           <div className="w-full">
             {/* Table Header */}
-            <div className="grid grid-cols-12 gap-4 p-4 border-b border-gray-100 text-xs font-semibold text-gray-500 uppercase tracking-wider bg-gray-50/50">
+            <div className="grid grid-cols-12 gap-4 border-b border-gray-100 bg-gray-50/50 p-4 text-xs font-semibold tracking-wider text-gray-500 uppercase">
               <div className="col-span-5">Ürün</div>
               <div className="col-span-2 text-center">Fiyat</div>
               <div className="col-span-3 text-center">Miktar</div>
@@ -45,42 +51,65 @@ export const OrderDetailsPanel: React.FC = () => {
 
             {/* Table Body */}
             <div className="divide-y divide-gray-50">
-              {cart.map((item) => (
-                <div key={item.inventoryId} className="grid grid-cols-12 gap-4 p-4 items-center hover:bg-gray-50/50 transition-colors group">
+              {cart.map(item => (
+                <div
+                  key={item.inventoryId}
+                  className="group grid grid-cols-12 items-center gap-4 p-4 transition-colors hover:bg-gray-50/50">
                   {/* Product Column */}
                   <div className="col-span-5 flex items-center gap-3">
-                    <div className="w-12 h-12 bg-gray-100 rounded-xl flex-shrink-0 flex items-center justify-center text-gray-400">
+                    <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-gray-100 text-gray-400">
                       {item.imageUrl ? (
-                        <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover rounded-xl" />
+                        <img
+                          src={item.imageUrl}
+                          alt={item.name}
+                          className="h-full w-full rounded-xl object-cover"
+                        />
                       ) : (
                         <Package size={24} />
                       )}
                     </div>
                     <div className="flex flex-col overflow-hidden">
-                      <span className="font-semibold text-sm text-gray-900 truncate" title={item.name}>{item.name}</span>
-                      {item.barcode && <span className="text-[11px] text-gray-500 truncate">SKU: {item.barcode}</span>}
+                      <span
+                        className="truncate text-sm font-semibold text-gray-900"
+                        title={item.name}>
+                        {item.name}
+                      </span>
+                      {item.barcode && (
+                        <span className="truncate text-[11px] text-gray-500">
+                          SKU: {item.barcode}
+                        </span>
+                      )}
                     </div>
                   </div>
 
                   {/* Price Column */}
-                  <div className="col-span-2 text-center font-medium text-gray-700 text-sm">
+                  <div className="col-span-2 text-center text-sm font-medium text-gray-700">
                     ₺{item.price.toFixed(2)}
                   </div>
 
                   {/* Quantity Column */}
                   <div className="col-span-3 flex items-center justify-center">
-                    <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-full px-1 py-1">
-                      <button 
-                        className="w-6 h-6 flex items-center justify-center rounded-full text-gray-500 hover:bg-white hover:shadow-sm transition-all hover:text-danger disabled:opacity-50"
-                        onClick={() => item.quantity > 1 ? updateQuantity(item.inventoryId, item.quantity - 1) : removeFromCart(item.inventoryId)}
-                      >
+                    <div className="flex items-center gap-2 rounded-full border border-gray-200 bg-gray-50 px-1 py-1">
+                      <button
+                        className="hover:text-danger flex h-6 w-6 items-center justify-center rounded-full text-gray-500 transition-all hover:bg-white hover:shadow-sm disabled:opacity-50"
+                        onClick={() =>
+                          item.quantity > 1
+                            ? updateQuantity(
+                                item.inventoryId,
+                                item.quantity - 1
+                              )
+                            : removeFromCart(item.inventoryId)
+                        }>
                         <Minus size={14} />
                       </button>
-                      <span className="font-semibold w-6 text-center text-sm text-gray-900">{item.quantity}</span>
-                      <button 
-                        className="w-6 h-6 flex items-center justify-center rounded-full text-gray-500 hover:bg-white hover:shadow-sm transition-all hover:text-primary"
-                        onClick={() => updateQuantity(item.inventoryId, item.quantity + 1)}
-                      >
+                      <span className="w-6 text-center text-sm font-semibold text-gray-900">
+                        {item.quantity}
+                      </span>
+                      <button
+                        className="hover:text-primary flex h-6 w-6 items-center justify-center rounded-full text-gray-500 transition-all hover:bg-white hover:shadow-sm"
+                        onClick={() =>
+                          updateQuantity(item.inventoryId, item.quantity + 1)
+                        }>
                         <Plus size={14} />
                       </button>
                     </div>
@@ -88,14 +117,13 @@ export const OrderDetailsPanel: React.FC = () => {
 
                   {/* Subtotal & Action Column */}
                   <div className="col-span-2 flex items-center justify-end gap-3">
-                    <span className="font-bold text-sm text-gray-900">
+                    <span className="text-sm font-bold text-gray-900">
                       ₺{(item.price * item.quantity).toFixed(2)}
                     </span>
-                    <button 
+                    <button
                       onClick={() => removeFromCart(item.inventoryId)}
-                      className="text-gray-300 hover:text-danger transition-colors p-1"
-                      title="Ürünü Sil"
-                    >
+                      className="hover:text-danger p-1 text-gray-300 transition-colors"
+                      title="Ürünü Sil">
                       <Trash2 size={18} />
                     </button>
                   </div>

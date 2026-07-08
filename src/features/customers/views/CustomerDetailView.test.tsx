@@ -6,7 +6,7 @@ import { useCustomerStore } from '../store/useCustomerStore';
 
 // Mock zustand store
 vi.mock('../store/useCustomerStore', () => ({
-  useCustomerStore: vi.fn(),
+  useCustomerStore: vi.fn()
 }));
 
 // Mock react-router-dom
@@ -14,9 +14,9 @@ const mockNavigate = vi.fn();
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual('react-router-dom');
   return {
-    ...actual as any,
+    ...(actual as any),
     useNavigate: () => mockNavigate,
-    useParams: () => ({ id: '1' }),
+    useParams: () => ({ id: '1' })
   };
 });
 
@@ -29,7 +29,7 @@ describe('CustomerDetailView', () => {
       phone: '5551234567',
       creditLimit: 1000,
       totalDebt: 500,
-      createdAt: '2024-01-01',
+      createdAt: '2024-01-01'
     }
   ];
 
@@ -50,7 +50,7 @@ describe('CustomerDetailView', () => {
       isLoading: false,
       loadCustomers: vi.fn(),
       getCustomerTransactions: mockGetTransactions,
-      addPayment: vi.fn(),
+      addPayment: vi.fn()
     });
   });
 
@@ -67,7 +67,7 @@ describe('CustomerDetailView', () => {
 
     expect(screen.getByText('Ali Yılmaz')).toBeInTheDocument();
     expect(screen.getByText('5551234567')).toBeInTheDocument();
-    
+
     // Check debts
     expect(screen.getByText(/500,00/)).toBeInTheDocument();
     expect(screen.getByText(/1.000,00/)).toBeInTheDocument();
@@ -90,6 +90,8 @@ describe('CustomerDetailView', () => {
     fireEvent.click(payButton);
 
     // Modal should appear
-    expect(screen.getByText('Müşteri borcundan düşülecek tutar')).toBeInTheDocument();
+    expect(
+      screen.getByText('Müşteri borcundan düşülecek tutar')
+    ).toBeInTheDocument();
   });
 });

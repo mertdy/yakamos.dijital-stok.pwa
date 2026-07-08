@@ -9,7 +9,7 @@ interface PreferencesState {
   saveQuickAddItems: (items: string[]) => Promise<void>;
 }
 
-export const usePreferencesStore = create<PreferencesState>((set) => ({
+export const usePreferencesStore = create<PreferencesState>(set => ({
   quickAddItems: [],
   isLoading: false,
 

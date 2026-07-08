@@ -25,7 +25,7 @@ describe('useDebounce', () => {
     expect(result.current).toBe('initial');
 
     rerender({ value: 'updated', delay: 500 });
-    
+
     // Value shouldn't change immediately
     expect(result.current).toBe('initial');
 

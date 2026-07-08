@@ -12,32 +12,32 @@ interface AuthState {
   logout: () => Promise<void>;
 }
 
-export const useAuthStore = create<AuthState>((set) => ({
+export const useAuthStore = create<AuthState>(set => ({
   user: null,
   isLoading: false,
   isInitialized: false, // Prevents layout flashing before onAuthStateChanged fires
-  
-  setUser: (user) => set({ user, isInitialized: true }),
-  
+
+  setUser: user => set({ user, isInitialized: true }),
+
   loginWithGoogle: async () => {
     set({ isLoading: true });
     try {
       await signInWithPopup(auth, googleProvider);
     } catch (error) {
-      console.error("Google login failed:", error);
+      console.error('Google login failed:', error);
       throw error;
     } finally {
       set({ isLoading: false });
     }
   },
-  
+
   logout: async () => {
     set({ isLoading: true });
     try {
       await signOut(auth);
       useInventoryStore.getState().clearItems();
     } catch (error) {
-      console.error("Logout failed:", error);
+      console.error('Logout failed:', error);
     } finally {
       set({ isLoading: false });
     }

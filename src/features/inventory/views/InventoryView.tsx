@@ -12,7 +12,7 @@ export const InventoryView: React.FC = () => {
 
   useEffect(() => {
     loadItems();
-    
+
     // Check if we need to auto-open the form with a barcode
     const addBarcode = searchParams.get('add');
     if (addBarcode) {
@@ -24,22 +24,23 @@ export const InventoryView: React.FC = () => {
   }, [loadItems, searchParams, setSearchParams, navigate]);
 
   return (
-    <div className="p-4 md:p-6 h-full flex flex-col max-w-7xl mx-auto">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+    <div className="mx-auto flex h-full max-w-7xl flex-col p-4 md:p-6">
+      <div className="mb-6 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-gray-900">Envanter Yönetimi</h1>
-          <p className="text-gray-500 text-sm mt-1">Stoktaki tüm ürünlerinizi listeleyin ve yönetin.</p>
+          <h1 className="text-3xl font-bold tracking-tight text-gray-900">
+            Envanter Yönetimi
+          </h1>
+          <p className="mt-1 text-sm text-gray-500">
+            Stoktaki tüm ürünlerinizi listeleyin ve yönetin.
+          </p>
         </div>
-        
-        <Button 
-          onPress={() => navigate('/inventory/new')}
-          variant="primary"
-          
-        ><Plus className="text-xl mr-2" /> Yeni Ürün Ekle
+
+        <Button onPress={() => navigate('/inventory/new')} variant="primary">
+          <Plus className="mr-2 text-xl" /> Yeni Ürün Ekle
         </Button>
       </div>
 
-      <div className="flex-1 min-h-0">
+      <div className="min-h-0 flex-1">
         <InventoryTable />
       </div>
     </div>

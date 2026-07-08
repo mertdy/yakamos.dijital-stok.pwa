@@ -7,7 +7,13 @@ import isSameOrAfter from 'dayjs/plugin/isSameOrAfter';
 
 dayjs.extend(isSameOrAfter);
 
-export type ChartPeriod = '7D' | '14D' | '30D' | 'THIS_MONTH' | '6M' | 'THIS_YEAR';
+export type ChartPeriod =
+  | '7D'
+  | '14D'
+  | '30D'
+  | 'THIS_MONTH'
+  | '6M'
+  | 'THIS_YEAR';
 
 export const useDashboardStats = () => {
   const { sales, fetchSales } = useSalesHistoryStore();
@@ -24,14 +30,14 @@ export const useDashboardStats = () => {
 
   const stats = useMemo(() => {
     const today = dayjs().startOf('day');
-    
+
     let todaySales = 0;
     let todayOrderCount = 0;
-    
+
     // Revenue by customer
     const customerRevenue: Record<string, number> = {};
     // Top selling products
-    const productSales: Record<string, { name: string, quantity: number }> = {};
+    const productSales: Record<string, { name: string; quantity: number }> = {};
     // Payment methods
     const paymentMethodsStats: Record<string, number> = {};
 
@@ -46,10 +52,12 @@ export const useDashboardStats = () => {
       }
 
       if (sale.customerId) {
-        customerRevenue[sale.customerId] = (customerRevenue[sale.customerId] || 0) + sale.totalAmount;
+        customerRevenue[sale.customerId] =
+          (customerRevenue[sale.customerId] || 0) + sale.totalAmount;
       }
 
-      paymentMethodsStats[sale.paymentMethod] = (paymentMethodsStats[sale.paymentMethod] || 0) + sale.totalAmount;
+      paymentMethodsStats[sale.paymentMethod] =
+        (paymentMethodsStats[sale.paymentMethod] || 0) + sale.totalAmount;
 
       (sale.cart || []).forEach(item => {
         if (!productSales[item.inventoryId]) {
@@ -81,12 +89,27 @@ export const useDashboardStats = () => {
         return { name: c ? c.name : 'Bilinmeyen Müşteri', value: amount };
       });
 
-    const paymentMethods = Object.entries(paymentMethodsStats).map(([name, value]) => ({
-      name: name === 'Cash' ? 'Nakit' : name === 'Card' ? 'Kredi Kartı' : name === 'Scan' ? 'Karekod' : name === 'Credit' ? 'Veresiye' : (name === 'undefined' || !name || name === 'null' ? 'Diğer' : name),
-      value
-    }));
+    const paymentMethods = Object.entries(paymentMethodsStats).map(
+      ([name, value]) => ({
+        name:
+          name === 'Cash'
+            ? 'Nakit'
+            : name === 'Card'
+              ? 'Kredi Kartı'
+              : name === 'Scan'
+                ? 'Karekod'
+                : name === 'Credit'
+                  ? 'Veresiye'
+                  : name === 'undefined' || !name || name === 'null'
+                    ? 'Diğer'
+                    : name,
+        value
+      })
+    );
 
-    const lowStockProducts = items.filter(item => item.stock <= 10).sort((a, b) => a.stock - b.stock);
+    const lowStockProducts = items
+      .filter(item => item.stock <= 10)
+      .sort((a, b) => a.stock - b.stock);
 
     return {
       todaySales,
@@ -107,16 +130,24 @@ export const useDashboardStats = () => {
     let dateFormat = 'DD MMM';
 
     switch (period) {
-      case '7D': startDate = dayjs().subtract(6, 'day').startOf('day'); break;
-      case '14D': startDate = dayjs().subtract(13, 'day').startOf('day'); break;
-      case '30D': startDate = dayjs().subtract(29, 'day').startOf('day'); break;
-      case 'THIS_MONTH': startDate = dayjs().startOf('month'); break;
-      case '6M': 
-        startDate = dayjs().subtract(5, 'month').startOf('month'); 
+      case '7D':
+        startDate = dayjs().subtract(6, 'day').startOf('day');
+        break;
+      case '14D':
+        startDate = dayjs().subtract(13, 'day').startOf('day');
+        break;
+      case '30D':
+        startDate = dayjs().subtract(29, 'day').startOf('day');
+        break;
+      case 'THIS_MONTH':
+        startDate = dayjs().startOf('month');
+        break;
+      case '6M':
+        startDate = dayjs().subtract(5, 'month').startOf('month');
         dateFormat = 'MMM YYYY';
         break;
-      case 'THIS_YEAR': 
-        startDate = dayjs().startOf('year'); 
+      case 'THIS_YEAR':
+        startDate = dayjs().startOf('year');
         dateFormat = 'MMM YYYY';
         break;
     }
@@ -126,7 +157,7 @@ export const useDashboardStats = () => {
     // Initialize all dates in range with 0
     let currDate = startDate;
     const now = dayjs();
-    
+
     if (period === '6M' || period === 'THIS_YEAR') {
       while (currDate.isBefore(now) || currDate.isSame(now, 'month')) {
         groupedData[currDate.format(dateFormat)] = 0;
@@ -152,7 +183,7 @@ export const useDashboardStats = () => {
 
     return Object.entries(groupedData).map(([date, amount]) => ({
       date,
-      'Ciro': amount
+      Ciro: amount
     }));
   }, [sales, period]);
 

@@ -19,7 +19,7 @@ function App() {
   const { user, isInitialized, setUser } = useAuthStore();
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+    const unsubscribe = onAuthStateChanged(auth, currentUser => {
       setUser(currentUser);
     });
     return () => unsubscribe();
@@ -27,8 +27,8 @@ function App() {
 
   if (!isInitialized) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 text-primary">
-        <Loader2 className="w-12 h-12 animate-spin" />
+      <div className="text-primary flex min-h-screen items-center justify-center bg-gray-50">
+        <Loader2 className="h-12 w-12 animate-spin" />
       </div>
     );
   }
@@ -36,15 +36,13 @@ function App() {
   return (
     <Routes>
       {/* Public Route */}
-      <Route 
-        path="/login" 
-        element={!user ? <LoginView /> : <Navigate to="/" replace />} 
+      <Route
+        path="/login"
+        element={!user ? <LoginView /> : <Navigate to="/" replace />}
       />
 
       {/* Protected Routes */}
-      <Route 
-        element={user ? <MainLayout /> : <Navigate to="/login" replace />}
-      >
+      <Route element={user ? <MainLayout /> : <Navigate to="/login" replace />}>
         <Route path="/" element={<DashboardView />} />
         <Route path="/sales" element={<SalesView />} />
         <Route path="/sales-history" element={<SalesHistoryView />} />
@@ -56,9 +54,12 @@ function App() {
         <Route path="/inventory/new" element={<ProductFormView />} />
         <Route path="/inventory/edit/:id" element={<ProductFormView />} />
       </Route>
-      
+
       {/* Fallback */}
-      <Route path="*" element={<Navigate to={user ? "/" : "/login"} replace />} />
+      <Route
+        path="*"
+        element={<Navigate to={user ? '/' : '/login'} replace />}
+      />
     </Routes>
   );
 }

@@ -1,5 +1,13 @@
 import { create } from 'zustand';
-import { collection, doc, setDoc, deleteDoc, onSnapshot, query, where } from 'firebase/firestore';
+import {
+  collection,
+  doc,
+  setDoc,
+  deleteDoc,
+  onSnapshot,
+  query,
+  where
+} from 'firebase/firestore';
 import { db, auth } from '../../../core/firebase/config';
 
 export interface InventoryItem {
@@ -19,7 +27,9 @@ interface InventoryState {
   isLoading: boolean;
   unsubscribeSnapshot: (() => void) | null;
   loadItems: () => void;
-  addItem: (item: Omit<InventoryItem, 'id' | 'updatedAt' | 'userId'>) => Promise<void>;
+  addItem: (
+    item: Omit<InventoryItem, 'id' | 'updatedAt' | 'userId'>
+  ) => Promise<void>;
   updateItem: (id: string, item: Partial<InventoryItem>) => Promise<void>;
   deleteItem: (id: string) => Promise<void>;
   clearItems: () => void;
@@ -41,17 +51,21 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
 
     set({ isLoading: true });
 
-    const q = query(collection(db, 'inventory'), where('userId', '==', user.uid));
-    
-    const unsubscribe = onSnapshot(q, 
-      (snapshot) => {
+    const q = query(
+      collection(db, 'inventory'),
+      where('userId', '==', user.uid)
+    );
+
+    const unsubscribe = onSnapshot(
+      q,
+      snapshot => {
         const items: InventoryItem[] = [];
-        snapshot.forEach((doc) => {
+        snapshot.forEach(doc => {
           items.push({ id: doc.id, ...doc.data() } as InventoryItem);
         });
         set({ items, isLoading: false });
       },
-      (error) => {
+      error => {
         console.error('Firestore snapshot error:', error);
         set({ isLoading: false });
       }
@@ -60,17 +74,17 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
     set({ unsubscribeSnapshot: unsubscribe });
   },
 
-  addItem: async (newItemData) => {
+  addItem: async newItemData => {
     const user = auth.currentUser;
-    if (!user) throw new Error("User not authenticated");
+    if (!user) throw new Error('User not authenticated');
 
     const id = crypto.randomUUID();
     const updatedAt = new Date().toISOString();
-    const newItem: InventoryItem = { 
-      id, 
-      ...newItemData, 
+    const newItem: InventoryItem = {
+      id,
+      ...newItemData,
       updatedAt,
-      userId: user.uid 
+      userId: user.uid
     };
 
     // Firestore will automatically cache this write and sync when online
@@ -81,7 +95,7 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
 
   updateItem: async (id, updatedData) => {
     const user = auth.currentUser;
-    if (!user) throw new Error("User not authenticated");
+    if (!user) throw new Error('User not authenticated');
 
     const updatedAt = new Date().toISOString();
     const currentItem = get().items.find(i => i.id === id);
@@ -95,9 +109,9 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
     });
   },
 
-  deleteItem: async (id) => {
+  deleteItem: async id => {
     const user = auth.currentUser;
-    if (!user) throw new Error("User not authenticated");
+    if (!user) throw new Error('User not authenticated');
 
     // Firestore handles offline deletion syncing
     deleteDoc(doc(db, 'inventory', id)).catch(err => {

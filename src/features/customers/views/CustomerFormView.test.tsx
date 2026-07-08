@@ -9,18 +9,20 @@ import { useNavigate, useParams } from 'react-router-dom';
 vi.mock('lucide-react', () => ({
   ArrowLeft: () => <div data-testid="icon-arrow-left" />,
   Save: () => <div data-testid="icon-save" />,
-  Loader2: () => <div data-testid="icon-loader2" />,
+  Loader2: () => <div data-testid="icon-loader2" />
 }));
 
 vi.mock('react-router-dom', () => ({
   useNavigate: vi.fn(),
-  useParams: vi.fn(),
+  useParams: vi.fn()
 }));
 
 vi.mock('../store/useCustomerStore');
 vi.mock('../../sales/store/useSalesStore');
 
-const mockUseCustomerStore = useCustomerStore as unknown as ReturnType<typeof vi.fn>;
+const mockUseCustomerStore = useCustomerStore as unknown as ReturnType<
+  typeof vi.fn
+>;
 const mockUseSalesStore = useSalesStore as unknown as ReturnType<typeof vi.fn>;
 const mockUseNavigate = useNavigate as unknown as ReturnType<typeof vi.fn>;
 const mockUseParams = useParams as unknown as ReturnType<typeof vi.fn>;
@@ -37,11 +39,18 @@ describe('CustomerFormView', () => {
 
     mockUseCustomerStore.mockReturnValue({
       customers: [
-        { id: 'c1', name: 'John', surname: 'Doe', phone: '123456789', email: 'test@test.com', creditLimit: 500 }
+        {
+          id: 'c1',
+          name: 'John',
+          surname: 'Doe',
+          phone: '123456789',
+          email: 'test@test.com',
+          creditLimit: 500
+        }
       ],
       loadCustomers: vi.fn(),
       addCustomer: addCustomerMock,
-      updateCustomer: updateCustomerMock,
+      updateCustomer: updateCustomerMock
     });
 
     mockUseSalesStore.mockReturnValue({
@@ -61,9 +70,9 @@ describe('CustomerFormView', () => {
   it('renders correctly in edit mode and populates data', () => {
     mockUseParams.mockReturnValue({ id: 'c1' });
     render(<CustomerFormView />);
-    
+
     expect(screen.getByText('Müşteriyi Düzenle')).toBeInTheDocument();
-    
+
     // Wait for the useEffect to populate the form
     waitFor(() => {
       const nameInput = screen.getByLabelText(/Ad/i) as HTMLInputElement;
@@ -75,7 +84,7 @@ describe('CustomerFormView', () => {
 
   it('shows validation errors when submitting empty form', async () => {
     render(<CustomerFormView />);
-    
+
     // The submit button is disabled by default if the form is invalid based on mode: "onChange"
     // So we need to type invalid data to trigger errors.
     const nameInput = screen.getByLabelText(/Ad/i);
@@ -87,17 +96,19 @@ describe('CustomerFormView', () => {
 
     // Trigger blur or wait for error message
     await waitFor(() => {
-      expect(screen.getByText('Müşteri adı en az 2 karakter olmalıdır')).toBeInTheDocument();
+      expect(
+        screen.getByText('Müşteri adı en az 2 karakter olmalıdır')
+      ).toBeInTheDocument();
     });
   });
 
   it('allows submission when valid data is entered', async () => {
     addCustomerMock.mockResolvedValue('new-c1');
     render(<CustomerFormView />);
-    
+
     const nameInput = screen.getByLabelText(/Ad/i);
     fireEvent.change(nameInput, { target: { value: 'Ahmet' } });
-    
+
     const limitInput = screen.getByLabelText(/Maksimum Borç Limiti/i);
     fireEvent.change(limitInput, { target: { value: '1000' } });
 

@@ -7,9 +7,9 @@ interface UseGlobalBarcodeScannerProps {
   maxTimeBetweenKeystrokes?: number;
 }
 
-export const useGlobalBarcodeScanner = ({ 
-  onScan, 
-  maxTimeBetweenKeystrokes = 50 
+export const useGlobalBarcodeScanner = ({
+  onScan,
+  maxTimeBetweenKeystrokes = 50
 }: UseGlobalBarcodeScannerProps) => {
   const barcodeBuffer = useRef<string>('');
   const lastKeyTime = useRef<number>(0);
@@ -20,9 +20,9 @@ export const useGlobalBarcodeScanner = ({
       const activeElement = document.activeElement;
       if (
         activeElement &&
-        (activeElement.tagName === 'INPUT' || 
-         activeElement.tagName === 'TEXTAREA' || 
-         (activeElement as HTMLElement).isContentEditable)
+        (activeElement.tagName === 'INPUT' ||
+          activeElement.tagName === 'TEXTAREA' ||
+          (activeElement as HTMLElement).isContentEditable)
       ) {
         return;
       }

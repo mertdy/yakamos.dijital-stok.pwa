@@ -13,70 +13,93 @@ export const CustomerListView: React.FC = () => {
     loadCustomers();
   }, [loadCustomers]);
 
-  const filteredCustomers = customers.filter(c => 
-    c.name.toLowerCase().includes(search.toLowerCase()) || 
-    (c.surname && c.surname.toLowerCase().includes(search.toLowerCase())) ||
-    (c.phone && c.phone.includes(search))
+  const filteredCustomers = customers.filter(
+    c =>
+      c.name.toLowerCase().includes(search.toLowerCase()) ||
+      (c.surname && c.surname.toLowerCase().includes(search.toLowerCase())) ||
+      (c.phone && c.phone.includes(search))
   );
 
   return (
-    <div className="p-4 md:p-6 h-full flex flex-col max-w-7xl mx-auto">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+    <div className="mx-auto flex h-full max-w-7xl flex-col p-4 md:p-6">
+      <div className="mb-6 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-gray-900">Müşteriler</h1>
-          <p className="text-gray-500 text-sm mt-1">Müşterilerinizi ve veresiye limitlerini yönetin.</p>
+          <h1 className="text-3xl font-bold tracking-tight text-gray-900">
+            Müşteriler
+          </h1>
+          <p className="mt-1 text-sm text-gray-500">
+            Müşterilerinizi ve veresiye limitlerini yönetin.
+          </p>
         </div>
-        <Button 
-          onPress={() => navigate('/customers/new')} 
-          variant="primary"
-          
-        ><Plus className="text-xl mr-2" /> Yeni Müşteri
+        <Button onPress={() => navigate('/customers/new')} variant="primary">
+          <Plus className="mr-2 text-xl" /> Yeni Müşteri
         </Button>
       </div>
 
-      <div className="flex-1 min-h-0">
-        <div className="bg-white rounded-[28px] shadow-sm border-none overflow-hidden flex flex-col h-full">
-          <div className="p-4 border-b border-gray-100 bg-gray-50/50">
+      <div className="min-h-0 flex-1">
+        <div className="flex h-full flex-col overflow-hidden rounded-[28px] border-none bg-white shadow-sm">
+          <div className="border-b border-gray-100 bg-gray-50/50 p-4">
             <div className="relative max-w-md">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
-              <input 
-                type="text" 
-                placeholder="İsim, soyisim veya telefon ile ara..." 
+              <Search
+                className="absolute top-1/2 left-3 -translate-y-1/2 text-gray-400"
+                size={20}
+              />
+              <input
+                type="text"
+                placeholder="İsim, soyisim veya telefon ile ara..."
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="w-full bg-white border border-gray-200 rounded-xl py-2.5 pl-10 pr-4 focus:ring-2 focus:ring-primary outline-none"
+                onChange={e => setSearch(e.target.value)}
+                className="focus:ring-primary w-full rounded-xl border border-gray-200 bg-white py-2.5 pr-4 pl-10 outline-none focus:ring-2"
               />
             </div>
           </div>
 
-          <div className="overflow-x-auto flex-1">
-            <table className="w-full text-left border-collapse min-w-[600px]">
+          <div className="flex-1 overflow-x-auto">
+            <table className="w-full min-w-[600px] border-collapse text-left">
               <thead>
-                <tr className="bg-gray-50 border-b border-gray-200">
-                  <th className="px-6 py-4 text-sm font-semibold text-gray-600">Müşteri</th>
-                  <th className="px-6 py-4 text-sm font-semibold text-gray-600 hidden sm:table-cell">İletişim</th>
-                  <th className="px-6 py-4 text-sm font-semibold text-gray-600 text-right">Limit</th>
-                  <th className="px-6 py-4 text-sm font-semibold text-gray-600 text-right">Mevcut Borç</th>
-                  <th className="px-6 py-4 text-sm font-semibold text-gray-600 text-center">Durum</th>
-                  <th className="px-6 py-4 text-sm font-semibold text-gray-600 text-right">İşlemler</th>
+                <tr className="border-b border-gray-200 bg-gray-50">
+                  <th className="px-6 py-4 text-sm font-semibold text-gray-600">
+                    Müşteri
+                  </th>
+                  <th className="hidden px-6 py-4 text-sm font-semibold text-gray-600 sm:table-cell">
+                    İletişim
+                  </th>
+                  <th className="px-6 py-4 text-right text-sm font-semibold text-gray-600">
+                    Limit
+                  </th>
+                  <th className="px-6 py-4 text-right text-sm font-semibold text-gray-600">
+                    Mevcut Borç
+                  </th>
+                  <th className="px-6 py-4 text-center text-sm font-semibold text-gray-600">
+                    Durum
+                  </th>
+                  <th className="px-6 py-4 text-right text-sm font-semibold text-gray-600">
+                    İşlemler
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {isLoading ? (
                   <tr>
-                    <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
-                      <div className="animate-pulse flex flex-col items-center">
-                        <div className="h-8 w-8 bg-gray-200 rounded-full mb-4"></div>
-                        <div className="h-4 w-32 bg-gray-200 rounded"></div>
+                    <td
+                      colSpan={6}
+                      className="px-6 py-8 text-center text-gray-500">
+                      <div className="flex animate-pulse flex-col items-center">
+                        <div className="mb-4 h-8 w-8 rounded-full bg-gray-200"></div>
+                        <div className="h-4 w-32 rounded bg-gray-200"></div>
                       </div>
                     </td>
                   </tr>
                 ) : filteredCustomers.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-6 py-24 text-center text-gray-500">
+                    <td
+                      colSpan={6}
+                      className="px-6 py-24 text-center text-gray-500">
                       <div className="flex flex-col items-center justify-center">
-                        <User className="text-6xl mb-4 opacity-30" />
-                        <p className="text-lg font-medium text-gray-700">Müşteri bulunamadı.</p>
+                        <User className="mb-4 text-6xl opacity-30" />
+                        <p className="text-lg font-medium text-gray-700">
+                          Müşteri bulunamadı.
+                        </p>
                       </div>
                     </td>
                   </tr>
@@ -85,76 +108,95 @@ export const CustomerListView: React.FC = () => {
                     const debt = customer.totalDebt || 0;
                     const limit = customer.creditLimit || 0;
                     const isExceeded = limit > 0 && debt >= limit;
-                    const percentage = limit > 0 ? Math.min((debt / limit) * 100, 100) : 0;
+                    const percentage =
+                      limit > 0 ? Math.min((debt / limit) * 100, 100) : 0;
 
                     return (
-                      <tr 
-                        key={customer.id} 
-                        className="border-b border-gray-100 hover:bg-gray-50/50 transition-colors cursor-pointer"
-                        onClick={() => navigate(`/customers/details/${customer.id}`)}
-                      >
+                      <tr
+                        key={customer.id}
+                        className="cursor-pointer border-b border-gray-100 transition-colors hover:bg-gray-50/50"
+                        onClick={() =>
+                          navigate(`/customers/details/${customer.id}`)
+                        }>
                         <td className="px-6 py-4 text-sm">
                           <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary flex-shrink-0">
+                            <div className="bg-primary/10 text-primary flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full">
                               <User size={18} />
                             </div>
                             <div>
-                              <p className="font-semibold text-gray-900">{customer.name} {customer.surname || ''}</p>
-                              <p className="text-xs text-gray-500 sm:hidden mt-0.5">{customer.phone}</p>
+                              <p className="font-semibold text-gray-900">
+                                {customer.name} {customer.surname || ''}
+                              </p>
+                              <p className="mt-0.5 text-xs text-gray-500 sm:hidden">
+                                {customer.phone}
+                              </p>
                             </div>
                           </div>
                         </td>
-                        <td className="px-6 py-4 text-sm hidden sm:table-cell">
+                        <td className="hidden px-6 py-4 text-sm sm:table-cell">
                           <div className="flex items-center gap-1.5 text-gray-600">
                             <Phone size={14} className="text-gray-400" />
                             {customer.phone || '-'}
                           </div>
                         </td>
-                        <td className="px-6 py-4 text-sm text-right">
+                        <td className="px-6 py-4 text-right text-sm">
                           <span className="font-medium text-gray-900">
-                            {limit > 0 ? `₺${limit.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}` : '-'}
+                            {limit > 0
+                              ? `₺${limit.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}`
+                              : '-'}
                           </span>
                         </td>
-                        <td className="px-6 py-4 text-sm text-right">
-                          <span className={`font-semibold ${debt > 0 ? 'text-orange-600' : 'text-gray-600'}`}>
-                            ₺{debt.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
+                        <td className="px-6 py-4 text-right text-sm">
+                          <span
+                            className={`font-semibold ${debt > 0 ? 'text-orange-600' : 'text-gray-600'}`}>
+                            ₺
+                            {debt.toLocaleString('tr-TR', {
+                              minimumFractionDigits: 2
+                            })}
                           </span>
                         </td>
                         <td className="px-6 py-4 text-sm">
                           <div className="flex flex-col items-center justify-center gap-1.5">
                             {limit > 0 ? (
                               <>
-                                <div className="w-24 h-2 bg-gray-100 rounded-full overflow-hidden">
-                                  <div 
+                                <div className="h-2 w-24 overflow-hidden rounded-full bg-gray-100">
+                                  <div
                                     className={`h-full rounded-full ${isExceeded ? 'bg-danger' : percentage > 80 ? 'bg-orange-500' : 'bg-success'}`}
                                     style={{ width: `${percentage}%` }}
                                   />
                                 </div>
-                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${isExceeded ? 'bg-danger/10 text-danger' : 'text-gray-500 bg-gray-100'}`}>
+                                <span
+                                  className={`rounded-md px-2 py-0.5 text-[10px] font-bold ${isExceeded ? 'bg-danger/10 text-danger' : 'bg-gray-100 text-gray-500'}`}>
                                   %{percentage.toFixed(0)}
                                 </span>
                               </>
                             ) : (
-                              <span className="text-[10px] bg-gray-100 text-gray-500 px-2 py-1 rounded-md">Limitsiz</span>
+                              <span className="rounded-md bg-gray-100 px-2 py-1 text-[10px] text-gray-500">
+                                Limitsiz
+                              </span>
                             )}
                           </div>
                         </td>
-                        <td className="px-6 py-4 text-sm text-right">
-                          <div className="flex justify-end gap-2" onClick={(e) => e.stopPropagation()}>
+                        <td className="px-6 py-4 text-right text-sm">
+                          <div
+                            className="flex justify-end gap-2"
+                            onClick={e => e.stopPropagation()}>
                             <Button
                               variant="tertiary"
                               isIconOnly
-                              onPress={() => navigate(`/customers/details/${customer.id}`)}
-                              aria-label="Hesap Detayı"
-                            >
+                              onPress={() =>
+                                navigate(`/customers/details/${customer.id}`)
+                              }
+                              aria-label="Hesap Detayı">
                               <Eye className="text-lg" />
                             </Button>
                             <Button
                               variant="tertiary"
                               isIconOnly
-                              onPress={() => navigate(`/customers/edit/${customer.id}`)}
-                              aria-label="Müşteriyi Düzenle"
-                            >
+                              onPress={() =>
+                                navigate(`/customers/edit/${customer.id}`)
+                              }
+                              aria-label="Müşteriyi Düzenle">
                               <Edit2 className="text-lg" />
                             </Button>
                           </div>

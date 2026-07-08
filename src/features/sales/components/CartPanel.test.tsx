@@ -8,10 +8,7 @@ vi.mock('../store/useSalesStore', async () => {
   const actual = await vi.importActual<any>('../store/useSalesStore');
   return {
     ...actual,
-    useSalesStore: Object.assign(
-      vi.fn(),
-      actual.useSalesStore
-    )
+    useSalesStore: Object.assign(vi.fn(), actual.useSalesStore)
   };
 });
 
@@ -35,7 +32,7 @@ describe('CartPanel', () => {
       clearCart: vi.fn(),
       checkout: vi.fn(),
       totalAmount: 0,
-      isProcessing: false,
+      isProcessing: false
     });
   });
 
@@ -53,7 +50,7 @@ describe('CartPanel', () => {
       updateQuantity: vi.fn(),
       clearCart: vi.fn(),
       checkout: vi.fn(),
-      isProcessing: false,
+      isProcessing: false
     });
 
     render(<CartPanel />);

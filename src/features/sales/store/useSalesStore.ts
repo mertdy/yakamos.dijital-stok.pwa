@@ -58,44 +58,60 @@ export const useSalesStore = create<SalesState>()(
       paymentMethod: 'Cash',
       heldSales: [],
 
-      addToCart: (newItem) => {
-        set((state) => {
-          const existing = state.cart.find((item) => item.inventoryId === newItem.inventoryId);
+      addToCart: newItem => {
+        set(state => {
+          const existing = state.cart.find(
+            item => item.inventoryId === newItem.inventoryId
+          );
           if (existing) {
             return {
-              cart: state.cart.map((item) =>
+              cart: state.cart.map(item =>
                 item.inventoryId === newItem.inventoryId
                   ? { ...item, quantity: item.quantity + newItem.quantity }
                   : item
-              ),
+              )
             };
           }
           return { cart: [...state.cart, newItem] };
         });
       },
 
-      removeFromCart: (inventoryId) => {
-        set((state) => ({
-          cart: state.cart.filter((item) => item.inventoryId !== inventoryId),
+      removeFromCart: inventoryId => {
+        set(state => ({
+          cart: state.cart.filter(item => item.inventoryId !== inventoryId)
         }));
       },
 
       updateQuantity: (inventoryId, quantity) => {
-        set((state) => ({
-          cart: state.cart.map((item) =>
+        set(state => ({
+          cart: state.cart.map(item =>
             item.inventoryId === inventoryId ? { ...item, quantity } : item
-          ),
+          )
         }));
       },
 
-      clearCart: () => set({ cart: [], customerId: null, discountType: 'amount', discountValue: 0 }),
+      clearCart: () =>
+        set({
+          cart: [],
+          customerId: null,
+          discountType: 'amount',
+          discountValue: 0
+        }),
 
-      setCustomerId: (id) => set({ customerId: id }),
-      setDiscount: (type, value) => set({ discountType: type, discountValue: value }),
-      setPaymentMethod: (method) => set({ paymentMethod: method }),
+      setCustomerId: id => set({ customerId: id }),
+      setDiscount: (type, value) =>
+        set({ discountType: type, discountValue: value }),
+      setPaymentMethod: method => set({ paymentMethod: method }),
 
       holdSale: () => {
-        const { cart, customerId, discountType, discountValue, paymentMethod, heldSales } = get();
+        const {
+          cart,
+          customerId,
+          discountType,
+          discountValue,
+          paymentMethod,
+          heldSales
+        } = get();
         if (cart.length === 0) return;
 
         const newHeldSale: HeldSale = {
@@ -108,12 +124,12 @@ export const useSalesStore = create<SalesState>()(
           timestamp: new Date().toISOString()
         };
 
-        set({ 
+        set({
           heldSales: [newHeldSale, ...heldSales],
-          cart: [], 
-          customerId: null, 
-          discountType: 'amount', 
-          discountValue: 0, 
+          cart: [],
+          customerId: null,
+          discountType: 'amount',
+          discountValue: 0,
           paymentMethod: 'Cash'
         });
       },
@@ -134,7 +150,7 @@ export const useSalesStore = create<SalesState>()(
       },
 
       removeHeldSale: (id: string) => {
-        set((state) => ({
+        set(state => ({
           heldSales: state.heldSales.filter(s => s.id !== id)
         }));
       },
@@ -144,24 +160,28 @@ export const useSalesStore = create<SalesState>()(
       },
 
       checkout: async () => {
-        const { cart, customerId, discountType, discountValue, paymentMethod } = get();
+        const { cart, customerId, discountType, discountValue, paymentMethod } =
+          get();
         if (cart.length === 0) return false;
 
         const user = auth.currentUser;
         if (!user) {
-          console.error("User not authenticated");
+          console.error('User not authenticated');
           return false;
         }
 
         if (paymentMethod === 'Credit' && !customerId) {
-          console.error("Veresiye satış için müşteri seçilmelidir.");
+          console.error('Veresiye satış için müşteri seçilmelidir.');
           return false;
         }
 
         set({ isProcessing: true });
         try {
-          const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
-          
+          const subtotal = cart.reduce(
+            (sum, item) => sum + item.price * item.quantity,
+            0
+          );
+
           let discountAmount = 0;
           if (discountType === 'percentage') {
             discountAmount = subtotal * (discountValue / 100);
@@ -191,7 +211,7 @@ export const useSalesStore = create<SalesState>()(
             paymentMethod,
             status: 'Completed',
             createdAt,
-            cart,
+            cart
           });
 
           // 2. Add Sale Items and Decrement Inventory
@@ -227,18 +247,25 @@ export const useSalesStore = create<SalesState>()(
             console.error('Firestore background batch sync failed', err);
           });
 
-          set({ cart: [], isProcessing: false, customerId: null, discountType: 'amount', discountValue: 0, paymentMethod: 'Cash' });
+          set({
+            cart: [],
+            isProcessing: false,
+            customerId: null,
+            discountType: 'amount',
+            discountValue: 0,
+            paymentMethod: 'Cash'
+          });
           return true;
         } catch (error) {
           console.error('Checkout failed:', error);
           set({ isProcessing: false });
           return false;
         }
-      },
+      }
     }),
     {
       name: 'sales-storage',
-      partialize: (state) => ({ heldSales: state.heldSales }),
+      partialize: state => ({ heldSales: state.heldSales })
     }
   )
 );

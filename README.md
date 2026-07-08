@@ -27,16 +27,19 @@ Dijital Stok, işletmelerin envanterlerini, müşteri borçlarını ve satış g
 Projeyi yerel ortamınızda ayağa kaldırmak için Node.js ve pnpm yüklü olmalıdır.
 
 1. Bağımlılıkları yükleyin:
+
    ```bash
    pnpm install
    ```
 
 2. Geliştirme sunucusunu başlatın:
+
    ```bash
    pnpm dev
    ```
 
 3. Üretim (Production) derlemesi almak için:
+
    ```bash
    pnpm build
    ```
@@ -51,6 +54,7 @@ Projeyi yerel ortamınızda ayağa kaldırmak için Node.js ve pnpm yüklü olma
 Kod standartlarını korumak için Husky ile pre-commit kancaları ayarlanmıştır. Çalıştırmak için:
 
 - **ESLint hatalarını denetleme:**
+
   ```bash
   pnpm lint
   ```

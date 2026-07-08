@@ -1,5 +1,14 @@
 import { create } from 'zustand';
-import { collection, query, orderBy, limit, getDocs, doc, writeBatch, getDoc } from 'firebase/firestore';
+import {
+  collection,
+  query,
+  orderBy,
+  limit,
+  getDocs,
+  doc,
+  writeBatch,
+  getDoc
+} from 'firebase/firestore';
 import { db, auth } from '../../../core/firebase/config';
 import { toast } from '@heroui/react';
 import type { CartItem } from '../../sales/store/useSalesStore';
@@ -34,7 +43,7 @@ interface SalesHistoryState {
   sales: SaleTransaction[];
   isLoading: boolean;
   filters: SalesHistoryFilter;
-  
+
   fetchSales: () => Promise<void>;
   setFilters: (filters: Partial<SalesHistoryFilter>) => void;
   clearFilters: () => void;
@@ -46,9 +55,9 @@ export const useSalesHistoryStore = create<SalesHistoryState>((set, get) => ({
   isLoading: false,
   filters: {},
 
-  setFilters: (newFilters) => {
-    set((state) => ({
-      filters: { ...state.filters, ...newFilters },
+  setFilters: newFilters => {
+    set(state => ({
+      filters: { ...state.filters, ...newFilters }
     }));
     get().fetchSales();
   },
@@ -66,51 +75,59 @@ export const useSalesHistoryStore = create<SalesHistoryState>((set, get) => ({
     try {
       const salesRef = collection(db, 'sales');
       // Sadece 500 satış çekeceğiz ve geri kalan filtrelemeyi client-side yapacağız.
-      const q = query(
-        salesRef,
-        orderBy('createdAt', 'desc'),
-        limit(500)
-      );
+      const q = query(salesRef, orderBy('createdAt', 'desc'), limit(500));
 
       const snapshot = await getDocs(q);
-      let fetchedSales = snapshot.docs.map((doc) => ({
+      let fetchedSales = snapshot.docs.map(doc => ({
         id: doc.id,
-        ...doc.data(),
+        ...doc.data()
       })) as SaleTransaction[];
 
       const { filters } = get();
-      
+
       if (filters.searchQuery) {
         const queryLower = filters.searchQuery.toLowerCase();
-        fetchedSales = fetchedSales.filter(s => 
+        fetchedSales = fetchedSales.filter(s =>
           s.invoiceNumber?.toLowerCase().includes(queryLower)
         );
       }
 
       if (filters.customerId) {
-        fetchedSales = fetchedSales.filter(s => s.customerId === filters.customerId);
+        fetchedSales = fetchedSales.filter(
+          s => s.customerId === filters.customerId
+        );
       }
 
       if (filters.paymentMethod) {
-        fetchedSales = fetchedSales.filter(s => s.paymentMethod === filters.paymentMethod);
+        fetchedSales = fetchedSales.filter(
+          s => s.paymentMethod === filters.paymentMethod
+        );
       }
 
       if (filters.minAmount !== undefined && !isNaN(filters.minAmount)) {
-        fetchedSales = fetchedSales.filter(s => s.totalAmount >= filters.minAmount!);
+        fetchedSales = fetchedSales.filter(
+          s => s.totalAmount >= filters.minAmount!
+        );
       }
 
       if (filters.maxAmount !== undefined && !isNaN(filters.maxAmount)) {
-        fetchedSales = fetchedSales.filter(s => s.totalAmount <= filters.maxAmount!);
+        fetchedSales = fetchedSales.filter(
+          s => s.totalAmount <= filters.maxAmount!
+        );
       }
 
       if (filters.startDate) {
         const start = new Date(filters.startDate).getTime();
-        fetchedSales = fetchedSales.filter(s => new Date(s.createdAt).getTime() >= start);
+        fetchedSales = fetchedSales.filter(
+          s => new Date(s.createdAt).getTime() >= start
+        );
       }
 
       if (filters.endDate) {
         const end = new Date(filters.endDate).getTime();
-        fetchedSales = fetchedSales.filter(s => new Date(s.createdAt).getTime() <= end);
+        fetchedSales = fetchedSales.filter(
+          s => new Date(s.createdAt).getTime() <= end
+        );
       }
 
       set({ sales: fetchedSales });
@@ -124,9 +141,10 @@ export const useSalesHistoryStore = create<SalesHistoryState>((set, get) => ({
 
   cancelSale: async (saleId: string) => {
     try {
-      const sale = get().sales.find((s) => s.id === saleId);
-      if (!sale) throw new Error("Satış bulunamadı");
-      if (sale.status === 'cancelled') throw new Error("Satış zaten iptal edilmiş");
+      const sale = get().sales.find(s => s.id === saleId);
+      if (!sale) throw new Error('Satış bulunamadı');
+      if (sale.status === 'cancelled')
+        throw new Error('Satış zaten iptal edilmiş');
 
       const batch = writeBatch(db);
 
@@ -157,8 +175,10 @@ export const useSalesHistoryStore = create<SalesHistoryState>((set, get) => ({
 
       await batch.commit();
 
-      set((state) => ({
-        sales: state.sales.map((s) => s.id === saleId ? { ...s, status: 'cancelled' } : s)
+      set(state => ({
+        sales: state.sales.map(s =>
+          s.id === saleId ? { ...s, status: 'cancelled' } : s
+        )
       }));
 
       toast.success('Satış başarıyla iptal edildi ve stoklar güncellendi');

@@ -1,5 +1,16 @@
 import { create } from 'zustand';
-import { collection, doc, setDoc, updateDoc, onSnapshot, query, where, increment, writeBatch, getDocs } from 'firebase/firestore';
+import {
+  collection,
+  doc,
+  setDoc,
+  updateDoc,
+  onSnapshot,
+  query,
+  where,
+  increment,
+  writeBatch,
+  getDocs
+} from 'firebase/firestore';
 import { db, auth } from '../../../core/firebase/config';
 
 export interface Customer {
@@ -39,10 +50,17 @@ interface CustomerState {
   isLoading: boolean;
   unsubscribeSnapshot: (() => void) | null;
   loadCustomers: () => void;
-  addCustomer: (customer: Omit<Customer, 'id' | 'createdAt' | 'userId' | 'totalDebt'>) => Promise<string>;
-  updateCustomer: (id: string, customerData: Partial<Omit<Customer, 'id' | 'createdAt'>>) => Promise<void>;
+  addCustomer: (
+    customer: Omit<Customer, 'id' | 'createdAt' | 'userId' | 'totalDebt'>
+  ) => Promise<string>;
+  updateCustomer: (
+    id: string,
+    customerData: Partial<Omit<Customer, 'id' | 'createdAt'>>
+  ) => Promise<void>;
   addPayment: (customerId: string, amount: number) => Promise<void>;
-  getCustomerTransactions: (customerId: string) => Promise<CustomerTransaction[]>;
+  getCustomerTransactions: (
+    customerId: string
+  ) => Promise<CustomerTransaction[]>;
   clearCustomers: () => void;
 }
 
@@ -62,17 +80,21 @@ export const useCustomerStore = create<CustomerState>((set, get) => ({
 
     set({ isLoading: true });
 
-    const q = query(collection(db, 'customers'), where('userId', '==', user.uid));
-    
-    const unsubscribe = onSnapshot(q, 
-      (snapshot) => {
+    const q = query(
+      collection(db, 'customers'),
+      where('userId', '==', user.uid)
+    );
+
+    const unsubscribe = onSnapshot(
+      q,
+      snapshot => {
         const customers: Customer[] = [];
-        snapshot.forEach((doc) => {
+        snapshot.forEach(doc => {
           customers.push({ id: doc.id, ...doc.data() } as Customer);
         });
         set({ customers, isLoading: false });
       },
-      (error) => {
+      error => {
         console.error('Firestore snapshot error:', error);
         set({ isLoading: false });
       }
@@ -81,18 +103,18 @@ export const useCustomerStore = create<CustomerState>((set, get) => ({
     set({ unsubscribeSnapshot: unsubscribe });
   },
 
-  addCustomer: async (newCustomerData) => {
+  addCustomer: async newCustomerData => {
     const user = auth.currentUser;
-    if (!user) throw new Error("User not authenticated");
+    if (!user) throw new Error('User not authenticated');
 
     const id = crypto.randomUUID();
     const createdAt = new Date().toISOString();
-    const newCustomer: Customer = { 
-      id, 
-      ...newCustomerData, 
+    const newCustomer: Customer = {
+      id,
+      ...newCustomerData,
       totalDebt: 0,
       createdAt,
-      userId: user.uid 
+      userId: user.uid
     };
 
     // Firestore will automatically cache this write and sync when online
@@ -103,10 +125,13 @@ export const useCustomerStore = create<CustomerState>((set, get) => ({
     return id;
   },
 
-  updateCustomer: async (id: string, customerData: Partial<Omit<Customer, 'id' | 'createdAt'>>) => {
+  updateCustomer: async (
+    id: string,
+    customerData: Partial<Omit<Customer, 'id' | 'createdAt'>>
+  ) => {
     const user = auth.currentUser;
     if (!user) {
-      console.error("User not authenticated");
+      console.error('User not authenticated');
       return;
     }
 
@@ -118,8 +143,8 @@ export const useCustomerStore = create<CustomerState>((set, get) => ({
         updatedAt: new Date().toISOString()
       });
 
-      set((state) => ({
-        customers: state.customers.map(c => 
+      set(state => ({
+        customers: state.customers.map(c =>
           c.id === id ? { ...c, ...customerData } : c
         ),
         isLoading: false
@@ -134,7 +159,7 @@ export const useCustomerStore = create<CustomerState>((set, get) => ({
   addPayment: async (customerId: string, amount: number) => {
     const user = auth.currentUser;
     if (!user) {
-      console.error("User not authenticated");
+      console.error('User not authenticated');
       return;
     }
 
@@ -169,10 +194,12 @@ export const useCustomerStore = create<CustomerState>((set, get) => ({
     }
   },
 
-  getCustomerTransactions: async (customerId: string): Promise<CustomerTransaction[]> => {
+  getCustomerTransactions: async (
+    customerId: string
+  ): Promise<CustomerTransaction[]> => {
     const user = auth.currentUser;
     if (!user) {
-      console.error("User not authenticated");
+      console.error('User not authenticated');
       return [];
     }
 
@@ -184,21 +211,25 @@ export const useCustomerStore = create<CustomerState>((set, get) => ({
         where('paymentMethod', '==', 'Credit')
       );
       const salesSnapshot = await getDocs(salesQuery);
-      const salesTransactions: CustomerTransaction[] = salesSnapshot.docs.map(doc => {
-        const data = doc.data();
-        return {
-          id: doc.id,
-          type: 'SALE',
-          amount: data.totalAmount || 0,
-          date: data.createdAt,
-          description: data.invoiceNumber ? `Fatura: ${data.invoiceNumber}` : 'Veresiye Satış',
-          cart: data.cart || [],
-          discountType: data.discountType,
-          discountValue: data.discountValue,
-          subtotal: data.subtotal,
-          invoiceNumber: data.invoiceNumber
-        };
-      });
+      const salesTransactions: CustomerTransaction[] = salesSnapshot.docs.map(
+        doc => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            type: 'SALE',
+            amount: data.totalAmount || 0,
+            date: data.createdAt,
+            description: data.invoiceNumber
+              ? `Fatura: ${data.invoiceNumber}`
+              : 'Veresiye Satış',
+            cart: data.cart || [],
+            discountType: data.discountType,
+            discountValue: data.discountValue,
+            subtotal: data.subtotal,
+            invoiceNumber: data.invoiceNumber
+          };
+        }
+      );
 
       // 2. Get Payments
       const paymentsQuery = query(
@@ -206,20 +237,23 @@ export const useCustomerStore = create<CustomerState>((set, get) => ({
         where('customerId', '==', customerId)
       );
       const paymentsSnapshot = await getDocs(paymentsQuery);
-      const paymentsTransactions: CustomerTransaction[] = paymentsSnapshot.docs.map(doc => {
-        const data = doc.data();
-        return {
-          id: doc.id,
-          type: 'PAYMENT',
-          amount: data.amount || 0,
-          date: data.createdAt,
-          description: 'Tahsilat'
-        };
-      });
+      const paymentsTransactions: CustomerTransaction[] =
+        paymentsSnapshot.docs.map(doc => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            type: 'PAYMENT',
+            amount: data.amount || 0,
+            date: data.createdAt,
+            description: 'Tahsilat'
+          };
+        });
 
       // Combine and sort by date descending (newest first)
       const allTransactions = [...salesTransactions, ...paymentsTransactions];
-      allTransactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      allTransactions.sort(
+        (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+      );
 
       return allTransactions;
     } catch (error) {

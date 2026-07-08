@@ -15,7 +15,7 @@ export const CustomerDrawer: React.FC<Props> = ({ isOpen, onClose }) => {
   const { customers, loadCustomers } = useCustomerStore();
   const { customerId, setCustomerId } = useSalesStore();
   const navigate = useNavigate();
-  
+
   const [search, setSearch] = useState('');
 
   useEffect(() => {
@@ -24,10 +24,11 @@ export const CustomerDrawer: React.FC<Props> = ({ isOpen, onClose }) => {
     }
   }, [isOpen, loadCustomers]);
 
-  const filteredCustomers = customers.filter(c => 
-    c.name.toLowerCase().includes(search.toLowerCase()) || 
-    (c.surname && c.surname.toLowerCase().includes(search.toLowerCase())) ||
-    (c.phone && c.phone.includes(search))
+  const filteredCustomers = customers.filter(
+    c =>
+      c.name.toLowerCase().includes(search.toLowerCase()) ||
+      (c.surname && c.surname.toLowerCase().includes(search.toLowerCase())) ||
+      (c.phone && c.phone.includes(search))
   );
 
   const handleSelectCustomer = (id: string | null) => {
@@ -39,79 +40,96 @@ export const CustomerDrawer: React.FC<Props> = ({ isOpen, onClose }) => {
     <AnimatePresence>
       {isOpen && (
         <>
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40" 
-            onClick={onClose} 
+            className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm"
+            onClick={onClose}
           />
-          <motion.div 
+          <motion.div
             initial={{ x: '100%' }}
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
-            transition={{ type: 'tween', duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-            className="fixed right-0 top-0 bottom-0 w-full max-w-sm bg-white shadow-2xl z-50 flex flex-col"
-          >
-            <div className="p-5 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
-              <h2 className="text-lg font-bold text-gray-900">Müşteri Seçimi</h2>
-              <Button variant="ghost" isIconOnly onPress={onClose}><X size={20} /></Button>
+            transition={{
+              type: 'tween',
+              duration: 0.3,
+              ease: [0.16, 1, 0.3, 1]
+            }}
+            className="fixed top-0 right-0 bottom-0 z-50 flex w-full max-w-sm flex-col bg-white shadow-2xl">
+            <div className="flex items-center justify-between border-b border-gray-100 bg-gray-50/50 p-5">
+              <h2 className="text-lg font-bold text-gray-900">
+                Müşteri Seçimi
+              </h2>
+              <Button variant="ghost" isIconOnly onPress={onClose}>
+                <X size={20} />
+              </Button>
             </div>
 
-            <div className="flex-1 overflow-y-auto flex flex-col">
-              <div className="p-4 border-b border-gray-100">
+            <div className="flex flex-1 flex-col overflow-y-auto">
+              <div className="border-b border-gray-100 p-4">
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                  <input 
-                    type="text" 
-                    placeholder="Müşteri ara..." 
+                  <Search
+                    className="absolute top-1/2 left-3 -translate-y-1/2 text-gray-400"
+                    size={18}
+                  />
+                  <input
+                    type="text"
+                    placeholder="Müşteri ara..."
                     value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    className="w-full bg-gray-50 border border-gray-200 rounded-xl py-2.5 pl-10 pr-4 focus:ring-2 focus:ring-primary outline-none"
+                    onChange={e => setSearch(e.target.value)}
+                    className="focus:ring-primary w-full rounded-xl border border-gray-200 bg-gray-50 py-2.5 pr-4 pl-10 outline-none focus:ring-2"
                   />
                 </div>
-                <Button 
-                  variant="tertiary" 
-                  className="w-full mt-3 rounded-xl border-dashed"
+                <Button
+                  variant="tertiary"
+                  className="mt-3 w-full rounded-xl border-dashed"
                   onPress={() => {
                     onClose();
                     navigate('/customers/new');
-                  }}
-                >
+                  }}>
                   <UserPlus size={18} className="mr-2" />
                   Yeni Müşteri Ekle
                 </Button>
                 {customerId && (
-                   <Button 
-                     variant="ghost" 
-                     className="w-full mt-2 text-danger hover:bg-danger/10"
-                     onPress={() => handleSelectCustomer(null)}
-                   >
-                     Seçimi Temizle
-                   </Button>
+                  <Button
+                    variant="ghost"
+                    className="text-danger hover:bg-danger/10 mt-2 w-full"
+                    onPress={() => handleSelectCustomer(null)}>
+                    Seçimi Temizle
+                  </Button>
                 )}
               </div>
 
-              <div className="flex-1 overflow-y-auto p-4 space-y-2">
+              <div className="flex-1 space-y-2 overflow-y-auto p-4">
                 {filteredCustomers.length === 0 ? (
-                   <div className="text-center text-gray-500 mt-10">Müşteri bulunamadı</div>
+                  <div className="mt-10 text-center text-gray-500">
+                    Müşteri bulunamadı
+                  </div>
                 ) : (
                   filteredCustomers.map(customer => (
                     <button
                       key={customer.id}
                       onClick={() => handleSelectCustomer(customer.id)}
-                      className={`w-full text-left p-4 rounded-xl border transition-all flex justify-between items-center ${
-                        customerId === customer.id 
-                          ? 'border-primary bg-primary/5 shadow-sm' 
+                      className={`flex w-full items-center justify-between rounded-xl border p-4 text-left transition-all ${
+                        customerId === customer.id
+                          ? 'border-primary bg-primary/5 shadow-sm'
                           : 'border-gray-100 hover:border-gray-200 hover:bg-gray-50'
-                      }`}
-                    >
+                      }`}>
                       <div>
-                        <h4 className="font-semibold text-gray-900">{customer.name} {customer.surname || ''}</h4>
-                        {customer.phone && <span className="text-xs text-gray-500">{customer.phone}</span>}
+                        <h4 className="font-semibold text-gray-900">
+                          {customer.name} {customer.surname || ''}
+                        </h4>
+                        {customer.phone && (
+                          <span className="text-xs text-gray-500">
+                            {customer.phone}
+                          </span>
+                        )}
                       </div>
-                      {customerId === customer.id && <CheckCircle2 className="text-primary" size={20} />}
+                      {customerId === customer.id && (
+                        <CheckCircle2 className="text-primary" size={20} />
+                      )}
                     </button>
                   ))
                 )}

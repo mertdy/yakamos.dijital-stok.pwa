@@ -1,10 +1,9 @@
-@import "tailwindcss";
-@plugin "@tailwindcss/forms";
-@import "@heroui/styles";
-
+@import 'tailwindcss';
+@plugin '@tailwindcss/forms';
+@import '@heroui/styles';
 
 @theme {
-  --font-sans: "Inter", system-ui, sans-serif;
+  --font-sans: 'Inter', system-ui, sans-serif;
   --color-primary: #1a73e8;
   --color-danger: #d93025;
   --color-success: #1e8e3e;

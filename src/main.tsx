@@ -18,5 +18,5 @@ createRoot(document.getElementById('root')!).render(
         </ConfirmDialogProvider>
       </BrowserRouter>
     </I18nProvider>
-  </StrictMode>,
+  </StrictMode>
 );

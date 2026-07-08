@@ -15,20 +15,24 @@ export const SalesHistoryView: React.FC = () => {
   }, [fetchSales, loadCustomers]);
 
   return (
-    <div className="p-4 md:p-6 h-full flex flex-col max-w-7xl mx-auto space-y-6">
-      <div className="flex justify-between items-center">
+    <div className="mx-auto flex h-full max-w-7xl flex-col space-y-6 p-4 md:p-6">
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-gray-900">Satış Geçmişi</h1>
-          <p className="text-gray-500 text-sm mt-1">Geçmiş satış işlemlerinizi görüntüleyin ve filtreleyin.</p>
+          <h1 className="text-3xl font-bold tracking-tight text-gray-900">
+            Satış Geçmişi
+          </h1>
+          <p className="mt-1 text-sm text-gray-500">
+            Geçmiş satış işlemlerinizi görüntüleyin ve filtreleyin.
+          </p>
         </div>
       </div>
 
       <SalesHistoryFilters />
 
-      <div className="flex-1 min-h-0 bg-white rounded-[28px] shadow-sm flex flex-col overflow-hidden relative">
+      <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-[28px] bg-white shadow-sm">
         {isLoading && (
-          <div className="absolute inset-0 bg-white/50 backdrop-blur-sm z-10 flex items-center justify-center">
-            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/50 backdrop-blur-sm">
+            <Loader2 className="text-primary h-8 w-8 animate-spin" />
           </div>
         )}
         <SalesHistoryList />

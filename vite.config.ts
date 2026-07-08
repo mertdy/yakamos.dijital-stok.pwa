@@ -1,13 +1,13 @@
 /// <reference types="vitest" />
-import { defineConfig } from 'vitest/config'
-import react from '@vitejs/plugin-react'
-import tailwindcss from '@tailwindcss/vite'
-import { VitePWA } from 'vite-plugin-pwa'
+import { defineConfig } from 'vitest/config';
+import react from '@vitejs/plugin-react';
+import tailwindcss from '@tailwindcss/vite';
+import { VitePWA } from 'vite-plugin-pwa';
 
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
-    react(), 
+    react(),
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
@@ -26,13 +26,13 @@ export default defineConfig({
   ],
   server: {
     headers: {
-      'Cross-Origin-Opener-Policy': 'same-origin-allow-popups',
-    },
+      'Cross-Origin-Opener-Policy': 'same-origin-allow-popups'
+    }
   },
   test: {
     globals: true,
     environment: 'jsdom',
     setupFiles: './vitest.setup.ts',
-    exclude: ['node_modules', 'e2e/**/*'],
+    exclude: ['node_modules', 'e2e/**/*']
   }
-})
+});
