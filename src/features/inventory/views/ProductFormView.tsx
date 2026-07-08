@@ -71,30 +71,6 @@ export const ProductFormView: React.FC = () => {
     }
   }, [items.length, loadItems]);
 
-  useEffect(() => {
-    if (isEditMode && items.length > 0) {
-      const editingItem = items.find(item => item.id === id);
-      if (editingItem) {
-        reset({
-          name: editingItem.name,
-          barcode: editingItem.barcode || '',
-          stock: editingItem.stock,
-          price: editingItem.price
-        });
-
-        setApiProductData(null);
-      }
-    } else if (!isEditMode) {
-      reset({ name: '', barcode: initialBarcode || '', stock: 0, price: 0 });
-
-      setApiProductData(null);
-      if (initialBarcode) {
-        // eslint-disable-next-line
-        searchProductByBarcode(initialBarcode);
-      }
-    }
-  }, [isEditMode, id, items, initialBarcode, reset]);
-
   const searchProductByBarcode = async (barcodeToSearch: string) => {
     if (!barcodeToSearch) return;
     setIsSearching(true);
@@ -121,6 +97,29 @@ export const ProductFormView: React.FC = () => {
       setIsSearching(false);
     }
   };
+
+  useEffect(() => {
+    if (isEditMode && items.length > 0) {
+      const editingItem = items.find(item => item.id === id);
+      if (editingItem) {
+        reset({
+          name: editingItem.name,
+          barcode: editingItem.barcode || '',
+          stock: editingItem.stock,
+          price: editingItem.price
+        });
+
+        setApiProductData(null);
+      }
+    } else if (!isEditMode) {
+      reset({ name: '', barcode: initialBarcode || '', stock: 0, price: 0 });
+
+      setApiProductData(null);
+      if (initialBarcode) {
+        searchProductByBarcode(initialBarcode);
+      }
+    }
+  }, [isEditMode, id, items, initialBarcode, reset, searchProductByBarcode]);
 
   const onSubmit = async (data: ProductFormData) => {
     setIsSaving(true);
@@ -156,7 +155,7 @@ export const ProductFormView: React.FC = () => {
         toast.success('Yeni ürün eklendi');
       }
       navigate(-1);
-    } catch (error) {
+    } catch {
       toast.danger('İşlem başarısız oldu');
     } finally {
       setIsSaving(false);

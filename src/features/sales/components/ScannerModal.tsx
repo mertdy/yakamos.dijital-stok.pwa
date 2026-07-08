@@ -37,184 +37,7 @@ const ScannerModal: React.FC<ScannerModalProps> = ({
   const animationFrameRef = useRef<number | null>(null);
   const startTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  useEffect(() => {
-    if (isOpen) {
-      // eslint-disable-next-line
-      startScan();
-    } else {
-      // eslint-disable-next-line
-      stopScan();
-    }
-
-    return () => {
-      stopScan();
-    };
-  }, [isOpen]);
-
-  const startScan = async () => {
-    try {
-      hasScannedRef.current = false;
-      isScanningRef.current = true;
-      const isWeb = Capacitor.getPlatform() === 'web';
-      if (isWeb) {
-        setIsScanning(true);
-
-        if ('BarcodeDetector' in window) {
-          // Native Barcode Detection API (Chrome/Edge Android & Desktop)
-          if (startTimeoutRef.current) clearTimeout(startTimeoutRef.current);
-          startTimeoutRef.current = setTimeout(async () => {
-            if (videoRef.current && isScanningRef.current) {
-              try {
-                const stream = await navigator.mediaDevices.getUserMedia({
-                  video: { facingMode: 'environment' }
-                });
-
-                // If modal closed while waiting for camera permissions
-                if (!isScanningRef.current) {
-                  stream.getTracks().forEach(track => track.stop());
-                  return;
-                }
-
-                streamRef.current = stream;
-                videoRef.current.srcObject = stream;
-                await videoRef.current.play();
-
-                const barcodeDetector = new (window as any).BarcodeDetector({
-                  formats: ['qr_code', 'ean_13', 'ean_8']
-                });
-
-                const detectLoop = async () => {
-                  if (!isScanningRef.current || hasScannedRef.current) return;
-                  if (
-                    videoRef.current &&
-                    videoRef.current.readyState ===
-                      videoRef.current.HAVE_ENOUGH_DATA
-                  ) {
-                    try {
-                      const barcodes = await barcodeDetector.detect(
-                        videoRef.current
-                      );
-                      if (barcodes.length > 0) {
-                        handleBarcodeScanned(barcodes[0].rawValue);
-                        if (hasScannedRef.current) return; // Stop loop if successfully processed
-                      }
-                    } catch (e) {
-                      // Ignored during loop
-                    }
-                  }
-                  animationFrameRef.current = requestAnimationFrame(detectLoop);
-                };
-                detectLoop();
-              } catch (e) {
-                console.error('Camera access failed', e);
-                setIsScanning(false);
-              }
-            }
-          }, 100);
-        } else {
-          // ZXing Fallback
-          if (!codeReaderRef.current) {
-            codeReaderRef.current = new BrowserMultiFormatReader();
-          }
-
-          if (startTimeoutRef.current) clearTimeout(startTimeoutRef.current);
-          startTimeoutRef.current = setTimeout(() => {
-            if (
-              videoRef.current &&
-              codeReaderRef.current &&
-              isScanningRef.current
-            ) {
-              codeReaderRef.current
-                .decodeFromVideoDevice(
-                  undefined,
-                  videoRef.current,
-                  (result, _err) => {
-                    if (result) {
-                      handleBarcodeScanned(result.getText());
-                    }
-                  }
-                )
-                .then(controls => {
-                  if (!isScanningRef.current) {
-                    controls.stop();
-                  } else {
-                    controlsRef.current = controls;
-                  }
-                })
-                .catch(console.error);
-            }
-          }, 100);
-        }
-        return;
-      }
-
-      // Native Device Scanning (Capacitor MLKit)
-      await BarcodeScanner.installGoogleBarcodeScannerModule();
-      const status = await BarcodeScanner.requestPermissions();
-
-      if (status.camera !== 'granted' && status.camera !== 'limited') {
-        toast.danger('Kamera izni verilmedi');
-        onClose();
-        return;
-      }
-
-      setIsScanning(true);
-      document.body.classList.add('barcode-scanner-active'); // To make webview transparent
-
-      await BarcodeScanner.addListener(
-        'barcodesScanned',
-        async (result: any) => {
-          if (result.barcodes && result.barcodes.length > 0) {
-            handleBarcodeScanned(result.barcodes[0].rawValue);
-          }
-        }
-      );
-
-      await BarcodeScanner.startScan({
-        formats: [BarcodeFormat.QrCode, BarcodeFormat.Ean13, BarcodeFormat.Ean8]
-      });
-    } catch (error) {
-      console.error('Scanner error', error);
-      setIsScanning(false);
-    }
-  };
-
-  const stopScan = async () => {
-    isScanningRef.current = false;
-    setIsScanning(false);
-
-    if (startTimeoutRef.current) {
-      clearTimeout(startTimeoutRef.current);
-      startTimeoutRef.current = null;
-    }
-
-    if (animationFrameRef.current) {
-      cancelAnimationFrame(animationFrameRef.current);
-      animationFrameRef.current = null;
-    }
-
-    const isWeb = Capacitor.getPlatform() === 'web';
-    if (isWeb) {
-      if (controlsRef.current) {
-        controlsRef.current.stop();
-        controlsRef.current = null;
-      }
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach(track => track.stop());
-        streamRef.current = null;
-      }
-      if (videoRef.current) {
-        videoRef.current.srcObject = null;
-      }
-      codeReaderRef.current = null;
-    } else {
-      document.body.classList.remove('barcode-scanner-active');
-      await BarcodeScanner.stopScan();
-      await BarcodeScanner.removeAllListeners();
-    }
-  };
-
-  const handleBarcodeScanned = (barcode: string) => {
+  function handleBarcodeScanned(barcode: string) {
     if (hasScannedRef.current) return;
 
     const now = Date.now();
@@ -272,7 +95,178 @@ const ScannerModal: React.FC<ScannerModalProps> = ({
         }
       });
     }
-  };
+  }
+
+  async function startScan() {
+    try {
+      hasScannedRef.current = false;
+      isScanningRef.current = true;
+      const isWeb = Capacitor.getPlatform() === 'web';
+      if (isWeb) {
+        setIsScanning(true);
+
+        if ('BarcodeDetector' in window) {
+          // Native Barcode Detection API (Chrome/Edge Android & Desktop)
+          if (startTimeoutRef.current) clearTimeout(startTimeoutRef.current);
+          startTimeoutRef.current = setTimeout(async () => {
+            if (videoRef.current && isScanningRef.current) {
+              try {
+                const stream = await navigator.mediaDevices.getUserMedia({
+                  video: { facingMode: 'environment' }
+                });
+
+                // If modal closed while waiting for camera permissions
+                if (!isScanningRef.current) {
+                  stream.getTracks().forEach(track => track.stop());
+                  return;
+                }
+
+                streamRef.current = stream;
+                videoRef.current.srcObject = stream;
+                await videoRef.current.play();
+
+                const barcodeDetector = new (window as any).BarcodeDetector({
+                  formats: ['qr_code', 'ean_13', 'ean_8']
+                });
+
+                const detectLoop = async () => {
+                  if (!isScanningRef.current || hasScannedRef.current) return;
+                  if (
+                    videoRef.current &&
+                    videoRef.current.readyState ===
+                      videoRef.current.HAVE_ENOUGH_DATA
+                  ) {
+                    try {
+                      const barcodes = await barcodeDetector.detect(
+                        videoRef.current
+                      );
+                      if (barcodes.length > 0) {
+                        handleBarcodeScanned(barcodes[0].rawValue);
+                        if (hasScannedRef.current) return; // Stop loop if successfully processed
+                      }
+                    } catch {
+                      // Ignored during loop
+                    }
+                  }
+                  animationFrameRef.current = requestAnimationFrame(detectLoop);
+                };
+                detectLoop();
+              } catch (e) {
+                console.error('Camera access failed', e);
+                setIsScanning(false);
+              }
+            }
+          }, 100);
+        } else {
+          // ZXing Fallback
+          if (!codeReaderRef.current) {
+            codeReaderRef.current = new BrowserMultiFormatReader();
+          }
+
+          if (startTimeoutRef.current) clearTimeout(startTimeoutRef.current);
+          startTimeoutRef.current = setTimeout(() => {
+            if (
+              videoRef.current &&
+              codeReaderRef.current &&
+              isScanningRef.current
+            ) {
+              codeReaderRef.current
+                .decodeFromVideoDevice(undefined, videoRef.current, result => {
+                  if (result) {
+                    handleBarcodeScanned(result.getText());
+                  }
+                })
+                .then(controls => {
+                  if (!isScanningRef.current) {
+                    controls.stop();
+                  } else {
+                    controlsRef.current = controls;
+                  }
+                })
+                .catch(console.error);
+            }
+          }, 100);
+        }
+        return;
+      }
+
+      // Native Device Scanning (Capacitor MLKit)
+      await BarcodeScanner.installGoogleBarcodeScannerModule();
+      const status = await BarcodeScanner.requestPermissions();
+
+      if (status.camera !== 'granted' && status.camera !== 'limited') {
+        toast.danger('Kamera izni verilmedi');
+        onClose();
+        return;
+      }
+
+      setIsScanning(true);
+      document.body.classList.add('barcode-scanner-active'); // To make webview transparent
+
+      await BarcodeScanner.addListener(
+        'barcodesScanned',
+        async (result: any) => {
+          if (result.barcodes && result.barcodes.length > 0) {
+            handleBarcodeScanned(result.barcodes[0].rawValue);
+          }
+        }
+      );
+
+      await BarcodeScanner.startScan({
+        formats: [BarcodeFormat.QrCode, BarcodeFormat.Ean13, BarcodeFormat.Ean8]
+      });
+    } catch (error) {
+      console.error('Scanner error', error);
+      setIsScanning(false);
+    }
+  }
+
+  async function stopScan() {
+    isScanningRef.current = false;
+    setIsScanning(false);
+
+    if (startTimeoutRef.current) {
+      clearTimeout(startTimeoutRef.current);
+      startTimeoutRef.current = null;
+    }
+
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = null;
+    }
+
+    const isWeb = Capacitor.getPlatform() === 'web';
+    if (isWeb) {
+      if (controlsRef.current) {
+        controlsRef.current.stop();
+        controlsRef.current = null;
+      }
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+        streamRef.current = null;
+      }
+      if (videoRef.current) {
+        videoRef.current.srcObject = null;
+      }
+      codeReaderRef.current = null;
+    } else {
+      document.body.classList.remove('barcode-scanner-active');
+      await BarcodeScanner.stopScan();
+      await BarcodeScanner.removeAllListeners();
+    }
+  }
+
+  useEffect(() => {
+    if (isOpen) {
+      startScan();
+    } else {
+      stopScan();
+    }
+
+    return () => {
+      stopScan();
+    };
+  }, [isOpen, startScan, stopScan]);
 
   if (!isOpen) return null;
 

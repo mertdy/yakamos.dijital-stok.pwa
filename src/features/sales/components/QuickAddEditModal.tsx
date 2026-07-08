@@ -167,8 +167,8 @@ export const QuickAddEditModal: React.FC<Props> = ({ isOpen, onClose }) => {
       await saveQuickAddItems(localQuickAddItems);
       toast.success('Kısayollar başarıyla kaydedildi.');
       onClose();
-    } catch (error) {
-      // Error is handled in store
+    } catch {
+      toast.danger('Kayıt sırasında bir hata oluştu');
     }
   };
 

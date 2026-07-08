@@ -41,13 +41,6 @@ export const CustomerDetailView: React.FC = () => {
 
   const customer = customers.find(c => c.id === id);
 
-  useEffect(() => {
-    if (id) {
-      // eslint-disable-next-line
-      loadTransactions();
-    }
-  }, [id, getCustomerTransactions]);
-
   const loadTransactions = async () => {
     setIsLoadingTx(true);
     if (id) {
@@ -56,6 +49,12 @@ export const CustomerDetailView: React.FC = () => {
     }
     setIsLoadingTx(false);
   };
+
+  useEffect(() => {
+    if (id) {
+      loadTransactions();
+    }
+  }, [id, loadTransactions]);
 
   if (isLoading) {
     return (
