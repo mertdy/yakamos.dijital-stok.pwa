@@ -1,0 +1,14 @@
+{
+  "recommendations": [
+    "esbenp.prettier-vscode",
+    "dbaeumer.vscode-eslint",
+    "bradlc.vscode-tailwindcss",
+    "usernamehw.errorlens",
+    "yoavbls.pretty-ts-errors",
+    "vitest.explorer",
+    "dsznajder.es7-react-js-snippets",
+    "donjayamanne.git-extension-pack",
+    "ms-vsliveshare.vsliveshare",
+    "editorconfig.editorconfig"
+  ]
+}

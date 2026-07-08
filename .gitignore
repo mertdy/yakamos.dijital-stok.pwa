@@ -22,3 +22,8 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Agent Tracking Files
+.agents/implementation_plan.md
+.agents/task.md
+.agents/walkthrough.md

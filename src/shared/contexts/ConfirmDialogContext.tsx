@@ -1,4 +1,10 @@
-import React, { createContext, useContext, useState, useCallback, type ReactNode } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useCallback,
+  type ReactNode
+} from 'react';
 import { AlertDialog } from '@heroui/react';
 import { Button } from '@heroui/react';
 
@@ -29,15 +35,19 @@ interface ConfirmDialogProviderProps {
   children: ReactNode;
 }
 
-export const ConfirmDialogProvider: React.FC<ConfirmDialogProviderProps> = ({ children }) => {
+export const ConfirmDialogProvider: React.FC<ConfirmDialogProviderProps> = ({
+  children
+}) => {
   const [isOpen, setIsOpen] = useState(false);
   const [options, setOptions] = useState<ConfirmOptions | null>(null);
-  const [resolver, setResolver] = useState<{ resolve: (value: boolean) => void } | null>(null);
+  const [resolver, setResolver] = useState<{
+    resolve: (value: boolean) => void;
+  } | null>(null);
 
   const confirm = useCallback((newOptions: ConfirmOptions) => {
     setOptions(newOptions);
     setIsOpen(true);
-    return new Promise<boolean>((resolve) => {
+    return new Promise<boolean>(resolve => {
       setResolver({ resolve });
     });
   }, []);
@@ -62,28 +72,37 @@ export const ConfirmDialogProvider: React.FC<ConfirmDialogProviderProps> = ({ ch
   return (
     <ConfirmContext.Provider value={{ confirm }}>
       {children}
-      
+
       {options && (
         <AlertDialog isOpen={isOpen} onOpenChange={handleOpenChange}>
-          <button style={{ display: 'none' }} aria-hidden="true" tabIndex={-1} />
+          <button
+            style={{ display: 'none' }}
+            aria-hidden="true"
+            tabIndex={-1}
+          />
           <AlertDialog.Backdrop>
             <AlertDialog.Container>
               <AlertDialog.Dialog>
                 {options.title && (
                   <AlertDialog.Header>
-                    <AlertDialog.Icon status={options.status || (options.variant === 'danger' ? 'danger' : 'default')} />
+                    <AlertDialog.Icon
+                      status={
+                        options.status ||
+                        (options.variant === 'danger' ? 'danger' : 'default')
+                      }
+                    />
                     <AlertDialog.Heading>{options.title}</AlertDialog.Heading>
                   </AlertDialog.Header>
                 )}
-                <AlertDialog.Body>
-                  {options.description}
-                </AlertDialog.Body>
+                <AlertDialog.Body>{options.description}</AlertDialog.Body>
                 <AlertDialog.Footer>
                   <Button variant="ghost" onPress={handleCancel}>
                     {options.cancelText || 'İptal'}
                   </Button>
                   {/* Notice: Button expects variant="danger"|'primary' etc, not color. ConfirmOptions uses 'variant' now! */}
-                  <Button variant={options.variant || 'primary'} onPress={handleConfirm}>
+                  <Button
+                    variant={options.variant || 'primary'}
+                    onPress={handleConfirm}>
                     {options.confirmText || 'Onayla'}
                   </Button>
                 </AlertDialog.Footer>
