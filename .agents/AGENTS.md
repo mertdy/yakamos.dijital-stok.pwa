@@ -92,3 +92,91 @@ Kod tabanının kararlılığını sağlamak, gerilemeleri (regression) önlemek
 
 5. **Başarı Onayı:**
    - Tüm adımlar (lint -> test -> build) sıfır hatayla başarıyla tamamlandığında, gerçekleştirilen kontrollerin özetini kullanıcıya sunarak başarıyı onaylayın.
+
+---
+
+# Permanent AI Agent Working Rules
+
+Every AI agent working on this repository MUST strictly adhere to the following rules:
+
+## 1. Documentation Is Part of the Codebase
+*   Project documentation is considered part of the source code.
+*   No implementation task is complete until all affected documentation has been updated.
+*   Documentation must never become outdated.
+
+## 2. Source of Truth
+*   The implementation is always the source of truth.
+*   Never document assumptions. Never invent features.
+*   If documentation conflicts with the implementation, update the documentation.
+
+## 3. Documentation Loading
+At the beginning of every new session, before making changes, read all relevant documentation.
+*   **Always read:**
+    *   `README.md`
+    *   `docs/AI_CONTEXT.md`
+*   **Additionally, read task-relevant docs as needed:**
+    *   `docs/ARCHITECTURE.md`
+    *   `docs/FEATURES.md`
+    *   `docs/API.md`
+    *   `docs/CONVENTIONS.md`
+    *   `docs/DECISIONS.md`
+    *   `docs/ROADMAP.md`
+    *   `docs/PROJECT_STRUCTURE.md`
+    *   `docs/GLOSSARY.md`
+*   *Tip:* Only load documentation relevant to the current task to minimize unnecessary context usage.
+
+## 4. Automatic Documentation Maintenance
+After every implementation task, determine which documentation files are affected and update them automatically:
+*   **New feature** → Update `docs/FEATURES.md`
+*   **Architecture changes** → Update `docs/ARCHITECTURE.md`
+*   **API / DB Schema changes** → Update `docs/API.md`
+*   **Folder / Catalog changes** → Update `docs/PROJECT_STRUCTURE.md`
+*   **Coding standards / Import rules** → Update `docs/CONVENTIONS.md`
+*   **Important design decisions** → Append new ADR to `docs/DECISIONS.md`
+*   **Roadmap progress** → Update `docs/ROADMAP.md`
+*   **Business terminology changes** → Update `docs/GLOSSARY.md`
+*   **Agent knowledge base updates** → Update `docs/AI_CONTEXT.md`
+*   **Build, setups, scripts, or deployment updates** → Update root `README.md`
+
+## 5. Documentation Quality
+Documentation must:
+*   Reflect the current implementation.
+*   Avoid duplication and redundancy.
+*   Explain **WHY** as well as **WHAT**.
+*   Remain concise and link to other documents instead of repeating content.
+*   Use Markdown best practices and Mermaid diagrams where useful.
+*   Stay internally consistent.
+
+## 6. Before Writing Code
+Before implementing anything:
+1.  Understand the existing architecture.
+2.  Search for reusable components.
+3.  Search for existing utilities.
+4.  Search for existing hooks.
+5.  Follow existing conventions.
+6.  Avoid introducing duplicate logic.
+
+## 7. Architecture Rules
+*   Prefer consistency over novelty.
+*   Avoid introducing new patterns, new folder structures, unnecessary dependencies, or unnecessary abstractions unless there is a clear, documented technical justification.
+
+## 8. Architectural Decisions
+*   Whenever an important technical decision is made, append a new entry to `docs/DECISIONS.md`.
+*   Never rewrite or modify historical decisions.
+
+## 9. AI Context Maintenance
+*   Maintain `docs/AI_CONTEXT.md` continuously.
+*   Ensure this document contains the minimum information required for a new AI agent to quickly understand the project.
+*   Whenever project knowledge changes, update this file immediately.
+
+## 10. Repository Awareness
+*   Before making significant changes, inspect the relevant parts of the repository instead of relying on assumptions.
+*   Always prefer existing project patterns over creating new ones.
+
+## 11. Task Completion Checklist
+A task is complete only when:
+*   [ ] The implementation is fully finished and verified.
+*   [ ] The codebase architecture remains consistent without duplicated logic.
+*   [ ] All affected documentation files have been updated and synchronized.
+*   [ ] `docs/AI_CONTEXT.md` has been updated if necessary.
+
