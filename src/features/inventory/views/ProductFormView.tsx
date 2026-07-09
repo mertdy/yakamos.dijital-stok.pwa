@@ -116,7 +116,11 @@ export const ProductFormView: React.FC = () => {
 
         setApiProductData(null);
       }
-    } else if (!isEditMode) {
+    }
+  }, [isEditMode, id, items, reset]);
+
+  useEffect(() => {
+    if (!isEditMode) {
       reset({ name: '', barcode: initialBarcode || '', stock: 0, price: 0 });
 
       setApiProductData(null);
@@ -124,7 +128,8 @@ export const ProductFormView: React.FC = () => {
         searchProductByBarcode(initialBarcode);
       }
     }
-  }, [isEditMode, id, items, initialBarcode, reset, searchProductByBarcode]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isEditMode, initialBarcode]);
 
   const onSubmit = async (data: ProductFormData) => {
     setIsSaving(true);

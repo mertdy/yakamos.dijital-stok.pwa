@@ -1,0 +1,202 @@
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { vi, describe, it, expect, beforeEach } from 'vitest';
+import { InvoicePanel } from './InvoicePanel';
+import { useCustomerStore } from '@/features/customers';
+import { toast } from '@heroui/react';
+
+vi.mock('lucide-react', () => ({
+  UserPlus: () => <div data-testid="icon-user-plus" />,
+  Tag: () => <div data-testid="icon-tag" />,
+  Banknote: () => <div data-testid="icon-banknote" />,
+  CreditCard: () => <div data-testid="icon-credit-card" />,
+  QrCode: () => <div data-testid="icon-qrcode" />,
+  Loader2: () => <div data-testid="icon-loader2" />,
+  Pause: () => <div data-testid="icon-pause" />,
+  CheckCircle2: () => <div data-testid="icon-check-circle" />,
+  Receipt: () => <div data-testid="icon-receipt" />,
+  Printer: () => <div data-testid="icon-printer" />
+}));
+
+const mockCart = [
+  { inventoryId: 'p1', name: 'Water', price: 5, quantity: 2 },
+  { inventoryId: 'p2', name: 'Cola', price: 15, quantity: 1 }
+];
+
+const checkoutMock = vi.fn();
+const holdSaleMock = vi.fn();
+const clearCartMock = vi.fn();
+const setDiscountMock = vi.fn();
+const setPaymentMethodMock = vi.fn();
+
+const storeState = {
+  cart: mockCart,
+  isProcessing: false,
+  customerId: null as string | null,
+  discountType: 'amount',
+  discountValue: 0,
+  paymentMethod: 'Cash',
+  heldSales: [] as any[],
+  checkout: checkoutMock,
+  holdSale: holdSaleMock,
+  clearCart: clearCartMock,
+  setDiscount: setDiscountMock,
+  setPaymentMethod: setPaymentMethodMock
+};
+
+vi.mock('../store/useSalesStore', () => {
+  const mockStore = vi.fn(() => storeState);
+  (mockStore as any).getState = vi.fn(() => storeState);
+  return { useSalesStore: mockStore };
+});
+
+vi.mock('@/features/customers', () => ({
+  useCustomerStore: vi.fn()
+}));
+
+vi.mock('react-to-print', () => ({
+  useReactToPrint: vi.fn(() => vi.fn())
+}));
+
+vi.mock('@heroui/react', async importOriginal => {
+  const original = await importOriginal<typeof import('@heroui/react')>();
+  return {
+    ...original,
+    toast: {
+      success: vi.fn(),
+      danger: vi.fn()
+    }
+  };
+});
+
+const mockUseCustomerStore = useCustomerStore as unknown as ReturnType<
+  typeof vi.fn
+>;
+
+describe('InvoicePanel', () => {
+  const onOpenCustomerDrawer = vi.fn();
+  const onOpenHeldSalesDrawer = vi.fn();
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+
+    // Reset default mock state
+    storeState.cart = mockCart;
+    storeState.isProcessing = false;
+    storeState.customerId = null;
+    storeState.discountType = 'amount';
+    storeState.discountValue = 0;
+    storeState.paymentMethod = 'Cash';
+    storeState.heldSales = [];
+
+    mockUseCustomerStore.mockReturnValue({
+      customers: [
+        {
+          id: 'c1',
+          name: 'Alice',
+          surname: 'Smith',
+          totalDebt: 100,
+          creditLimit: 200
+        }
+      ]
+    });
+  });
+
+  it('renders invoice details and summary correctly', () => {
+    render(
+      <InvoicePanel
+        onOpenCustomerDrawer={onOpenCustomerDrawer}
+        onOpenHeldSalesDrawer={onOpenHeldSalesDrawer}
+      />
+    );
+
+    // subtotal = 5*2 + 15*1 = 25
+    expect(screen.getAllByText('₺25.00').length).toBeGreaterThan(0);
+    expect(screen.getByText('Müşteri Seçin')).toBeInTheDocument();
+  });
+
+  it('displays chosen customer details and scopes credit limits', () => {
+    storeState.customerId = 'c1';
+    storeState.discountValue = 5; // discount 5 tl
+
+    render(
+      <InvoicePanel
+        onOpenCustomerDrawer={onOpenCustomerDrawer}
+        onOpenHeldSalesDrawer={onOpenHeldSalesDrawer}
+      />
+    );
+
+    expect(screen.getByText('Müşteri: Alice Smith')).toBeInTheDocument();
+    expect(screen.getByText('Mevcut Borç: ₺100.00')).toBeInTheDocument();
+    expect(screen.getByText('Limit: ₺200.00')).toBeInTheDocument();
+
+    // totalPayable = 25 - 5 = 20
+    expect(screen.getAllByText('₺20.00').length).toBeGreaterThan(0);
+  });
+
+  it('renders cash change calculator when Cash is selected', () => {
+    render(
+      <InvoicePanel
+        onOpenCustomerDrawer={onOpenCustomerDrawer}
+        onOpenHeldSalesDrawer={onOpenHeldSalesDrawer}
+      />
+    );
+
+    // Cash method is active by default
+    expect(screen.getByText('Para Üstü Hesaplayıcı')).toBeInTheDocument();
+
+    // Click 100 TL button
+    const hundredBtn = screen.getByRole('button', { name: '₺100' });
+    fireEvent.click(hundredBtn);
+
+    // subtotal is 25, change is 100 - 25 = 75
+    expect(screen.getByText('Para Üstü')).toBeInTheDocument();
+    expect(screen.getByText('₺75.00')).toBeInTheDocument();
+  });
+
+  it('disables checkout button if cart is empty', () => {
+    storeState.cart = [];
+
+    render(
+      <InvoicePanel
+        onOpenCustomerDrawer={onOpenCustomerDrawer}
+        onOpenHeldSalesDrawer={onOpenHeldSalesDrawer}
+      />
+    );
+
+    const checkoutBtn = screen.getByRole('button', { name: /Ödemeyi Al/i });
+    expect(checkoutBtn).toBeDisabled();
+  });
+
+  it('calls checkout on Ödemeyi Al click', async () => {
+    checkoutMock.mockResolvedValueOnce(true);
+    render(
+      <InvoicePanel
+        onOpenCustomerDrawer={onOpenCustomerDrawer}
+        onOpenHeldSalesDrawer={onOpenHeldSalesDrawer}
+      />
+    );
+
+    const checkoutBtn = screen.getByRole('button', { name: /Ödemeyi Al/i });
+    fireEvent.click(checkoutBtn);
+
+    await waitFor(() => {
+      expect(checkoutMock).toHaveBeenCalled();
+      expect(toast.success).toHaveBeenCalledWith('Satış başarıyla tamamlandı!');
+    });
+  });
+
+  it('calls holdSale on Beklet click', () => {
+    render(
+      <InvoicePanel
+        onOpenCustomerDrawer={onOpenCustomerDrawer}
+        onOpenHeldSalesDrawer={onOpenHeldSalesDrawer}
+      />
+    );
+
+    const holdBtn = screen.getByRole('button', { name: /Beklet/i });
+    fireEvent.click(holdBtn);
+
+    expect(holdSaleMock).toHaveBeenCalled();
+    expect(toast.success).toHaveBeenCalledWith('Satış beklemeye alındı');
+  });
+});

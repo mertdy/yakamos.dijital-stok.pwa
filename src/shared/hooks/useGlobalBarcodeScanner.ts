@@ -58,10 +58,26 @@ export const useGlobalBarcodeScanner = ({
       lastKeyTime.current = currentTime;
     };
 
+    const handleMockScan = (e: Event) => {
+      const customEvent = e as CustomEvent<string>;
+      if (customEvent.detail) {
+        onScan(customEvent.detail);
+      }
+    };
+
     document.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('mock-barcode-scan', handleMockScan);
+
+    // Global helper for simple window function trigger in E2E
+    (window as any).mockBarcodeScan = (barcode: string) => {
+      window.dispatchEvent(
+        new CustomEvent('mock-barcode-scan', { detail: barcode })
+      );
+    };
 
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('mock-barcode-scan', handleMockScan);
     };
   }, [onScan, maxTimeBetweenKeystrokes]);
 };

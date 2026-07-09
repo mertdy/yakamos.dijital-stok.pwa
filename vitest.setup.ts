@@ -1,6 +1,14 @@
 import '@testing-library/jest-dom';
 import { vi } from 'vitest';
 
+// Mock ResizeObserver for JSDOM
+class ResizeObserverMock {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}
+global.ResizeObserver = ResizeObserverMock as any;
+
 // Global mocks for Capacitor plugins
 vi.mock('@capacitor/sqlite', () => ({
   CapacitorSQLite: {
