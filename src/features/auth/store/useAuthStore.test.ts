@@ -159,7 +159,14 @@ describe('useAuthStore', () => {
   // ── loginWithEmail ───────────────────────────────────────────────────────
 
   it('loginWithEmail calls signInWithEmailAndPassword and clears error', async () => {
-    vi.mocked(signInWithEmailAndPassword).mockResolvedValueOnce({} as never);
+    vi.mocked(signInWithEmailAndPassword).mockResolvedValueOnce({
+      user: {
+        uid: 'mockuid',
+        email: 'test@example.com',
+        displayName: 'Mock User',
+        emailVerified: true
+      }
+    } as never);
     const store = await buildStore();
     await store.getState().loginWithEmail('test@example.com', 'password123');
     expect(signInWithEmailAndPassword).toHaveBeenCalledWith(
@@ -243,7 +250,14 @@ describe('useAuthStore', () => {
   // ── loginWithGoogle ──────────────────────────────────────────────────────
 
   it('loginWithGoogle calls signInWithPopup', async () => {
-    vi.mocked(signInWithPopup).mockResolvedValueOnce({} as never);
+    vi.mocked(signInWithPopup).mockResolvedValueOnce({
+      user: {
+        uid: 'mockuid',
+        email: 'test@example.com',
+        displayName: 'Mock User',
+        emailVerified: true
+      }
+    } as never);
     const store = await buildStore();
     await store.getState().loginWithGoogle();
     expect(signInWithPopup).toHaveBeenCalledWith({}, {});

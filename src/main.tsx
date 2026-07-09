@@ -19,8 +19,10 @@ if (ENV.POSTHOG_KEY && ENV.POSTHOG_HOST) {
     api_host: ENV.POSTHOG_HOST,
     capture_pageview: 'history_change',
     capture_pageleave: true,
+    capture_heatmaps: true,
     autocapture: true,
-    person_profiles: 'identified_only'
+    person_profiles: 'identified_only',
+    persistence: 'localStorage'
   });
 }
 
