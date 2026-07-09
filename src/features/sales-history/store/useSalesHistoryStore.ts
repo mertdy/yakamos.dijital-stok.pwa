@@ -7,7 +7,8 @@ import {
   getDocs,
   doc,
   writeBatch,
-  getDoc
+  getDoc,
+  where
 } from 'firebase/firestore';
 import { db, auth } from '@/core/firebase/config';
 import { toast } from '@heroui/react';
@@ -48,6 +49,7 @@ interface SalesHistoryState {
   setFilters: (filters: Partial<SalesHistoryFilter>) => void;
   clearFilters: () => void;
   cancelSale: (saleId: string) => Promise<boolean>;
+  clearSales: () => void;
 }
 
 export const useSalesHistoryStore = create<SalesHistoryState>((set, get) => ({
@@ -75,7 +77,12 @@ export const useSalesHistoryStore = create<SalesHistoryState>((set, get) => ({
     try {
       const salesRef = collection(db, 'sales');
       // Sadece 500 satış çekeceğiz ve geri kalan filtrelemeyi client-side yapacağız.
-      const q = query(salesRef, orderBy('createdAt', 'desc'), limit(500));
+      const q = query(
+        salesRef,
+        where('userId', '==', user.uid),
+        orderBy('createdAt', 'desc'),
+        limit(500)
+      );
 
       const snapshot = await getDocs(q);
       let fetchedSales = snapshot.docs.map(doc => ({
@@ -188,5 +195,9 @@ export const useSalesHistoryStore = create<SalesHistoryState>((set, get) => ({
       toast.danger(error.message || 'Satış iptal edilirken bir hata oluştu');
       return false;
     }
+  },
+
+  clearSales: () => {
+    set({ sales: [], filters: {} });
   }
 }));

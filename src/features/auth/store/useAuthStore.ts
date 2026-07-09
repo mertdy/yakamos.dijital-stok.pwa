@@ -10,6 +10,9 @@ import {
 } from 'firebase/auth';
 import { auth, googleProvider } from '@/core/firebase/config';
 import { useInventoryStore } from '@/features/inventory';
+import { useCustomerStore } from '@/features/customers';
+import { useSalesStore, usePreferencesStore } from '@/features/sales';
+import { useSalesHistoryStore } from '@/features/sales-history';
 
 /**
  * Converts Firebase auth error codes to user-friendly Turkish messages.
@@ -124,6 +127,11 @@ export const useAuthStore = create<AuthState>(set => ({
     try {
       await signOut(auth);
       useInventoryStore.getState().clearItems();
+      useCustomerStore.getState().clearCustomers();
+      useSalesStore.getState().clearCart();
+      useSalesStore.getState().clearHeldSales();
+      useSalesHistoryStore.getState().clearSales();
+      usePreferencesStore.getState().clearPreferences();
     } catch (error) {
       console.error('Logout failed:', error);
     } finally {

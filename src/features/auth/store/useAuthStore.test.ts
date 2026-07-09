@@ -31,6 +31,27 @@ vi.mock('@/features/inventory', () => ({
   }
 }));
 
+vi.mock('@/features/customers', () => ({
+  useCustomerStore: {
+    getState: vi.fn(() => ({ clearCustomers: vi.fn() }))
+  }
+}));
+
+vi.mock('@/features/sales', () => ({
+  useSalesStore: {
+    getState: vi.fn(() => ({ clearCart: vi.fn(), clearHeldSales: vi.fn() }))
+  },
+  usePreferencesStore: {
+    getState: vi.fn(() => ({ clearPreferences: vi.fn() }))
+  }
+}));
+
+vi.mock('@/features/sales-history', () => ({
+  useSalesHistoryStore: {
+    getState: vi.fn(() => ({ clearSales: vi.fn() }))
+  }
+}));
+
 // ─── Store factory (fresh instance per test) ─────────────────────────────────
 
 async function buildStore() {
@@ -242,11 +263,49 @@ describe('useAuthStore', () => {
 
   // ── logout ───────────────────────────────────────────────────────────────
 
-  it('logout calls signOut', async () => {
+  it('logout calls signOut and clears all stores', async () => {
     vi.mocked(signOut).mockResolvedValueOnce(undefined);
+
+    const clearItems = vi.fn();
+    const clearCustomers = vi.fn();
+    const clearCart = vi.fn();
+    const clearHeldSales = vi.fn();
+    const clearSales = vi.fn();
+    const clearPreferences = vi.fn();
+
+    const { useInventoryStore } = await import('@/features/inventory');
+    const { useCustomerStore } = await import('@/features/customers');
+    const { useSalesStore, usePreferencesStore } =
+      await import('@/features/sales');
+    const { useSalesHistoryStore } = await import('@/features/sales-history');
+
+    vi.mocked(useInventoryStore.getState).mockReturnValue({
+      clearItems
+    } as any);
+    vi.mocked(useCustomerStore.getState).mockReturnValue({
+      clearCustomers
+    } as any);
+    vi.mocked(useSalesStore.getState).mockReturnValue({
+      clearCart,
+      clearHeldSales
+    } as any);
+    vi.mocked(useSalesHistoryStore.getState).mockReturnValue({
+      clearSales
+    } as any);
+    vi.mocked(usePreferencesStore.getState).mockReturnValue({
+      clearPreferences
+    } as any);
+
     const store = await buildStore();
     await store.getState().logout();
+
     expect(signOut).toHaveBeenCalledWith({});
+    expect(clearItems).toHaveBeenCalled();
+    expect(clearCustomers).toHaveBeenCalled();
+    expect(clearCart).toHaveBeenCalled();
+    expect(clearHeldSales).toHaveBeenCalled();
+    expect(clearSales).toHaveBeenCalled();
+    expect(clearPreferences).toHaveBeenCalled();
     expect(store.getState().isLoading).toBe(false);
   });
 });

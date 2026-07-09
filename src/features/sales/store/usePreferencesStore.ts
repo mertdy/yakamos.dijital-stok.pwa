@@ -7,6 +7,7 @@ interface PreferencesState {
   isLoading: boolean;
   loadPreferences: () => Promise<void>;
   saveQuickAddItems: (items: string[]) => Promise<void>;
+  clearPreferences: () => void;
 }
 
 export const usePreferencesStore = create<PreferencesState>(set => ({
@@ -52,5 +53,9 @@ export const usePreferencesStore = create<PreferencesState>(set => ({
     } finally {
       set({ isLoading: false });
     }
+  },
+
+  clearPreferences: () => {
+    set({ quickAddItems: [] });
   }
 }));
