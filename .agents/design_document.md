@@ -119,7 +119,7 @@ Envanter ürün verilerini ve veri yazma işlemlerini yönetir.
 - **Durum (State):** `items` (InventoryItem dizisi), `isLoading` (boolean), `unsubscribeSnapshot` (Firestore snapshot iptal fonksiyonu).
 - **Eylemler (Actions):**
   - `loadItems()`: Firestore üzerinde `userId == currentUser.uid` olan ürünler için bir `onSnapshot` gerçek zamanlı dinleyici başlatır.
-  - `addItem(data)` / `updateItem(id, data)` / `deleteItem(id)`: Firestore üzerindeki dokümanları günceller. Çevrimdışı yazma işlemleri Firebase SDK'sı tarafından arka planda senkronize edilir.
+  - `addItem(data)` / `updateItem(id, data)` / `deleteItem(id)` / `deleteItems(ids)`: Firestore üzerindeki dokümanları ekler, günceller veya siler. Çoklu silme işlemi `writeBatch` kullanarak atomik olarak gerçekleştirilir. Çevrimdışı yazma işlemleri Firebase SDK'sı tarafından arka planda senkronize edilir.
 
 ### 4.3. `useCustomerStore`
 Müşteri kayıtlarını ve tahsilat süreçlerini yönetir.

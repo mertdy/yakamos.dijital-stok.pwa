@@ -65,3 +65,17 @@ This document maps out key architectural decisions, their rationales, benefits, 
     *   Automatically adds items to the cart or redirects to the inventory creation screen.
 *   **Tradeoffs:**
     *   Must distinguish between typing (manual entries) and scanning (rapid automated inputs). Mitigated by measuring the elapsed time between keystrokes (must be under 50ms).
+
+---
+
+## 6. Atomic Batch Operations (writeBatch) for Bulk Actions
+
+*   **Decision:** Use Firestore's `writeBatch` for bulk deletion (and other multi-document transactions) rather than sequential `deleteDoc` calls.
+*   **Reason:** Sequential async calls can fail midway (e.g., due to connectivity loss), leaving the client database in an inconsistent state. `writeBatch` ensures that either all items are deleted or none are, maintaining database integrity.
+*   **Benefits:**
+    *   Atomicity ensures strict data consistency.
+    *   Fewer network roundtrips as all operations are committed in a single batch call.
+    *   Compatible with Firestore's offline-first queue mechanism.
+*   **Tradeoffs:**
+    *   Firestore batch sizes are capped at 500 operations per batch (though inventory list screens rarely require deleting more than 500 items at once; if needed, batch splitting can be introduced).
+

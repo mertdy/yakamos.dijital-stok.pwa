@@ -6,7 +6,8 @@ import {
   deleteDoc,
   onSnapshot,
   query,
-  where
+  where,
+  writeBatch
 } from 'firebase/firestore';
 import { db, auth } from '@/core/firebase/config';
 import posthog from 'posthog-js';
@@ -33,6 +34,7 @@ interface InventoryState {
   ) => Promise<void>;
   updateItem: (id: string, item: Partial<InventoryItem>) => Promise<void>;
   deleteItem: (id: string) => Promise<void>;
+  deleteItems: (ids: string[]) => Promise<void>;
   clearItems: () => void;
 }
 
@@ -147,6 +149,29 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
 
     posthog.capture('inventory_item_deleted', {
       inventory_id: id
+    });
+  },
+
+  deleteItems: async ids => {
+    const user = auth.currentUser;
+    if (!user) throw new Error('User not authenticated');
+
+    const batch = writeBatch(db);
+    ids.forEach(id => {
+      batch.delete(doc(db, 'inventory', id));
+    });
+
+    await batch.commit().catch(err => {
+      console.error('Firestore background sync batch failed', err);
+      posthog.captureException(err, {
+        context: 'inventory_delete_items',
+        inventory_ids: ids
+      });
+    });
+
+    posthog.capture('inventory_items_deleted', {
+      count: ids.length,
+      inventory_ids: ids
     });
   },
 

@@ -17,18 +17,20 @@ import {
   Package,
   ArrowUp,
   ArrowDown,
-  Search
+  Search,
+  CheckSquare,
+  X
 } from 'lucide-react';
-import { Button } from '@heroui/react';
+import { Button, Checkbox, Description, Tooltip, toast } from '@heroui/react';
 import { useNavigate } from 'react-router-dom';
 import { useGlobalBarcodeScanner } from '@/shared/hooks/useGlobalBarcodeScanner';
-import { toast } from '@heroui/react';
 import { useConfirm } from '@/shared/contexts/ConfirmDialogContext';
 
 export const InventoryTable: React.FC = () => {
-  const { items, deleteItem } = useInventoryStore();
+  const { items, deleteItem, deleteItems } = useInventoryStore();
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState('');
+  const [rowSelection, setRowSelection] = useState<Record<string, boolean>>({});
   const navigate = useNavigate();
   const { confirm } = useConfirm();
 
@@ -57,6 +59,37 @@ export const InventoryTable: React.FC = () => {
   const columnHelper = createColumnHelper<InventoryItem>();
 
   const columns = [
+    columnHelper.display({
+      id: 'selection',
+      header: ({ table }) => (
+        <Checkbox
+          isSelected={table.getIsAllPageRowsSelected()}
+          isIndeterminate={
+            !table.getIsAllPageRowsSelected() &&
+            table.getIsSomePageRowsSelected()
+          }
+          onChange={(val: boolean) => table.toggleAllPageRowsSelected(val)}
+          aria-label="Tümünü seç">
+          <Checkbox.Content>
+            <Checkbox.Control>
+              <Checkbox.Indicator />
+            </Checkbox.Control>
+          </Checkbox.Content>
+        </Checkbox>
+      ),
+      cell: ({ row }) => (
+        <Checkbox
+          isSelected={row.getIsSelected()}
+          onChange={(val: boolean) => row.toggleSelected(val)}
+          aria-label={`${row.original.name} seç`}>
+          <Checkbox.Content>
+            <Checkbox.Control>
+              <Checkbox.Indicator />
+            </Checkbox.Control>
+          </Checkbox.Content>
+        </Checkbox>
+      )
+    }),
     columnHelper.accessor('name', {
       header: 'Ürün Adı',
       cell: info => (
@@ -128,13 +161,20 @@ export const InventoryTable: React.FC = () => {
     );
   }, [items, globalFilter]);
 
+  const selectedIds = useMemo(() => {
+    return Object.keys(rowSelection).filter(id => rowSelection[id]);
+  }, [rowSelection]);
+
   const table = useReactTable({
     data: filteredItems,
     columns,
-    state: { sorting },
+    state: { sorting, rowSelection },
     onSortingChange: setSorting,
+    onRowSelectionChange: setRowSelection,
     getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel()
+    getSortedRowModel: getSortedRowModel(),
+    enableRowSelection: true,
+    getRowId: row => row.id
   });
 
   if (items.length === 0) {
@@ -153,8 +193,8 @@ export const InventoryTable: React.FC = () => {
 
   return (
     <div className="flex h-full flex-col overflow-hidden rounded-[28px] border-none bg-white shadow-sm">
-      <div className="border-b border-gray-100 bg-gray-50/50 p-4">
-        <div className="relative max-w-md">
+      <div className="flex flex-col gap-4 border-b border-gray-100 bg-gray-50/50 p-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="relative w-full max-w-md">
           <Search
             className="absolute top-1/2 left-3 -translate-y-1/2 text-gray-400"
             size={20}
@@ -167,6 +207,84 @@ export const InventoryTable: React.FC = () => {
             className="focus:ring-primary w-full rounded-xl border border-gray-200 bg-white py-2.5 pr-4 pl-10 outline-none focus:ring-2"
           />
         </div>
+
+        {selectedIds.length > 0 && (
+          <div className="flex flex-wrap items-center gap-3">
+            <Description className="text-sm font-medium text-gray-700">
+              {selectedIds.length} ürün seçildi
+            </Description>
+            <div className="flex items-center gap-1.5">
+              <Tooltip delay={0} closeDelay={0}>
+                <Tooltip.Trigger>
+                  <Button
+                    variant="tertiary"
+                    isIconOnly
+                    size="sm"
+                    onPress={() => {
+                      const newSelection: Record<string, boolean> = {};
+                      filteredItems.forEach(item => {
+                        newSelection[item.id] = true;
+                      });
+                      setRowSelection(newSelection);
+                    }}
+                    aria-label="Tümünü Seç">
+                    <CheckSquare size={18} />
+                  </Button>
+                </Tooltip.Trigger>
+                <Tooltip.Content placement="top" showArrow={true}>
+                  Tümünü Seç ({filteredItems.length})
+                </Tooltip.Content>
+              </Tooltip>
+
+              <Tooltip delay={0} closeDelay={0}>
+                <Tooltip.Trigger>
+                  <Button
+                    variant="ghost"
+                    isIconOnly
+                    size="sm"
+                    onPress={() => setRowSelection({})}
+                    aria-label="Seçimi Temizle">
+                    <X size={18} />
+                  </Button>
+                </Tooltip.Trigger>
+                <Tooltip.Content placement="top" showArrow={true}>
+                  Seçimi Temizle
+                </Tooltip.Content>
+              </Tooltip>
+
+              <Tooltip delay={0} closeDelay={0}>
+                <Tooltip.Trigger>
+                  <Button
+                    variant="ghost"
+                    isIconOnly
+                    size="sm"
+                    className="text-danger"
+                    onPress={async () => {
+                      const confirmed = await confirm({
+                        title: 'Seçili Ürünleri Sil',
+                        description: `Seçilen ${selectedIds.length} ürünü silmek istediğinize emin misiniz? Bu işlem geri alınamaz.`,
+                        confirmText: 'Sil',
+                        variant: 'danger'
+                      });
+                      if (confirmed) {
+                        await deleteItems(selectedIds);
+                        setRowSelection({});
+                        toast.success(
+                          `${selectedIds.length} ürün başarıyla silindi.`
+                        );
+                      }
+                    }}
+                    aria-label="Seçimleri Sil">
+                    <Trash2 size={18} />
+                  </Button>
+                </Tooltip.Trigger>
+                <Tooltip.Content placement="top" showArrow={true}>
+                  Seçimleri Sil
+                </Tooltip.Content>
+              </Tooltip>
+            </div>
+          </div>
+        )}
       </div>
       <div className="flex-1 overflow-x-auto">
         <table className="w-full min-w-[600px] border-collapse text-left">
@@ -175,23 +293,32 @@ export const InventoryTable: React.FC = () => {
               <tr
                 key={headerGroup.id}
                 className="border-b border-gray-200 bg-gray-50">
-                {headerGroup.headers.map(header => (
-                  <th
-                    key={header.id}
-                    className="cursor-pointer px-6 py-4 text-sm font-semibold whitespace-nowrap text-gray-600 transition-colors hover:bg-gray-100"
-                    onClick={header.column.getToggleSortingHandler()}>
-                    <div className="flex items-center gap-2">
-                      {flexRender(
-                        header.column.columnDef.header,
-                        header.getContext()
-                      )}
-                      {{
-                        asc: <ArrowUp className="text-xs" />,
-                        desc: <ArrowDown className="text-xs" />
-                      }[header.column.getIsSorted() as string] ?? null}
-                    </div>
-                  </th>
-                ))}
+                {headerGroup.headers.map(header => {
+                  const isSelection = header.column.id === 'selection';
+                  return (
+                    <th
+                      key={header.id}
+                      className={`${isSelection ? 'w-12 px-4' : 'cursor-pointer px-6 hover:bg-gray-100'} py-4 text-sm font-semibold whitespace-nowrap text-gray-600 transition-colors`}
+                      onClick={
+                        isSelection
+                          ? undefined
+                          : header.column.getToggleSortingHandler()
+                      }>
+                      <div className="flex items-center gap-2">
+                        {flexRender(
+                          header.column.columnDef.header,
+                          header.getContext()
+                        )}
+                        {!isSelection &&
+                          ({
+                            asc: <ArrowUp className="text-xs" />,
+                            desc: <ArrowDown className="text-xs" />
+                          }[header.column.getIsSorted() as string] ??
+                            null)}
+                      </div>
+                    </th>
+                  );
+                })}
               </tr>
             ))}
           </thead>
@@ -199,12 +326,20 @@ export const InventoryTable: React.FC = () => {
             {table.getRowModel().rows.map(row => (
               <tr
                 key={row.id}
-                className="border-b border-gray-100 transition-colors hover:bg-gray-50/50">
-                {row.getVisibleCells().map(cell => (
-                  <td key={cell.id} className="px-6 py-4 text-sm">
-                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                  </td>
-                ))}
+                className={`border-b border-gray-100 transition-colors hover:bg-gray-50/50 ${row.getIsSelected() ? 'bg-primary-50/20' : ''}`}>
+                {row.getVisibleCells().map(cell => {
+                  const isSelection = cell.column.id === 'selection';
+                  return (
+                    <td
+                      key={cell.id}
+                      className={`${isSelection ? 'w-12 px-4' : 'px-6'} py-4 text-sm`}>
+                      {flexRender(
+                        cell.column.columnDef.cell,
+                        cell.getContext()
+                      )}
+                    </td>
+                  );
+                })}
               </tr>
             ))}
           </tbody>

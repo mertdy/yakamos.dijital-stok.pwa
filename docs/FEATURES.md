@@ -32,13 +32,15 @@ Allows administrators to maintain a detailed catalog of items, including stock c
 
 ### User Flow
 1.  User navigates to `/inventory` to search and filter products by name or barcode.
-2.  User clicks "Yeni Ürün Ekle" to open the form.
-3.  *Optional:* User clicks the barcode scanner icon, scans a physical product. If the product is found in the **Open Food Facts API**, its name, brand, image, and ingredients are pre-populated.
-4.  User completes required fields (name, price, stock) validated by Zod and saves the item.
+2.  User can select individual items via row checkboxes, or select all filtered items using the header master checkbox or the "Tümünü Seç" button.
+3.  Upon selecting one or more items, a Selection Action Bar appears at the top of the table offering bulk delete and selection reset.
+4.  User clicks "Yeni Ürün Ekle" to open the form.
+5.  *Optional:* User clicks the barcode scanner icon, scans a physical product. If the product is found in the **Open Food Facts API**, its name, brand, image, and ingredients are pre-populated.
+6.  User completes required fields (name, price, stock) validated by Zod and saves the item.
 
 ### Key Components & Views
 *   `InventoryView.tsx`: Product list layout with debounced search bar.
-*   `InventoryTable.tsx`: Table wrapper built using `@tanstack/react-table`.
+*   `InventoryTable.tsx`: Table wrapper built using `@tanstack/react-table` with HeroUI `Checkbox` integrations for row selection and batch actions.
 *   `ProductFormView.tsx`: Form for adding and updating products. Handles Open Food Facts API searches.
 
 ### Related APIs

@@ -1,5 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { setDoc, deleteDoc } from 'firebase/firestore';
+import { setDoc, deleteDoc, writeBatch } from 'firebase/firestore';
+
+const mockBatch = {
+  delete: vi.fn(),
+  commit: vi.fn().mockResolvedValue(undefined)
+};
 
 vi.mock('firebase/firestore', () => ({
   collection: vi.fn(),
@@ -8,7 +13,8 @@ vi.mock('firebase/firestore', () => ({
   deleteDoc: vi.fn().mockResolvedValue(undefined),
   onSnapshot: vi.fn(() => vi.fn()),
   query: vi.fn(),
-  where: vi.fn()
+  where: vi.fn(),
+  writeBatch: vi.fn(() => mockBatch)
 }));
 
 vi.mock('@/core/firebase/config', () => ({
@@ -61,6 +67,14 @@ describe('useInventoryStore', () => {
     const store = await buildStore();
     await store.getState().deleteItem('p1');
     expect(deleteDoc).toHaveBeenCalled();
+  });
+
+  it('deleteItems triggers writeBatch delete and commit', async () => {
+    const store = await buildStore();
+    await store.getState().deleteItems(['p1', 'p2']);
+    expect(writeBatch).toHaveBeenCalled();
+    expect(mockBatch.delete).toHaveBeenCalledTimes(2);
+    expect(mockBatch.commit).toHaveBeenCalled();
   });
 
   it('clearItems resets snapshot and clears items array', async () => {

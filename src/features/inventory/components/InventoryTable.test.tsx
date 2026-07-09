@@ -11,7 +11,9 @@ vi.mock('lucide-react', () => ({
   Package: () => <div data-testid="icon-package" />,
   ArrowUp: () => <div data-testid="icon-arrow-up" />,
   ArrowDown: () => <div data-testid="icon-arrow-down" />,
-  Search: () => <div data-testid="icon-search" />
+  Search: () => <div data-testid="icon-search" />,
+  CheckSquare: () => <div data-testid="icon-check-square" />,
+  X: () => <div data-testid="icon-x" />
 }));
 
 vi.mock('react-router-dom', () => ({
@@ -24,6 +26,32 @@ vi.mock('@/shared/hooks/useGlobalBarcodeScanner', () => ({
   useGlobalBarcodeScanner: vi.fn()
 }));
 
+vi.mock('@heroui/react', async importOriginal => {
+  const original = await importOriginal<typeof import('@heroui/react')>();
+  const MockCheckbox = ({
+    isSelected,
+    onChange,
+    'aria-label': ariaLabel
+  }: any) => {
+    return (
+      <input
+        type="checkbox"
+        checked={isSelected || false}
+        aria-label={ariaLabel}
+        onChange={e => onChange?.(e.target.checked)}
+      />
+    );
+  };
+  MockCheckbox.Content = ({ children }: any) => children;
+  MockCheckbox.Control = ({ children }: any) => children;
+  MockCheckbox.Indicator = () => null;
+
+  return {
+    ...original,
+    Checkbox: MockCheckbox
+  };
+});
+
 const mockUseInventoryStore = useInventoryStore as unknown as ReturnType<
   typeof vi.fn
 >;
@@ -34,6 +62,7 @@ describe('InventoryTable', () => {
   const navigateMock = vi.fn();
   const confirmMock = vi.fn();
   const deleteItemMock = vi.fn();
+  const deleteItemsMock = vi.fn();
 
   const mockItems = [
     { id: '1', name: 'Apple', barcode: '111', stock: 5, price: 1.2 },
@@ -48,14 +77,16 @@ describe('InventoryTable', () => {
 
     mockUseInventoryStore.mockReturnValue({
       items: mockItems,
-      deleteItem: deleteItemMock
+      deleteItem: deleteItemMock,
+      deleteItems: deleteItemsMock
     });
   });
 
   it('renders empty state when no items are present', () => {
     mockUseInventoryStore.mockReturnValue({
       items: [],
-      deleteItem: deleteItemMock
+      deleteItem: deleteItemMock,
+      deleteItems: deleteItemsMock
     });
 
     render(<InventoryTable />);
@@ -130,6 +161,64 @@ describe('InventoryTable', () => {
 
     await waitFor(() => {
       expect(deleteItemMock).not.toHaveBeenCalled();
+    });
+  });
+
+  it('renders checkboxes for each item and a master checkbox', () => {
+    render(<InventoryTable />);
+    expect(
+      screen.getByRole('checkbox', { name: 'Tümünü seç' })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('checkbox', { name: 'Apple seç' })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('checkbox', { name: 'Banana seç' })
+    ).toBeInTheDocument();
+  });
+
+  it('shows action buttons and selection counter when items are selected', async () => {
+    render(<InventoryTable />);
+
+    const appleCheckbox = screen.getByRole('checkbox', { name: 'Apple seç' });
+    fireEvent.click(appleCheckbox);
+
+    await waitFor(() => {
+      expect(screen.getByText('1 ürün seçildi')).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', { name: 'Seçimleri Sil' })
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', { name: 'Tümünü Seç' })
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', { name: 'Seçimi Temizle' })
+      ).toBeInTheDocument();
+    });
+  });
+
+  it('bulk deletes selected items when confirmed', async () => {
+    confirmMock.mockResolvedValue(true);
+    render(<InventoryTable />);
+
+    const appleCheckbox = screen.getByRole('checkbox', { name: 'Apple seç' });
+    fireEvent.click(appleCheckbox);
+
+    const deleteSelectedBtn = await screen.findByRole('button', {
+      name: 'Seçimleri Sil'
+    });
+    fireEvent.click(deleteSelectedBtn);
+
+    expect(confirmMock).toHaveBeenCalledWith({
+      title: 'Seçili Ürünleri Sil',
+      description:
+        'Seçilen 1 ürünü silmek istediğinize emin misiniz? Bu işlem geri alınamaz.',
+      confirmText: 'Sil',
+      variant: 'danger'
+    });
+
+    await waitFor(() => {
+      expect(deleteItemsMock).toHaveBeenCalledWith(['1']);
     });
   });
 });
