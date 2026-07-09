@@ -9,6 +9,7 @@ import {
   where
 } from 'firebase/firestore';
 import { db, auth } from '@/core/firebase/config';
+import posthog from 'posthog-js';
 
 export interface InventoryItem {
   id: string;
@@ -90,6 +91,17 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
     // Firestore will automatically cache this write and sync when online
     setDoc(doc(db, 'inventory', id), newItem).catch(err => {
       console.error('Firestore background sync failed', err);
+      posthog.captureException(err, {
+        context: 'inventory_add_item',
+        inventory_id: id
+      });
+    });
+
+    posthog.capture('inventory_item_created', {
+      inventory_id: id,
+      has_barcode: Boolean(newItem.barcode),
+      initial_stock: newItem.stock,
+      price: newItem.price
     });
   },
 
@@ -106,6 +118,17 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
     // Firestore automatically caches and syncs offline writes
     setDoc(doc(db, 'inventory', id), mergedItem, { merge: true }).catch(err => {
       console.error('Firestore background sync failed', err);
+      posthog.captureException(err, {
+        context: 'inventory_update_item',
+        inventory_id: id
+      });
+    });
+
+    posthog.capture('inventory_item_updated', {
+      inventory_id: id,
+      has_barcode: Boolean(mergedItem.barcode),
+      stock: mergedItem.stock,
+      price: mergedItem.price
     });
   },
 
@@ -116,6 +139,14 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
     // Firestore handles offline deletion syncing
     deleteDoc(doc(db, 'inventory', id)).catch(err => {
       console.error('Firestore background sync failed', err);
+      posthog.captureException(err, {
+        context: 'inventory_delete_item',
+        inventory_id: id
+      });
+    });
+
+    posthog.capture('inventory_item_deleted', {
+      inventory_id: id
     });
   },
 

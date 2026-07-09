@@ -12,6 +12,7 @@ import {
   getDocs
 } from 'firebase/firestore';
 import { db, auth } from '@/core/firebase/config';
+import posthog from 'posthog-js';
 
 export interface Customer {
   id: string;
@@ -123,6 +124,17 @@ export const useCustomerStore = create<CustomerState>((set, get) => ({
     // Firestore will automatically cache this write and sync when online
     setDoc(doc(db, 'customers', id), newCustomer).catch(err => {
       console.error('Firestore background sync failed', err);
+      posthog.captureException(err, {
+        context: 'customer_add',
+        customer_id: id
+      });
+    });
+
+    posthog.capture('customer_created', {
+      customer_id: id,
+      has_email: Boolean(newCustomer.email),
+      has_phone: Boolean(newCustomer.phone),
+      credit_limit: newCustomer.creditLimit ?? 0
     });
 
     return id;
@@ -152,8 +164,17 @@ export const useCustomerStore = create<CustomerState>((set, get) => ({
         ),
         isLoading: false
       }));
+
+      posthog.capture('customer_updated', {
+        customer_id: id,
+        updated_fields: Object.keys(customerData)
+      });
     } catch (error) {
       console.error('Error updating customer:', error);
+      posthog.captureException(error, {
+        context: 'customer_update',
+        customer_id: id
+      });
       set({ isLoading: false });
       throw error;
     }
@@ -189,10 +210,19 @@ export const useCustomerStore = create<CustomerState>((set, get) => ({
       });
 
       await batch.commit();
+      posthog.capture('customer_payment_recorded', {
+        customer_id: customerId,
+        payment_id: paymentId,
+        amount
+      });
       set({ isLoading: false });
       return paymentId;
     } catch (error) {
       console.error('Error adding payment:', error);
+      posthog.captureException(error, {
+        context: 'customer_add_payment',
+        customer_id: customerId
+      });
       set({ isLoading: false });
       throw error;
     }

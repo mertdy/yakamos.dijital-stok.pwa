@@ -9,23 +9,30 @@ import './index.css';
 import { ConfirmDialogProvider } from './shared/contexts/ConfirmDialogContext';
 import posthog from 'posthog-js';
 import { FirebaseCrashlytics } from '@capacitor-firebase/crashlytics';
+import { Capacitor } from '@capacitor/core';
 
 import { ENV } from './core/config/env';
 
 // 1. PostHog Init
-posthog.init(ENV.POSTHOG_KEY, {
-  api_host: ENV.POSTHOG_HOST,
-  loaded: posthog => {
-    if (import.meta.env.DEV) posthog.opt_out_capturing(); // Dev modunda kapalı
-  }
-});
+if (ENV.POSTHOG_KEY && ENV.POSTHOG_HOST) {
+  posthog.init(ENV.POSTHOG_KEY, {
+    api_host: ENV.POSTHOG_HOST,
+    capture_pageview: 'history_change',
+    capture_pageleave: true,
+    autocapture: true,
+    person_profiles: 'identified_only'
+  });
+}
 
 // 2. Crashlytics Init (Capacitor)
 const initCrashlytics = async () => {
+  if (!Capacitor.isNativePlatform()) {
+    return; // Web platformunda Crashlytics devre dışı bırakılır
+  }
   try {
     await FirebaseCrashlytics.setEnabled({ enabled: true });
   } catch (error) {
-    console.error('Crashlytics init failed (Expected on Web):', error);
+    console.error('Crashlytics init failed:', error);
   }
 };
 initCrashlytics();

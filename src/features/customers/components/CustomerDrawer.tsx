@@ -5,6 +5,7 @@ import { Button } from '@heroui/react';
 import { X, Search, UserPlus, CheckCircle2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import posthog from 'posthog-js';
 
 interface Props {
   isOpen: boolean;
@@ -32,6 +33,18 @@ export const CustomerDrawer: React.FC<Props> = ({ isOpen, onClose }) => {
   );
 
   const handleSelectCustomer = (id: string | null) => {
+    const selectedCustomer = customers.find(customer => customer.id === id);
+
+    posthog.capture('customer_selected_for_sale', {
+      customer_id: id,
+      selection_action: id ? 'selected' : 'cleared',
+      has_phone: selectedCustomer ? Boolean(selectedCustomer.phone) : false,
+      has_credit_limit: selectedCustomer
+        ? Boolean((selectedCustomer.creditLimit ?? 0) > 0)
+        : false,
+      search_length: search.trim().length
+    });
+
     setCustomerId(id);
     onClose();
   };

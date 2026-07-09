@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Search, ScanBarcode, Package } from 'lucide-react';
 import { useInventoryStore } from '@/features/inventory';
 import { useSalesStore } from '../store/useSalesStore';
@@ -6,6 +6,7 @@ import { useDebounce } from '@/shared/hooks/useDebounce';
 import { useGlobalBarcodeScanner } from '@/shared/hooks/useGlobalBarcodeScanner';
 import { useNavigate } from 'react-router-dom';
 import { toast } from '@heroui/react';
+import posthog from 'posthog-js';
 
 interface Props {
   onOpenScanner: () => void;
@@ -22,6 +23,14 @@ export const GlobalProductSearch: React.FC<Props> = ({ onOpenScanner }) => {
   const navigate = useNavigate();
 
   const handleSelectProduct = (item: any) => {
+    posthog.capture('product_search_result_selected', {
+      inventory_id: item.id,
+      has_barcode: Boolean(item.barcode),
+      query_length: query.trim().length,
+      result_position: searchResults.findIndex(result => result.id === item.id),
+      selection_source: 'global_product_search'
+    });
+
     addToCart({
       inventoryId: item.id,
       name: item.name,
@@ -68,20 +77,22 @@ export const GlobalProductSearch: React.FC<Props> = ({ onOpenScanner }) => {
     }
   });
 
-  const searchResults = useMemo(() => {
-    if (!debouncedQuery.trim()) return [];
-
-    const lowerQuery = debouncedQuery.toLowerCase();
-    return items
-      .filter(
-        (item: any) =>
-          item.name.toLowerCase().includes(lowerQuery) ||
-          (item.barcode &&
-            String(item.barcode).toLowerCase().includes(lowerQuery)) ||
-          (item.sku && String(item.sku).toLowerCase().includes(lowerQuery))
-      )
-      .slice(0, 10); // Limit to 10 results
-  }, [debouncedQuery, items]);
+  const searchResults = !debouncedQuery.trim()
+    ? []
+    : items
+        .filter(
+          (item: any) =>
+            item.name.toLowerCase().includes(debouncedQuery.toLowerCase()) ||
+            (item.barcode &&
+              String(item.barcode)
+                .toLowerCase()
+                .includes(debouncedQuery.toLowerCase())) ||
+            (item.sku &&
+              String(item.sku)
+                .toLowerCase()
+                .includes(debouncedQuery.toLowerCase()))
+        )
+        .slice(0, 10);
 
   // Click outside to close dropdown
   useEffect(() => {

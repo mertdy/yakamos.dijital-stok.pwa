@@ -13,6 +13,7 @@ import { useInventoryStore } from '@/features/inventory';
 import { useCustomerStore } from '@/features/customers';
 import { useSalesStore, usePreferencesStore } from '@/features/sales';
 import { useSalesHistoryStore } from '@/features/sales-history';
+import posthog from 'posthog-js';
 
 /**
  * Converts Firebase auth error codes to user-friendly Turkish messages.
@@ -60,16 +61,38 @@ export const useAuthStore = create<AuthState>(set => ({
   isInitialized: false, // Prevents layout flashing before onAuthStateChanged fires
   authError: null,
 
-  setUser: user => set({ user, isInitialized: true }),
+  setUser: user => {
+    if (user) {
+      posthog.identify(user.uid, {
+        email: user.email ?? undefined,
+        name: user.displayName ?? undefined
+      });
+    } else {
+      posthog.reset();
+    }
+
+    set({ user, isInitialized: true });
+  },
 
   clearError: () => set({ authError: null }),
 
   loginWithGoogle: async () => {
     set({ isLoading: true, authError: null });
     try {
-      await signInWithPopup(auth, googleProvider);
+      const result = await signInWithPopup(auth, googleProvider);
+      posthog.identify(result.user.uid, {
+        email: result.user.email ?? undefined,
+        name: result.user.displayName ?? undefined
+      });
+      posthog.capture('user_logged_in', {
+        login_method: 'google',
+        is_email_verified: result.user.emailVerified
+      });
     } catch (error: unknown) {
       console.error('Google login failed:', error);
+      posthog.captureException(error, {
+        context: 'login_with_google'
+      });
       const code = (error as { code?: string }).code ?? '';
       set({ authError: getAuthErrorMessage(code) });
       throw error;
@@ -81,8 +104,23 @@ export const useAuthStore = create<AuthState>(set => ({
   loginWithEmail: async (email: string, password: string) => {
     set({ isLoading: true, authError: null });
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      const credential = await signInWithEmailAndPassword(
+        auth,
+        email,
+        password
+      );
+      posthog.identify(credential.user.uid, {
+        email: credential.user.email ?? undefined,
+        name: credential.user.displayName ?? undefined
+      });
+      posthog.capture('user_logged_in', {
+        login_method: 'email',
+        is_email_verified: credential.user.emailVerified
+      });
     } catch (error: unknown) {
+      posthog.captureException(error, {
+        context: 'login_with_email'
+      });
       const code = (error as { code?: string }).code ?? '';
       set({ authError: getAuthErrorMessage(code) });
       throw error;
@@ -100,7 +138,18 @@ export const useAuthStore = create<AuthState>(set => ({
         password
       );
       await sendEmailVerification(credential.user);
+      posthog.identify(credential.user.uid, {
+        email: credential.user.email ?? undefined,
+        name: credential.user.displayName ?? undefined
+      });
+      posthog.capture('user_registered', {
+        registration_method: 'email',
+        verification_email_sent: true
+      });
     } catch (error: unknown) {
+      posthog.captureException(error, {
+        context: 'register_with_email'
+      });
       const code = (error as { code?: string }).code ?? '';
       set({ authError: getAuthErrorMessage(code) });
       throw error;
@@ -113,7 +162,13 @@ export const useAuthStore = create<AuthState>(set => ({
     set({ isLoading: true, authError: null });
     try {
       await sendPasswordResetEmail(auth, email);
+      posthog.capture('password_reset_requested', {
+        request_source: 'login_view'
+      });
     } catch (error: unknown) {
+      posthog.captureException(error, {
+        context: 'reset_password'
+      });
       const code = (error as { code?: string }).code ?? '';
       set({ authError: getAuthErrorMessage(code) });
       throw error;
@@ -125,7 +180,14 @@ export const useAuthStore = create<AuthState>(set => ({
   logout: async () => {
     set({ isLoading: true });
     try {
+      const currentUser = auth.currentUser;
+      if (currentUser) {
+        posthog.capture('user_logged_out', {
+          had_verified_email: currentUser.emailVerified
+        });
+      }
       await signOut(auth);
+      posthog.reset();
       useInventoryStore.getState().clearItems();
       useCustomerStore.getState().clearCustomers();
       useSalesStore.getState().clearCart();
@@ -134,6 +196,9 @@ export const useAuthStore = create<AuthState>(set => ({
       usePreferencesStore.getState().clearPreferences();
     } catch (error) {
       console.error('Logout failed:', error);
+      posthog.captureException(error, {
+        context: 'logout'
+      });
     } finally {
       set({ isLoading: false });
     }

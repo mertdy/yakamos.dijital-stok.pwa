@@ -4,6 +4,7 @@ import { InventoryTable } from '../components/InventoryTable';
 import { useInventoryStore } from '../store/useInventoryStore';
 import { Plus } from 'lucide-react';
 import { Button } from '@heroui/react';
+import posthog from 'posthog-js';
 
 export const InventoryView: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -11,6 +12,9 @@ export const InventoryView: React.FC = () => {
   const { loadItems } = useInventoryStore();
 
   useEffect(() => {
+    posthog.capture('inventory_viewed', {
+      view_source: 'navigation'
+    });
     loadItems();
 
     // Check if we need to auto-open the form with a barcode

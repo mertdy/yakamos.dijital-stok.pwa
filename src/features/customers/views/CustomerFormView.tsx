@@ -8,6 +8,7 @@ import { toast } from '@heroui/react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
+import posthog from 'posthog-js';
 
 const customerSchema = z.object({
   name: z.string().min(2, 'Müşteri adı en az 2 karakter olmalıdır'),
@@ -77,6 +78,14 @@ export const CustomerFormView: React.FC = () => {
   const onSubmit = async (data: CustomerFormData) => {
     setIsSaving(true);
     try {
+      posthog.capture('customer_form_submitted', {
+        form_mode: isEditMode ? 'edit' : 'create',
+        customer_id: id,
+        has_phone: Boolean(data.phone?.trim()),
+        has_email: Boolean(data.email?.trim()),
+        has_credit_limit: Boolean((data.creditLimit || 0) > 0)
+      });
+
       if (isEditMode && id) {
         await updateCustomer(id, {
           name: data.name.trim(),

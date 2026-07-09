@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { writeBatch, doc, collection, increment } from 'firebase/firestore';
 import { db, auth } from '@/core/firebase/config';
+import posthog from 'posthog-js';
 
 export interface CartItem {
   inventoryId: string;
@@ -132,6 +133,14 @@ export const useSalesStore = create<SalesState>()(
           discountValue: 0,
           paymentMethod: 'Cash'
         });
+
+        posthog.capture('sale_held', {
+          held_sale_id: newHeldSale.id,
+          item_count: cart.reduce((sum, item) => sum + item.quantity, 0),
+          cart_size: cart.length,
+          payment_method: paymentMethod,
+          has_customer: Boolean(customerId)
+        });
       },
 
       restoreSale: (id: string) => {
@@ -146,6 +155,17 @@ export const useSalesStore = create<SalesState>()(
           discountValue: saleToRestore.discountValue || 0,
           paymentMethod: saleToRestore.paymentMethod,
           heldSales: heldSales.filter(s => s.id !== id)
+        });
+
+        posthog.capture('held_sale_restored', {
+          held_sale_id: id,
+          item_count: saleToRestore.cart.reduce(
+            (sum, item) => sum + item.quantity,
+            0
+          ),
+          cart_size: saleToRestore.cart.length,
+          payment_method: saleToRestore.paymentMethod,
+          has_customer: Boolean(saleToRestore.customerId)
         });
       },
 
@@ -245,6 +265,23 @@ export const useSalesStore = create<SalesState>()(
           // Firestore will cache this batch and sync when online
           batch.commit().catch(err => {
             console.error('Firestore background batch sync failed', err);
+            posthog.captureException(err, {
+              context: 'sale_checkout_background_sync',
+              sale_id: saleRef.id,
+              invoice_number: invoiceNumber
+            });
+          });
+
+          posthog.capture('sale_completed', {
+            sale_id: saleRef.id,
+            invoice_number: invoiceNumber,
+            item_count: cart.reduce((sum, item) => sum + item.quantity, 0),
+            cart_size: cart.length,
+            subtotal,
+            discount_amount: discountAmount,
+            total_amount: totalAmount,
+            payment_method: paymentMethod,
+            has_customer: Boolean(customerId)
           });
 
           set({
@@ -258,6 +295,9 @@ export const useSalesStore = create<SalesState>()(
           return true;
         } catch (error) {
           console.error('Checkout failed:', error);
+          posthog.captureException(error, {
+            context: 'sale_checkout'
+          });
           set({ isProcessing: false });
           return false;
         }

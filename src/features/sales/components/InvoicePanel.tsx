@@ -19,6 +19,7 @@ import { useReactToPrint } from 'react-to-print';
 import { Printer } from 'lucide-react';
 import { ReceiptTemplate } from './ReceiptTemplate';
 import { useRef } from 'react';
+import posthog from 'posthog-js';
 
 interface Props {
   onOpenCustomerDrawer: () => void;
@@ -245,7 +246,15 @@ export const InvoicePanel: React.FC<Props> = ({
               const btn = (
                 <button
                   disabled={isDisabled}
-                  onClick={() => setPaymentMethod(method.id as PaymentMethod)}
+                  onClick={() => {
+                    posthog.capture('payment_method_selected', {
+                      payment_method: method.id,
+                      previous_payment_method: paymentMethod,
+                      has_customer: Boolean(customerId),
+                      total_payable: totalPayable
+                    });
+                    setPaymentMethod(method.id as PaymentMethod);
+                  }}
                   className={`flex h-full w-full flex-col items-center justify-center rounded-xl border py-2 transition-all ${
                     isDisabled
                       ? 'pointer-events-none cursor-not-allowed border-gray-100 bg-gray-50 text-gray-300'
@@ -382,6 +391,15 @@ export const InvoicePanel: React.FC<Props> = ({
               variant="danger"
               className="h-10 flex-1 rounded-xl text-sm shadow-sm"
               onPress={() => {
+                posthog.capture('cart_cleared', {
+                  cart_size: cart.length,
+                  item_count: cart.reduce(
+                    (sum, item) => sum + item.quantity,
+                    0
+                  ),
+                  total_payable: totalPayable,
+                  clear_source: 'invoice_panel'
+                });
                 useSalesStore.getState().clearCart();
                 setGivenAmount('');
               }}

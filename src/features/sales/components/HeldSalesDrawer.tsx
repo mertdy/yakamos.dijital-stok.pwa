@@ -6,6 +6,7 @@ import { useConfirm } from '@/shared/contexts/ConfirmDialogContext';
 import { Button, toast, Modal } from '@heroui/react';
 import { X, Clock, Trash2, ListRestart } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import posthog from 'posthog-js';
 
 interface Props {
   isOpen: boolean;
@@ -95,6 +96,10 @@ export const HeldSalesDrawer: React.FC<Props> = ({ isOpen, onClose }) => {
                       variant: 'danger'
                     });
                     if (confirmed) {
+                      posthog.capture('held_sales_cleared', {
+                        held_sale_count: heldSales.length,
+                        clear_source: 'held_sales_drawer'
+                      });
                       clearHeldSales();
                     }
                   }}
@@ -157,6 +162,12 @@ export const HeldSalesDrawer: React.FC<Props> = ({ isOpen, onClose }) => {
                           className="hover:text-danger hover:bg-danger/10 absolute top-3 right-3 rounded-md p-1 text-gray-400 transition-colors"
                           onClick={e => {
                             e.stopPropagation();
+                            posthog.capture('held_sale_removed', {
+                              held_sale_id: sale.id,
+                              item_count: totalItems,
+                              total_amount: totalAmount,
+                              has_customer: Boolean(sale.customerId)
+                            });
                             removeHeldSale(sale.id);
                           }}
                           title="Bu satışı sil">

@@ -15,6 +15,7 @@ import {
   Loader2
 } from 'lucide-react';
 import { toast } from '@heroui/react';
+import posthog from 'posthog-js';
 
 const productSchema = z.object({
   name: z.string().min(2, 'Ürün adı en az 2 karakter olmalıdır'),
@@ -93,9 +94,20 @@ export const ProductFormView: React.FC = () => {
             brand: data.product.brands,
             ingredients: data.product.ingredients_text
           });
+          posthog.capture('barcode_product_lookup_completed', {
+            barcode_length: barcodeToSearch.length,
+            has_brand: Boolean(data.product.brands),
+            has_image: Boolean(
+              data.product.image_front_url || data.product.image_url
+            ),
+            has_ingredients: Boolean(data.product.ingredients_text)
+          });
         }
       } catch (error) {
         console.error('API Search error', error);
+        posthog.captureException(error, {
+          context: 'barcode_product_lookup'
+        });
       } finally {
         setIsSearching(false);
       }
@@ -134,6 +146,14 @@ export const ProductFormView: React.FC = () => {
   const onSubmit = async (data: ProductFormData) => {
     setIsSaving(true);
     try {
+      posthog.capture('inventory_form_submitted', {
+        form_mode: isEditMode ? 'edit' : 'create',
+        inventory_id: id,
+        has_barcode: Boolean(data.barcode?.trim()),
+        stock: data.stock,
+        price: data.price
+      });
+
       if (isEditMode && id) {
         await updateItem(id, data);
         toast.success('Ürün güncellendi');

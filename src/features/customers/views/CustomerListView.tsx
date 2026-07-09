@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useCustomerStore } from '../store/useCustomerStore';
 import { Plus, Search, User, Phone, Edit2, Eye } from 'lucide-react';
 import { Button } from '@heroui/react';
+import posthog from 'posthog-js';
 
 export const CustomerListView: React.FC = () => {
   const { customers, loadCustomers, isLoading } = useCustomerStore();
@@ -10,6 +11,9 @@ export const CustomerListView: React.FC = () => {
   const [search, setSearch] = useState('');
 
   useEffect(() => {
+    posthog.capture('customers_viewed', {
+      view_source: 'navigation'
+    });
     loadCustomers();
   }, [loadCustomers]);
 

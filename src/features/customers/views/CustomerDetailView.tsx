@@ -19,6 +19,7 @@ import {
   type CustomerTransaction
 } from '../store/useCustomerStore';
 import { PaymentModal } from '../components/PaymentModal';
+import posthog from 'posthog-js';
 
 export const CustomerDetailView: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -40,6 +41,20 @@ export const CustomerDetailView: React.FC = () => {
   }, [loadCustomers]);
 
   const customer = customers.find(c => c.id === id);
+
+  useEffect(() => {
+    if (!customer) {
+      return;
+    }
+
+    posthog.capture('customer_detail_viewed', {
+      customer_id: customer.id,
+      has_phone: Boolean(customer.phone),
+      has_email: Boolean(customer.email),
+      credit_limit: customer.creditLimit ?? 0,
+      total_debt: customer.totalDebt ?? 0
+    });
+  }, [customer]);
 
   const loadTransactions = useCallback(async () => {
     setIsLoadingTx(true);

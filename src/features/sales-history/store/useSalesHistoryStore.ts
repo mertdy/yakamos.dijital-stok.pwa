@@ -13,6 +13,7 @@ import {
 import { db, auth } from '@/core/firebase/config';
 import { toast } from '@heroui/react';
 import type { CartItem } from '@/features/sales';
+import posthog from 'posthog-js';
 
 export interface SaleTransaction {
   id: string;
@@ -182,6 +183,15 @@ export const useSalesHistoryStore = create<SalesHistoryState>((set, get) => ({
 
       await batch.commit();
 
+      posthog.capture('sale_cancelled', {
+        sale_id: saleId,
+        invoice_number: sale.invoiceNumber,
+        total_amount: sale.totalAmount,
+        payment_method: sale.paymentMethod,
+        item_count: sale.cart.reduce((sum, item) => sum + item.quantity, 0),
+        has_customer: Boolean(sale.customerId)
+      });
+
       set(state => ({
         sales: state.sales.map(s =>
           s.id === saleId ? { ...s, status: 'cancelled' } : s
@@ -192,6 +202,10 @@ export const useSalesHistoryStore = create<SalesHistoryState>((set, get) => ({
       return true;
     } catch (error: any) {
       console.error('Cancel sale error:', error);
+      posthog.captureException(error, {
+        context: 'sale_cancel',
+        sale_id: saleId
+      });
       toast.danger(error.message || 'Satış iptal edilirken bir hata oluştu');
       return false;
     }

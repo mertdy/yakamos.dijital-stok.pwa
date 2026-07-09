@@ -9,6 +9,7 @@ import { useInventoryStore } from '@/features/inventory';
 import { toast, Button, Modal } from '@heroui/react';
 import { useSalesStore } from '../store/useSalesStore';
 import { useNavigate } from 'react-router-dom';
+import posthog from 'posthog-js';
 
 interface ScannerModalProps {
   isOpen: boolean;
@@ -98,6 +99,12 @@ const ScannerModal: React.FC<ScannerModalProps> = ({
       const item = items.find((i: any) => i.barcode === barcode);
       if (item) {
         hasScannedRef.current = true;
+        posthog.capture('scanner_item_added_to_cart', {
+          inventory_id: item.id,
+          barcode_length: barcode.length,
+          scan_mode: onScan ? 'form_fill' : 'cart_add',
+          platform: Capacitor.getPlatform()
+        });
         addToCart({
           inventoryId: item.id,
           name: item.name,
@@ -112,6 +119,12 @@ const ScannerModal: React.FC<ScannerModalProps> = ({
           onClose();
         }
       } else {
+        posthog.capture('unknown_barcode_detected', {
+          barcode_length: barcode.length,
+          scan_mode: onScan ? 'form_fill' : 'cart_add',
+          platform: Capacitor.getPlatform()
+        });
+
         toast(`${barcode} sistemde kayıtlı değil`, {
           timeout: 6000,
           variant: 'danger',

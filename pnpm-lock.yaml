@@ -80,6 +80,9 @@ dependencies:
   posthog-js:
     specifier: ^1.391.3
     version: 1.391.3
+  posthog-node:
+    specifier: ^5.40.0
+    version: 5.40.0
   react:
     specifier: ^19.2.6
     version: 19.2.7
@@ -2564,8 +2567,18 @@ packages:
       '@posthog/types': 1.390.2
     dev: false
 
+  /@posthog/core@1.40.0:
+    resolution: {integrity: sha512-oGDbIwlTquNwdHbEL5ZLEkuW4UFkkEanfx3QAxDgyVbISv+OAA6YGQwrvo0JD3MUJEbJZvyh8XsX+WYDGw9XHw==}
+    dependencies:
+      '@posthog/types': 1.393.0
+    dev: false
+
   /@posthog/types@1.390.2:
     resolution: {integrity: sha512-WcfKz2GNn2vfDX8vXmJYbKxegPxVWHuDQ/pHdAn0HoZDXDFnEp/+x3qBQA+fEvtbPjjtjgAt2wIgJMlM7asx7g==}
+    dev: false
+
+  /@posthog/types@1.393.0:
+    resolution: {integrity: sha512-vzWeEJZ7ERQhFRoQYaP5jzN1JvIu46UJyHXsuv+dTGW2r3sMgREOhNxXLZjmFHwZ8/FOHQoyqqQmXTCXZSfMSg==}
     dev: false
 
   /@protobufjs/aspromise@1.1.2:
@@ -6452,6 +6465,18 @@ packages:
       preact: 10.29.2
       query-selector-shadow-dom: 1.0.1
       web-vitals: 5.3.0
+    dev: false
+
+  /posthog-node@5.40.0:
+    resolution: {integrity: sha512-DrLfHuauO0W6qruF80iqr5JdmLysef74XzOB4eh36oRLRhxCySLraTqsi2Pj161LZnp9/JNdRDxwT8ei8VK2YA==}
+    engines: {node: ^20.20.0 || >=22.22.0}
+    peerDependencies:
+      rxjs: ^7.0.0
+    peerDependenciesMeta:
+      rxjs:
+        optional: true
+    dependencies:
+      '@posthog/core': 1.40.0
     dev: false
 
   /preact@10.29.2:

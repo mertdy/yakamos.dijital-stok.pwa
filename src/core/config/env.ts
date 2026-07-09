@@ -4,8 +4,10 @@ const envSource = (
 
 export const ENV = {
   // PostHog
-  POSTHOG_KEY: envSource.VITE_POSTHOG_KEY || 'phc_PLACEHOLDER_TOKEN',
-  POSTHOG_HOST: envSource.VITE_POSTHOG_HOST || 'https://app.posthog.com',
+  POSTHOG_KEY:
+    envSource.VITE_POSTHOG_KEY ||
+    'phc_vUmP4ZWBQTEV8VWSKdKDDeCWjGa2DYhrdXnWU78GjdJK',
+  POSTHOG_HOST: envSource.VITE_POSTHOG_HOST || 'https://eu.i.posthog.com',
 
   // Firebase
   FIREBASE_API_KEY:

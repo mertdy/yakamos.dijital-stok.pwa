@@ -6,6 +6,7 @@ import { useReactToPrint } from 'react-to-print';
 import { Printer } from 'lucide-react';
 import { ReceiptTemplate } from '@/features/sales';
 import { useRef } from 'react';
+import posthog from 'posthog-js';
 
 interface Props {
   isOpen: boolean;
@@ -55,6 +56,14 @@ export const PaymentModal: React.FC<Props> = ({
 
     setIsSubmitting(true);
     try {
+      posthog.capture('customer_payment_modal_submitted', {
+        customer_id: customerId,
+        amount: payAmount,
+        current_debt: modalDebt,
+        is_overpayment: payAmount > modalDebt,
+        payment_source: 'customer_detail_view'
+      });
+
       const newId = await addPayment(customerId, payAmount);
       setPaymentId(newId || Date.now().toString());
 

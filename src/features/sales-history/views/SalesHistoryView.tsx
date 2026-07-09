@@ -4,12 +4,16 @@ import { useCustomerStore } from '@/features/customers';
 import { SalesHistoryFilters } from '../components/SalesHistoryFilters';
 import { SalesHistoryList } from '../components/SalesHistoryList';
 import { Loader2 } from 'lucide-react';
+import posthog from 'posthog-js';
 
 export const SalesHistoryView: React.FC = () => {
   const { fetchSales, isLoading } = useSalesHistoryStore();
   const { loadCustomers } = useCustomerStore();
 
   useEffect(() => {
+    posthog.capture('sales_history_viewed', {
+      view_source: 'navigation'
+    });
     fetchSales();
     loadCustomers();
   }, [fetchSales, loadCustomers]);
