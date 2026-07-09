@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { BrowserMultiFormatReader } from '@zxing/browser';
 import {
   BarcodeScanner,
@@ -35,67 +35,105 @@ const ScannerModal: React.FC<ScannerModalProps> = ({
   const animationFrameRef = useRef<number | null>(null);
   const startTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  function handleBarcodeScanned(barcode: string) {
-    if (hasScannedRef.current) return;
+  const stopScan = useCallback(async () => {
+    isScanningRef.current = false;
+    setIsScanning(false);
 
-    const now = Date.now();
-    if (
-      lastScannedRef.current &&
-      lastScannedRef.current.barcode === barcode &&
-      now - lastScannedRef.current.time < 3000
-    ) {
-      return; // Prevent spamming the same barcode within 3 seconds
-    }
-    lastScannedRef.current = { barcode, time: now };
-
-    if (onScan) {
-      hasScannedRef.current = true;
-      onScan(barcode);
-      if (Capacitor.getPlatform() !== 'web') {
-        stopScan();
-      }
-      onClose();
-      return;
+    if (startTimeoutRef.current) {
+      clearTimeout(startTimeoutRef.current);
+      startTimeoutRef.current = null;
     }
 
-    // Find item
-    const item = items.find((i: any) => i.barcode === barcode);
-    if (item) {
-      hasScannedRef.current = true;
-      addToCart({
-        inventoryId: item.id,
-        name: item.name,
-        price: item.price,
-        quantity: 1
-      });
-      toast.success(`${item.name} sepete eklendi`);
-      if (Capacitor.getPlatform() === 'web') {
-        onClose();
-      } else {
-        stopScan();
-        onClose();
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = null;
+    }
+
+    const isWeb = Capacitor.getPlatform() === 'web';
+    if (isWeb) {
+      if (controlsRef.current) {
+        controlsRef.current.stop();
+        controlsRef.current = null;
       }
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+        streamRef.current = null;
+      }
+      if (videoRef.current) {
+        videoRef.current.srcObject = null;
+      }
+      codeReaderRef.current = null;
     } else {
-      toast(`${barcode} sistemde kayıtlı değil`, {
-        timeout: 6000,
-        variant: 'danger',
-        actionProps: {
-          children: 'Yeni Ürün Ekle',
-          className: 'bg-primary text-white',
-          size: 'sm',
-          onPress: () => {
-            if (Capacitor.getPlatform() !== 'web') {
-              stopScan();
-            }
-            onClose();
-            navigate(`/inventory/new?barcode=${encodeURIComponent(barcode)}`);
-          }
-        }
-      });
+      document.body.classList.remove('barcode-scanner-active');
+      await BarcodeScanner.stopScan();
+      await BarcodeScanner.removeAllListeners();
     }
-  }
+  }, []);
 
-  async function startScan() {
+  const handleBarcodeScanned = useCallback(
+    (barcode: string) => {
+      if (hasScannedRef.current) return;
+
+      const now = Date.now();
+      if (
+        lastScannedRef.current &&
+        lastScannedRef.current.barcode === barcode &&
+        now - lastScannedRef.current.time < 3000
+      ) {
+        return; // Prevent spamming the same barcode within 3 seconds
+      }
+      lastScannedRef.current = { barcode, time: now };
+
+      if (onScan) {
+        hasScannedRef.current = true;
+        onScan(barcode);
+        if (Capacitor.getPlatform() !== 'web') {
+          stopScan();
+        }
+        onClose();
+        return;
+      }
+
+      // Find item
+      const item = items.find((i: any) => i.barcode === barcode);
+      if (item) {
+        hasScannedRef.current = true;
+        addToCart({
+          inventoryId: item.id,
+          name: item.name,
+          price: item.price,
+          quantity: 1
+        });
+        toast.success(`${item.name} sepete eklendi`);
+        if (Capacitor.getPlatform() === 'web') {
+          onClose();
+        } else {
+          stopScan();
+          onClose();
+        }
+      } else {
+        toast(`${barcode} sistemde kayıtlı değil`, {
+          timeout: 6000,
+          variant: 'danger',
+          actionProps: {
+            children: 'Yeni Ürün Ekle',
+            className: 'bg-primary text-white',
+            size: 'sm',
+            onPress: () => {
+              if (Capacitor.getPlatform() !== 'web') {
+                stopScan();
+              }
+              onClose();
+              navigate(`/inventory/new?barcode=${encodeURIComponent(barcode)}`);
+            }
+          }
+        });
+      }
+    },
+    [onScan, stopScan, onClose, items, addToCart, navigate]
+  );
+
+  const startScan = useCallback(async () => {
     try {
       hasScannedRef.current = false;
       isScanningRef.current = true;
@@ -217,42 +255,7 @@ const ScannerModal: React.FC<ScannerModalProps> = ({
       console.error('Scanner error', error);
       setIsScanning(false);
     }
-  }
-
-  async function stopScan() {
-    isScanningRef.current = false;
-    setIsScanning(false);
-
-    if (startTimeoutRef.current) {
-      clearTimeout(startTimeoutRef.current);
-      startTimeoutRef.current = null;
-    }
-
-    if (animationFrameRef.current) {
-      cancelAnimationFrame(animationFrameRef.current);
-      animationFrameRef.current = null;
-    }
-
-    const isWeb = Capacitor.getPlatform() === 'web';
-    if (isWeb) {
-      if (controlsRef.current) {
-        controlsRef.current.stop();
-        controlsRef.current = null;
-      }
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach(track => track.stop());
-        streamRef.current = null;
-      }
-      if (videoRef.current) {
-        videoRef.current.srcObject = null;
-      }
-      codeReaderRef.current = null;
-    } else {
-      document.body.classList.remove('barcode-scanner-active');
-      await BarcodeScanner.stopScan();
-      await BarcodeScanner.removeAllListeners();
-    }
-  }
+  }, [onClose, handleBarcodeScanned]);
 
   useEffect(() => {
     if (isOpen) {

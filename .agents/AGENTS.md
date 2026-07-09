@@ -27,11 +27,11 @@ When working with features inside the `src/features/` directory:
 
 ## Quality Assurance & Verification Cycle
 
-To ensure codebase stability, prevent regressions, and enforce strict code quality, you MUST execute the following verification steps whenever you generate, modify, or delete code:
+To ensure codebase stability, prevent regressions, and enforce strict code quality, you MUST execute the following verification steps whenever you generate, modify, or delete code (EXCEPT when the modified files are exclusively within the `.agents/` directory, in which case this verification cycle is not required):
 
 1. **Format and Lint (Targeted):**
-   - Run `npx prettier --write <path-to-modified-files>` only on the files you have added or modified.
-   - Run `npx eslint <path-to-modified-files>` to check for syntax and style issues only on the modified files. If lint errors are found, fix them immediately.
+   - Run `pnpm prettier --write <path-to-modified-files>` only on the files you have added or modified.
+   - Run `pnpm eslint <path-to-modified-files>` to check for syntax and style issues only on the modified files. If lint errors are found, fix them immediately.
 
 2. **Test Cycle (Targeted & Global):**
    - **New Features:** Whenever you add a new feature, component, hook, or utility, you MUST write its accompanying unit tests in the same directory (as described in the "Component Testing" rule).
