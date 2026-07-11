@@ -321,7 +321,7 @@ export const CompanySettingsView = () => {
           </h2>
           <form
             onSubmit={handleSubmitProfile(handleUpdateProfile)}
-            className="max-w-2xl space-y-5">
+            className="space-y-5">
             <div>
               <label className="mb-1 block text-sm font-semibold text-gray-700">
                 İşletme Adı <span className="text-danger">*</span>
@@ -396,7 +396,6 @@ export const CompanySettingsView = () => {
             <div className="flex justify-end pt-4">
               <Button
                 type="submit"
-                variant="primary"
                 className="h-11 rounded-xl px-8 font-bold"
                 isDisabled={isSavingProfile}>
                 {isSavingProfile ? (

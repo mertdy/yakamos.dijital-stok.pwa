@@ -53,7 +53,7 @@ export const InventoryView: React.FC = () => {
 
         {hasInventoryPermission && (
           <Button onPress={() => navigate('/inventory/new')} variant="primary">
-            <Plus className="mr-2 text-xl" /> Yeni Ürün Ekle
+            <Plus className="mr-2 text-xl" /> Yeni Ürün
           </Button>
         )}
       </div>
