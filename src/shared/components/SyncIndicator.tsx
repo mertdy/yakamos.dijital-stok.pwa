@@ -37,7 +37,8 @@ export const SyncIndicator: React.FC<SyncIndicatorProps> = ({
             {isOnline ? <Cloud size={14} /> : <WifiOff size={14} />}
           </div>
         </Tooltip.Trigger>
-        <Tooltip.Content placement="bottom" showArrow={true}>
+        <Tooltip.Content showArrow>
+          <Tooltip.Arrow />
           <span className="px-1 py-0.5 text-xs font-semibold">
             {isOnline
               ? 'Bulut ile Senkronize'

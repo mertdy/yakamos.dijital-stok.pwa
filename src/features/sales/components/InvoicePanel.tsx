@@ -283,7 +283,8 @@ export const InvoicePanel: React.FC<Props> = ({
                         {btn}
                       </div>
                     </Tooltip.Trigger>
-                    <Tooltip.Content placement="top" showArrow={true}>
+                    <Tooltip.Content showArrow>
+                      <Tooltip.Arrow />
                       {tooltipMsg}
                     </Tooltip.Content>
                   </Tooltip>

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button, Card, toast } from '@heroui/react';
+import { Button, Card, toast, Tooltip } from '@heroui/react';
 import { useAuthStore } from '../store/useAuthStore';
 import { db } from '@/core/firebase/config';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
@@ -15,6 +15,38 @@ import {
   Shield,
   ShieldCheck
 } from 'lucide-react';
+
+const PERMISSION_META: Record<string, { label: string; description: string }> =
+  {
+    VIEW_DASHBOARD: {
+      label: 'Dashboard Görünümü',
+      description:
+        'Ciro, kar/zarar grafikleri ve günlük özet istatistiklerini görebilir.'
+    },
+    MANAGE_INVENTORY: {
+      label: 'Envanter Yönetimi',
+      description:
+        'Yeni ürün ekleyebilir, fiyatları düzenleyebilir ve ürün silebilir.'
+    },
+    MANAGE_CUSTOMERS: {
+      label: 'Müşteri Yönetimi',
+      description:
+        'Yeni veresiye müşteri ekleyebilir ve müşteri limitini güncelleyebilir.'
+    },
+    TAKE_PAYMENT: {
+      label: 'Ödeme Alıcı',
+      description: 'Müşterilerden tahsilat kaydedebilir ve borcu düşürebilir.'
+    },
+    VIEW_SALES_HISTORY: {
+      label: 'Satış Geçmişi',
+      description: 'Tüm çalışanların geçmiş satış fatural arını görebilir.'
+    },
+    MANAGE_SALES_HISTORY: {
+      label: 'Satış İptali',
+      description:
+        'Geçmiş satış fatural arını iptal edebilir ve stoğu geri yükleyebilir.'
+    }
+  };
 
 export const AccountSettingsView = () => {
   const {
@@ -175,27 +207,26 @@ export const AccountSettingsView = () => {
                 hakkınız bulunmaktadır.
               </p>
               <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
-                {[
-                  'VIEW_DASHBOARD',
-                  'MANAGE_INVENTORY',
-                  'MANAGE_CUSTOMERS',
-                  'TAKE_PAYMENT',
-                  'VIEW_SALES_HISTORY',
-                  'MANAGE_SALES_HISTORY'
-                ].map(perm => (
-                  <div
-                    key={perm}
-                    className="flex items-center gap-2 rounded-xl border border-gray-100 bg-gray-50 px-3 py-2">
-                    <CheckCircle2 size={16} className="text-green-500" />
-                    <span className="text-xs font-semibold text-gray-700">
-                      {perm === 'VIEW_DASHBOARD' && 'Dashboard Görünümü'}
-                      {perm === 'MANAGE_INVENTORY' && 'Envanter Yönetimi'}
-                      {perm === 'MANAGE_CUSTOMERS' && 'Müşteri Yönetimi'}
-                      {perm === 'TAKE_PAYMENT' && 'Ödeme Alıcı'}
-                      {perm === 'VIEW_SALES_HISTORY' && 'Satış Geçmişi'}
-                      {perm === 'MANAGE_SALES_HISTORY' && 'Satış İptali'}
-                    </span>
-                  </div>
+                {(Object.keys(PERMISSION_META) as string[]).map(perm => (
+                  <Tooltip key={perm} delay={0} closeDelay={0}>
+                    <Tooltip.Trigger>
+                      <div className="flex cursor-help items-center gap-2 rounded-xl border border-gray-100 bg-gray-50 px-3 py-2">
+                        <CheckCircle2
+                          size={16}
+                          className="flex-shrink-0 text-green-500"
+                        />
+                        <span className="text-xs font-semibold text-gray-700">
+                          {PERMISSION_META[perm].label}
+                        </span>
+                      </div>
+                    </Tooltip.Trigger>
+                    <Tooltip.Content showArrow>
+                      <Tooltip.Arrow />
+                      <span className="px-1 py-0.5 text-xs font-medium">
+                        {PERMISSION_META[perm].description}
+                      </span>
+                    </Tooltip.Content>
+                  </Tooltip>
                 ))}
               </div>
             </div>
@@ -207,19 +238,25 @@ export const AccountSettingsView = () => {
               </p>
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                 {activeMembership.permissions.map(perm => (
-                  <div
-                    key={perm}
-                    className="bg-primary/5 border-primary/10 flex items-center gap-2 rounded-xl border px-3 py-2">
-                    <CheckCircle2 size={16} className="text-primary" />
-                    <span className="text-xs font-semibold text-gray-700">
-                      {perm === 'VIEW_DASHBOARD' && 'Dashboard Görünümü'}
-                      {perm === 'MANAGE_INVENTORY' && 'Envanter Yönetimi'}
-                      {perm === 'MANAGE_CUSTOMERS' && 'Müşteri Yönetimi'}
-                      {perm === 'TAKE_PAYMENT' && 'Ödeme Alıcı'}
-                      {perm === 'VIEW_SALES_HISTORY' && 'Satış Geçmişi'}
-                      {perm === 'MANAGE_SALES_HISTORY' && 'Satış İptali'}
-                    </span>
-                  </div>
+                  <Tooltip key={perm} delay={0} closeDelay={0}>
+                    <Tooltip.Trigger>
+                      <div className="bg-primary/5 border-primary/10 flex cursor-help items-center gap-2 rounded-xl border px-3 py-2">
+                        <CheckCircle2
+                          size={16}
+                          className="text-primary flex-shrink-0"
+                        />
+                        <span className="text-xs font-semibold text-gray-700">
+                          {PERMISSION_META[perm]?.label ?? perm}
+                        </span>
+                      </div>
+                    </Tooltip.Trigger>
+                    <Tooltip.Content showArrow>
+                      <Tooltip.Arrow />
+                      <span className="px-1 py-0.5 text-xs font-medium">
+                        {PERMISSION_META[perm]?.description ?? perm}
+                      </span>
+                    </Tooltip.Content>
+                  </Tooltip>
                 ))}
               </div>
             </div>

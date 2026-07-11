@@ -255,7 +255,8 @@ export const InventoryTable: React.FC = () => {
                     <CheckSquare size={18} />
                   </Button>
                 </Tooltip.Trigger>
-                <Tooltip.Content placement="top" showArrow={true}>
+                <Tooltip.Content showArrow>
+                  <Tooltip.Arrow />
                   Tümünü Seç ({filteredItems.length})
                 </Tooltip.Content>
               </Tooltip>
@@ -271,7 +272,8 @@ export const InventoryTable: React.FC = () => {
                     <X size={18} />
                   </Button>
                 </Tooltip.Trigger>
-                <Tooltip.Content placement="top" showArrow={true}>
+                <Tooltip.Content showArrow>
+                  <Tooltip.Arrow />
                   Seçimi Temizle
                 </Tooltip.Content>
               </Tooltip>
@@ -302,7 +304,8 @@ export const InventoryTable: React.FC = () => {
                     <Trash2 size={18} />
                   </Button>
                 </Tooltip.Trigger>
-                <Tooltip.Content placement="top" showArrow={true}>
+                <Tooltip.Content showArrow>
+                  <Tooltip.Arrow />
                   Seçimleri Sil
                 </Tooltip.Content>
               </Tooltip>
