@@ -20,7 +20,19 @@ vi.mock('firebase/auth', () => ({
   sendEmailVerification: vi.fn()
 }));
 
+vi.mock('firebase/firestore', () => ({
+  doc: vi.fn(() => ({ id: 'mock-doc-id' })),
+  getDoc: vi.fn().mockResolvedValue({ exists: () => false }),
+  setDoc: vi.fn().mockResolvedValue(undefined),
+  onSnapshot: vi.fn(() => vi.fn()),
+  collection: vi.fn(),
+  query: vi.fn(),
+  where: vi.fn(),
+  updateDoc: vi.fn().mockResolvedValue(undefined)
+}));
+
 vi.mock('@/core/firebase/config', () => ({
+  db: {},
   auth: {},
   googleProvider: {}
 }));
@@ -141,7 +153,7 @@ describe('useAuthStore', () => {
   it('setUser updates user and marks isInitialized', async () => {
     const store = await buildStore();
     const fakeUser = { uid: 'abc', email: 'test@test.com' } as never;
-    store.getState().setUser(fakeUser);
+    await store.getState().setUser(fakeUser);
     expect(store.getState().user).toEqual(fakeUser);
     expect(store.getState().isInitialized).toBe(true);
   });

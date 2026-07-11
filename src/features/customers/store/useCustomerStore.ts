@@ -12,6 +12,7 @@ import {
   getDocs
 } from 'firebase/firestore';
 import { db, auth } from '@/core/firebase/config';
+import { useAuthStore } from '@/features/auth/store/useAuthStore';
 import posthog from 'posthog-js';
 
 export interface Customer {
@@ -23,6 +24,7 @@ export interface Customer {
   creditLimit?: number;
   totalDebt?: number;
   userId?: string;
+  companyId?: string;
   createdAt: string;
 }
 
@@ -30,6 +32,7 @@ export interface Payment {
   id: string;
   customerId: string;
   userId: string;
+  companyId: string;
   amount: number;
   createdAt: string;
 }
@@ -46,13 +49,17 @@ export interface CustomerTransaction {
   subtotal?: number;
   invoiceNumber?: string;
 }
+
 interface CustomerState {
   customers: Customer[];
   isLoading: boolean;
   unsubscribeSnapshot: (() => void) | null;
   loadCustomers: () => void;
   addCustomer: (
-    customer: Omit<Customer, 'id' | 'createdAt' | 'userId' | 'totalDebt'>
+    customer: Omit<
+      Customer,
+      'id' | 'createdAt' | 'userId' | 'companyId' | 'totalDebt'
+    >
   ) => Promise<string>;
   updateCustomer: (
     id: string,
@@ -74,8 +81,8 @@ export const useCustomerStore = create<CustomerState>((set, get) => ({
   unsubscribeSnapshot: null,
 
   loadCustomers: () => {
-    const user = auth.currentUser;
-    if (!user) return;
+    const profile = useAuthStore.getState().profile;
+    if (!profile?.activeCompanyId) return;
 
     const { unsubscribeSnapshot } = get();
     if (unsubscribeSnapshot) {
@@ -86,7 +93,7 @@ export const useCustomerStore = create<CustomerState>((set, get) => ({
 
     const q = query(
       collection(db, 'customers'),
-      where('userId', '==', user.uid)
+      where('companyId', '==', profile.activeCompanyId)
     );
 
     const unsubscribe = onSnapshot(
@@ -108,6 +115,10 @@ export const useCustomerStore = create<CustomerState>((set, get) => ({
   },
 
   addCustomer: async newCustomerData => {
+    const profile = useAuthStore.getState().profile;
+    if (!profile?.activeCompanyId)
+      throw new Error('No active company selected');
+
     const user = auth.currentUser;
     if (!user) throw new Error('User not authenticated');
 
@@ -118,10 +129,10 @@ export const useCustomerStore = create<CustomerState>((set, get) => ({
       ...newCustomerData,
       totalDebt: 0,
       createdAt,
-      userId: user.uid
+      userId: user.uid,
+      companyId: profile.activeCompanyId
     };
 
-    // Firestore will automatically cache this write and sync when online
     setDoc(doc(db, 'customers', id), newCustomer).catch(err => {
       console.error('Firestore background sync failed', err);
       posthog.captureException(err, {
@@ -140,10 +151,7 @@ export const useCustomerStore = create<CustomerState>((set, get) => ({
     return id;
   },
 
-  updateCustomer: async (
-    id: string,
-    customerData: Partial<Omit<Customer, 'id' | 'createdAt'>>
-  ) => {
+  updateCustomer: async (id, customerData) => {
     const user = auth.currentUser;
     if (!user) {
       console.error('User not authenticated');
@@ -180,7 +188,11 @@ export const useCustomerStore = create<CustomerState>((set, get) => ({
     }
   },
 
-  addPayment: async (customerId: string, amount: number) => {
+  addPayment: async (customerId, amount) => {
+    const profile = useAuthStore.getState().profile;
+    if (!profile?.activeCompanyId)
+      throw new Error('No active company selected');
+
     const user = auth.currentUser;
     if (!user) {
       console.error('User not authenticated');
@@ -193,17 +205,16 @@ export const useCustomerStore = create<CustomerState>((set, get) => ({
       const createdAt = new Date().toISOString();
       const batch = writeBatch(db);
 
-      // Add to payments collection
       const paymentRef = doc(collection(db, 'payments'), paymentId);
       batch.set(paymentRef, {
         id: paymentId,
         customerId,
         userId: user.uid,
+        companyId: profile.activeCompanyId,
         amount,
         createdAt
       });
 
-      // Update customer totalDebt
       const customerRef = doc(db, 'customers', customerId);
       batch.update(customerRef, {
         totalDebt: increment(-amount)
@@ -228,9 +239,7 @@ export const useCustomerStore = create<CustomerState>((set, get) => ({
     }
   },
 
-  getCustomerTransactions: async (
-    customerId: string
-  ): Promise<CustomerTransaction[]> => {
+  getCustomerTransactions: async customerId => {
     const user = auth.currentUser;
     if (!user) {
       console.error('User not authenticated');
@@ -238,7 +247,6 @@ export const useCustomerStore = create<CustomerState>((set, get) => ({
     }
 
     try {
-      // 1. Get Sales (Credit)
       const salesQuery = query(
         collection(db, 'sales'),
         where('customerId', '==', customerId),
@@ -265,7 +273,6 @@ export const useCustomerStore = create<CustomerState>((set, get) => ({
         }
       );
 
-      // 2. Get Payments
       const paymentsQuery = query(
         collection(db, 'payments'),
         where('customerId', '==', customerId)
@@ -283,7 +290,6 @@ export const useCustomerStore = create<CustomerState>((set, get) => ({
           };
         });
 
-      // Combine and sort by date descending (newest first)
       const allTransactions = [...salesTransactions, ...paymentsTransactions];
       allTransactions.sort(
         (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()

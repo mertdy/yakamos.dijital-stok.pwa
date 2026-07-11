@@ -22,7 +22,8 @@ if (ENV.POSTHOG_KEY && ENV.POSTHOG_HOST) {
     capture_heatmaps: true,
     autocapture: true,
     person_profiles: 'identified_only',
-    persistence: 'localStorage'
+    persistence: 'localStorage',
+    debug: false
   });
 }
 

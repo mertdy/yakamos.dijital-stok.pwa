@@ -8,11 +8,31 @@ import {
   sendEmailVerification,
   type User
 } from 'firebase/auth';
-import { auth, googleProvider } from '@/core/firebase/config';
+import {
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  setDoc,
+  updateDoc,
+  deleteDoc,
+  query,
+  where,
+  onSnapshot,
+  writeBatch
+} from 'firebase/firestore';
+import { auth, googleProvider, db } from '@/core/firebase/config';
 import { useInventoryStore } from '@/features/inventory';
 import { useCustomerStore } from '@/features/customers';
 import { useSalesStore, usePreferencesStore } from '@/features/sales';
 import { useSalesHistoryStore } from '@/features/sales-history';
+import type {
+  Company,
+  UserProfile,
+  Membership,
+  Invitation,
+  PermissionKey
+} from '@/core/types/tenant';
 import posthog from 'posthog-js';
 
 /**
@@ -43,35 +63,263 @@ export function getAuthErrorMessage(code: string): string {
 
 interface AuthState {
   user: User | null;
+  profile: UserProfile | null;
+  activeMembership: Membership | null;
+  memberships: Membership[];
+  activeCompany: Company | null;
   isLoading: boolean;
   isInitialized: boolean;
   authError: string | null;
-  setUser: (user: User | null) => void;
+
+  setUser: (user: User | null) => Promise<void>;
   clearError: () => void;
   loginWithGoogle: () => Promise<void>;
   loginWithEmail: (email: string, password: string) => Promise<void>;
   registerWithEmail: (email: string, password: string) => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   logout: () => Promise<void>;
+
+  createCompany: (
+    name: string,
+    details?: { phone?: string; address?: string; receiptHeader?: string }
+  ) => Promise<string>;
+  switchCompany: (companyId: string) => Promise<void>;
+  updateCompanyProfile: (
+    details: Partial<Omit<Company, 'id' | 'ownerId' | 'createdAt'>>
+  ) => Promise<void>;
+  inviteEmployee: (
+    email: string,
+    permissions: PermissionKey[]
+  ) => Promise<void>;
+  updateEmployeePermissions: (
+    userId: string,
+    permissions: PermissionKey[]
+  ) => Promise<void>;
+  removeEmployee: (userId: string) => Promise<void>;
+  acceptInvitation: (invitationId: string) => Promise<void>;
+  declineInvitation: (invitationId: string) => Promise<void>;
+
+  // Real-time listener cleanup functions
+  unsubscribeProfile: (() => void) | null;
+  unsubscribeMemberships: (() => void) | null;
+  unsubscribeActiveCompany: (() => void) | null;
 }
 
-export const useAuthStore = create<AuthState>(set => ({
+const checkAndMigrateLegacyUser = async (user: User): Promise<UserProfile> => {
+  const profileRef = doc(db, 'users', user.uid);
+  const profileSnap = await getDoc(profileRef);
+  if (profileSnap.exists()) {
+    return profileSnap.data() as UserProfile;
+  }
+
+  // Check legacy data in inventory & customers
+  const legacyInventoryQuery = query(
+    collection(db, 'inventory'),
+    where('userId', '==', user.uid)
+  );
+  const legacyInventorySnap = await getDocs(legacyInventoryQuery);
+
+  const legacyCustomersQuery = query(
+    collection(db, 'customers'),
+    where('userId', '==', user.uid)
+  );
+  const legacyCustomersSnap = await getDocs(legacyCustomersQuery);
+
+  const hasLegacyData =
+    !legacyInventorySnap.empty || !legacyCustomersSnap.empty;
+  let activeCompanyId: string | null = null;
+
+  if (hasLegacyData) {
+    const companyId = crypto.randomUUID();
+    const companyName = 'Varsayılan İşletmem';
+    const createdAt = new Date().toISOString();
+
+    // Create default company
+    const companyRef = doc(db, 'companies', companyId);
+    const companyData: Company = {
+      id: companyId,
+      name: companyName,
+      ownerId: user.uid,
+      createdAt
+    };
+    await setDoc(companyRef, companyData);
+
+    // Create membership doc
+    const membershipId = `${user.uid}_${companyId}`;
+    const membershipRef = doc(db, 'memberships', membershipId);
+    const membershipData: Membership = {
+      id: membershipId,
+      userId: user.uid,
+      companyId,
+      companyName,
+      role: 'OWNER',
+      permissions: [],
+      createdAt
+    };
+    await setDoc(membershipRef, membershipData);
+
+    // Batch update documents to companyId
+    const batch = writeBatch(db);
+    legacyInventorySnap.forEach(itemDoc => {
+      batch.update(doc(db, 'inventory', itemDoc.id), { companyId });
+    });
+    legacyCustomersSnap.forEach(custDoc => {
+      batch.update(doc(db, 'customers', custDoc.id), { companyId });
+    });
+
+    const legacySalesQuery = query(
+      collection(db, 'sales'),
+      where('userId', '==', user.uid)
+    );
+    const legacySalesSnap = await getDocs(legacySalesQuery);
+    legacySalesSnap.forEach(saleDoc => {
+      batch.update(doc(db, 'sales', saleDoc.id), { companyId });
+    });
+
+    await batch.commit();
+    activeCompanyId = companyId;
+  }
+
+  const profileData: UserProfile = {
+    id: user.uid,
+    email: user.email || '',
+    name: user.displayName || user.email?.split('@')[0] || 'Kullanıcı',
+    activeCompanyId,
+    createdAt: new Date().toISOString()
+  };
+
+  await setDoc(profileRef, profileData);
+  return profileData;
+};
+
+export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
+  profile: null,
+  activeMembership: null,
+  memberships: [],
+  activeCompany: null,
   isLoading: false,
-  isInitialized: false, // Prevents layout flashing before onAuthStateChanged fires
+  isInitialized: false,
   authError: null,
 
-  setUser: user => {
-    if (user) {
-      posthog.identify(user.uid, {
-        email: user.email ?? undefined,
-        name: user.displayName ?? undefined
-      });
-    } else {
+  unsubscribeProfile: null,
+  unsubscribeMemberships: null,
+  unsubscribeActiveCompany: null,
+
+  setUser: async user => {
+    const {
+      unsubscribeProfile,
+      unsubscribeMemberships,
+      unsubscribeActiveCompany
+    } = get();
+    if (unsubscribeProfile) unsubscribeProfile();
+    if (unsubscribeMemberships) unsubscribeMemberships();
+    if (unsubscribeActiveCompany) unsubscribeActiveCompany();
+
+    set({
+      unsubscribeProfile: null,
+      unsubscribeMemberships: null,
+      unsubscribeActiveCompany: null
+    });
+
+    if (!user) {
       posthog.reset();
+      set({
+        user: null,
+        profile: null,
+        activeMembership: null,
+        memberships: [],
+        activeCompany: null,
+        isInitialized: true,
+        isLoading: false
+      });
+      return;
     }
 
-    set({ user, isInitialized: true });
+    posthog.identify(user.uid, {
+      email: user.email ?? undefined,
+      name: user.displayName ?? undefined
+    });
+
+    set({ isLoading: true });
+
+    try {
+      await checkAndMigrateLegacyUser(user);
+
+      // Listen to profile
+      const subProfile = onSnapshot(
+        doc(db, 'users', user.uid),
+        async userSnap => {
+          if (!userSnap.exists()) return;
+          const profileData = userSnap.data() as UserProfile;
+
+          const memberships = get().memberships;
+          const activeMembership =
+            memberships.find(
+              m => m.companyId === profileData.activeCompanyId
+            ) || null;
+
+          set({
+            profile: profileData,
+            activeMembership
+          });
+
+          if (profileData.activeCompanyId) {
+            const { unsubscribeActiveCompany: oldSubCompany } = get();
+            if (oldSubCompany) oldSubCompany();
+
+            const subCompany = onSnapshot(
+              doc(db, 'companies', profileData.activeCompanyId),
+              companySnap => {
+                if (companySnap.exists()) {
+                  set({ activeCompany: companySnap.data() as Company });
+                }
+              }
+            );
+            set({ unsubscribeActiveCompany: subCompany });
+          } else {
+            set({ activeCompany: null });
+          }
+        }
+      );
+
+      // Listen to memberships
+      const membershipsQuery = query(
+        collection(db, 'memberships'),
+        where('userId', '==', user.uid)
+      );
+      const subMemberships = onSnapshot(membershipsQuery, snap => {
+        const memberships: Membership[] = [];
+        snap.forEach(doc => {
+          memberships.push(doc.data() as Membership);
+        });
+
+        const profile = get().profile;
+        const activeCompanyId = profile?.activeCompanyId;
+        const activeMembership =
+          memberships.find(m => m.companyId === activeCompanyId) || null;
+
+        set({
+          memberships,
+          activeMembership,
+          isInitialized: true,
+          isLoading: false
+        });
+      });
+
+      set({
+        user,
+        unsubscribeProfile: subProfile,
+        unsubscribeMemberships: subMemberships
+      });
+    } catch (err) {
+      console.error('Error setting user profile:', err);
+      set({
+        user,
+        isInitialized: true,
+        isLoading: false
+      });
+    }
   },
 
   clearError: () => set({ authError: null }),
@@ -101,7 +349,7 @@ export const useAuthStore = create<AuthState>(set => ({
     }
   },
 
-  loginWithEmail: async (email: string, password: string) => {
+  loginWithEmail: async (email, password) => {
     set({ isLoading: true, authError: null });
     try {
       const credential = await signInWithEmailAndPassword(
@@ -129,7 +377,7 @@ export const useAuthStore = create<AuthState>(set => ({
     }
   },
 
-  registerWithEmail: async (email: string, password: string) => {
+  registerWithEmail: async (email, password) => {
     set({ isLoading: true, authError: null });
     try {
       const credential = await createUserWithEmailAndPassword(
@@ -158,7 +406,7 @@ export const useAuthStore = create<AuthState>(set => ({
     }
   },
 
-  resetPassword: async (email: string) => {
+  resetPassword: async email => {
     set({ isLoading: true, authError: null });
     try {
       await sendPasswordResetEmail(auth, email);
@@ -202,5 +450,132 @@ export const useAuthStore = create<AuthState>(set => ({
     } finally {
       set({ isLoading: false });
     }
+  },
+
+  createCompany: async (name, details) => {
+    const user = get().user;
+    if (!user) throw new Error('User not authenticated');
+
+    const companyId = crypto.randomUUID();
+    const createdAt = new Date().toISOString();
+
+    const companyRef = doc(db, 'companies', companyId);
+    const companyData: Company = {
+      id: companyId,
+      name,
+      ownerId: user.uid,
+      phone: details?.phone || null,
+      address: details?.address || null,
+      receiptHeader: details?.receiptHeader || null,
+      createdAt
+    };
+    await setDoc(companyRef, companyData);
+
+    const membershipId = `${user.uid}_${companyId}`;
+    const membershipRef = doc(db, 'memberships', membershipId);
+    const membershipData: Membership = {
+      id: membershipId,
+      userId: user.uid,
+      companyId,
+      companyName: name,
+      role: 'OWNER',
+      permissions: [],
+      createdAt
+    };
+    await setDoc(membershipRef, membershipData);
+
+    const userRef = doc(db, 'users', user.uid);
+    await updateDoc(userRef, { activeCompanyId: companyId });
+
+    return companyId;
+  },
+
+  switchCompany: async companyId => {
+    const user = get().user;
+    if (!user) throw new Error('User not authenticated');
+
+    const userRef = doc(db, 'users', user.uid);
+    await updateDoc(userRef, { activeCompanyId: companyId });
+  },
+
+  updateCompanyProfile: async details => {
+    const activeCompany = get().activeCompany;
+    if (!activeCompany) throw new Error('No active company selected');
+
+    const companyRef = doc(db, 'companies', activeCompany.id);
+    await updateDoc(companyRef, details);
+  },
+
+  inviteEmployee: async (email, permissions) => {
+    const activeCompany = get().activeCompany;
+    const user = get().user;
+    if (!activeCompany || !user)
+      throw new Error('Active company or user missing');
+
+    const inviteId = crypto.randomUUID();
+    const invitation: Invitation = {
+      id: inviteId,
+      companyId: activeCompany.id,
+      companyName: activeCompany.name,
+      email: email.toLowerCase().trim(),
+      permissions,
+      status: 'PENDING',
+      createdAt: new Date().toISOString(),
+      invitedBy: user.uid
+    };
+
+    await setDoc(doc(db, 'invitations', inviteId), invitation);
+  },
+
+  updateEmployeePermissions: async (userId, permissions) => {
+    const activeCompany = get().activeCompany;
+    if (!activeCompany) throw new Error('No active company');
+
+    const membershipId = `${userId}_${activeCompany.id}`;
+    const membershipRef = doc(db, 'memberships', membershipId);
+    await updateDoc(membershipRef, { permissions });
+  },
+
+  removeEmployee: async userId => {
+    const activeCompany = get().activeCompany;
+    if (!activeCompany) throw new Error('No active company');
+
+    const membershipId = `${userId}_${activeCompany.id}`;
+    await deleteDoc(doc(db, 'memberships', membershipId));
+  },
+
+  acceptInvitation: async invitationId => {
+    const user = get().user;
+    if (!user) throw new Error('User not authenticated');
+
+    const inviteRef = doc(db, 'invitations', invitationId);
+    const inviteSnap = await getDoc(inviteRef);
+    if (!inviteSnap.exists()) throw new Error('Invitation not found');
+    const invite = inviteSnap.data() as Invitation;
+
+    const createdAt = new Date().toISOString();
+
+    const membershipId = `${user.uid}_${invite.companyId}`;
+    const membershipRef = doc(db, 'memberships', membershipId);
+    const membershipData: Membership = {
+      id: membershipId,
+      userId: user.uid,
+      companyId: invite.companyId,
+      companyName: invite.companyName,
+      role: 'EMPLOYEE',
+      permissions: invite.permissions,
+      createdAt
+    };
+    await setDoc(membershipRef, membershipData);
+
+    await updateDoc(inviteRef, { status: 'ACCEPTED' });
+
+    const userRef = doc(db, 'users', user.uid);
+    await updateDoc(userRef, { activeCompanyId: invite.companyId });
+  },
+
+  declineInvitation: async invitationId => {
+    const inviteRef = doc(db, 'invitations', invitationId);
+    await updateDoc(inviteRef, { status: 'DECLINED' });
   }
 }));

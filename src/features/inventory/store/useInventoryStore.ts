@@ -10,6 +10,7 @@ import {
   writeBatch
 } from 'firebase/firestore';
 import { db, auth } from '@/core/firebase/config';
+import { useAuthStore } from '@/features/auth/store/useAuthStore';
 import posthog from 'posthog-js';
 
 export interface InventoryItem {
@@ -22,6 +23,7 @@ export interface InventoryItem {
   imageUrl?: string;
   updatedAt: string;
   userId?: string;
+  companyId?: string;
 }
 
 interface InventoryState {
@@ -30,7 +32,7 @@ interface InventoryState {
   unsubscribeSnapshot: (() => void) | null;
   loadItems: () => void;
   addItem: (
-    item: Omit<InventoryItem, 'id' | 'updatedAt' | 'userId'>
+    item: Omit<InventoryItem, 'id' | 'updatedAt' | 'userId' | 'companyId'>
   ) => Promise<void>;
   updateItem: (id: string, item: Partial<InventoryItem>) => Promise<void>;
   deleteItem: (id: string) => Promise<void>;
@@ -44,8 +46,8 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
   unsubscribeSnapshot: null,
 
   loadItems: () => {
-    const user = auth.currentUser;
-    if (!user) return;
+    const profile = useAuthStore.getState().profile;
+    if (!profile?.activeCompanyId) return;
 
     const { unsubscribeSnapshot } = get();
     if (unsubscribeSnapshot) {
@@ -56,7 +58,7 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
 
     const q = query(
       collection(db, 'inventory'),
-      where('userId', '==', user.uid)
+      where('companyId', '==', profile.activeCompanyId)
     );
 
     const unsubscribe = onSnapshot(
@@ -78,6 +80,10 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
   },
 
   addItem: async newItemData => {
+    const profile = useAuthStore.getState().profile;
+    if (!profile?.activeCompanyId)
+      throw new Error('No active company selected');
+
     const user = auth.currentUser;
     if (!user) throw new Error('User not authenticated');
 
@@ -87,10 +93,10 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
       id,
       ...newItemData,
       updatedAt,
-      userId: user.uid
+      userId: user.uid,
+      companyId: profile.activeCompanyId
     };
 
-    // Firestore will automatically cache this write and sync when online
     setDoc(doc(db, 'inventory', id), newItem).catch(err => {
       console.error('Firestore background sync failed', err);
       posthog.captureException(err, {
@@ -117,7 +123,6 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
 
     const mergedItem = { ...currentItem, ...updatedData, updatedAt };
 
-    // Firestore automatically caches and syncs offline writes
     setDoc(doc(db, 'inventory', id), mergedItem, { merge: true }).catch(err => {
       console.error('Firestore background sync failed', err);
       posthog.captureException(err, {
@@ -138,7 +143,6 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
     const user = auth.currentUser;
     if (!user) throw new Error('User not authenticated');
 
-    // Firestore handles offline deletion syncing
     deleteDoc(doc(db, 'inventory', id)).catch(err => {
       console.error('Firestore background sync failed', err);
       posthog.captureException(err, {

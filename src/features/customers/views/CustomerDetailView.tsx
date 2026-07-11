@@ -19,6 +19,7 @@ import {
   type CustomerTransaction
 } from '../store/useCustomerStore';
 import { PaymentModal } from '../components/PaymentModal';
+import { useAuthStore } from '@/features/auth';
 import posthog from 'posthog-js';
 
 export const CustomerDetailView: React.FC = () => {
@@ -26,6 +27,10 @@ export const CustomerDetailView: React.FC = () => {
   const navigate = useNavigate();
   const { customers, getCustomerTransactions, loadCustomers, isLoading } =
     useCustomerStore();
+  const { activeMembership } = useAuthStore();
+  const isOwner = activeMembership?.role === 'OWNER';
+  const hasPaymentPermission =
+    isOwner || activeMembership?.permissions.includes('TAKE_PAYMENT');
 
   const [transactions, setTransactions] = useState<CustomerTransaction[]>([]);
   const [isLoadingTx, setIsLoadingTx] = useState(true);
@@ -203,14 +208,16 @@ export const CustomerDetailView: React.FC = () => {
       </div>
 
       {/* Actions */}
-      <div className="flex gap-4">
-        <Button
-          variant="primary"
-          className="flex-1 border-none bg-[#2E7D32] py-4 text-lg shadow-md hover:bg-[#1B5E20]"
-          onClick={() => setIsPaymentModalOpen(true)}>
-          Tahsilat Al
-        </Button>
-      </div>
+      {hasPaymentPermission && (
+        <div className="flex gap-4">
+          <Button
+            variant="primary"
+            className="flex-1 border-none bg-[#2E7D32] py-4 text-lg shadow-md hover:bg-[#1B5E20]"
+            onClick={() => setIsPaymentModalOpen(true)}>
+            Tahsilat Al
+          </Button>
+        </div>
+      )}
 
       {/* Transactions History */}
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[28px] border-none bg-white shadow-sm">

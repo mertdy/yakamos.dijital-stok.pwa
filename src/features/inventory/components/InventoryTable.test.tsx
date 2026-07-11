@@ -26,6 +26,19 @@ vi.mock('@/shared/hooks/useGlobalBarcodeScanner', () => ({
   useGlobalBarcodeScanner: vi.fn()
 }));
 
+vi.mock('@/features/auth', () => ({
+  useAuthStore: Object.assign(
+    () => ({
+      activeMembership: { role: 'OWNER', permissions: [] }
+    }),
+    {
+      getState: () => ({
+        activeMembership: { role: 'OWNER', permissions: [] }
+      })
+    }
+  )
+}));
+
 vi.mock('@heroui/react', async importOriginal => {
   const original = await importOriginal<typeof import('@heroui/react')>();
   const MockCheckbox = ({

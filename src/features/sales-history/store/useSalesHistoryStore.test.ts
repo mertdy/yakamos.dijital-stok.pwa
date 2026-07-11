@@ -30,6 +30,15 @@ vi.mock('@/core/firebase/config', () => ({
   }
 }));
 
+vi.mock('@/features/auth/store/useAuthStore', () => ({
+  useAuthStore: {
+    getState: () => ({
+      profile: { activeCompanyId: 'test-company-id' },
+      activeMembership: { role: 'OWNER', permissions: ['VIEW_SALES_HISTORY'] }
+    })
+  }
+}));
+
 async function buildStore() {
   const { useSalesHistoryStore } = await import('./useSalesHistoryStore');
   return useSalesHistoryStore;
@@ -53,6 +62,7 @@ describe('useSalesHistoryStore', () => {
       {
         id: 'sale-1',
         userId: 'test-user-id',
+        companyId: 'test-company-id',
         invoiceNumber: 'INV-001',
         customerId: 'cust-1',
         subtotal: 100,
@@ -65,6 +75,7 @@ describe('useSalesHistoryStore', () => {
       {
         id: 'sale-2',
         userId: 'test-user-id',
+        companyId: 'test-company-id',
         invoiceNumber: 'INV-002',
         customerId: 'cust-2',
         subtotal: 200,
@@ -96,6 +107,7 @@ describe('useSalesHistoryStore', () => {
       {
         id: 'sale-1',
         userId: 'test-user-id',
+        companyId: 'test-company-id',
         invoiceNumber: 'INV-001',
         customerId: 'cust-1',
         subtotal: 100,
@@ -134,6 +146,7 @@ describe('useSalesHistoryStore', () => {
     const mockSale = {
       id: 'sale-1',
       userId: 'test-user-id',
+      companyId: 'test-company-id',
       invoiceNumber: 'INV-001',
       customerId: 'cust-1',
       subtotal: 100,
@@ -161,6 +174,7 @@ describe('useSalesHistoryStore', () => {
         {
           id: 'sale-1',
           userId: 'test-user-id',
+          companyId: 'test-company-id',
           invoiceNumber: 'INV-001',
           customerId: 'cust-1',
           subtotal: 100,

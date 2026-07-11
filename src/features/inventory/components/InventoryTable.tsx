@@ -25,6 +25,7 @@ import { Button, Checkbox, Description, Tooltip, toast } from '@heroui/react';
 import { useNavigate } from 'react-router-dom';
 import { useGlobalBarcodeScanner } from '@/shared/hooks/useGlobalBarcodeScanner';
 import { useConfirm } from '@/shared/contexts/ConfirmDialogContext';
+import { useAuthStore } from '@/features/auth';
 
 export const InventoryTable: React.FC = () => {
   const { items, deleteItem, deleteItems } = useInventoryStore();
@@ -56,102 +57,125 @@ export const InventoryTable: React.FC = () => {
     }
   });
 
+  const { activeMembership } = useAuthStore();
+  const isOwner = activeMembership?.role === 'OWNER';
+  const hasInventoryPermission =
+    isOwner || activeMembership?.permissions.includes('MANAGE_INVENTORY');
+
   const columnHelper = createColumnHelper<InventoryItem>();
 
-  const columns = [
-    columnHelper.display({
-      id: 'selection',
-      header: ({ table }) => (
-        <Checkbox
-          isSelected={table.getIsAllPageRowsSelected()}
-          isIndeterminate={
-            !table.getIsAllPageRowsSelected() &&
-            table.getIsSomePageRowsSelected()
-          }
-          onChange={(val: boolean) => table.toggleAllPageRowsSelected(val)}
-          aria-label="Tümünü seç">
-          <Checkbox.Content>
-            <Checkbox.Control>
-              <Checkbox.Indicator />
-            </Checkbox.Control>
-          </Checkbox.Content>
-        </Checkbox>
-      ),
-      cell: ({ row }) => (
-        <Checkbox
-          isSelected={row.getIsSelected()}
-          onChange={(val: boolean) => row.toggleSelected(val)}
-          aria-label={`${row.original.name} seç`}>
-          <Checkbox.Content>
-            <Checkbox.Control>
-              <Checkbox.Indicator />
-            </Checkbox.Control>
-          </Checkbox.Content>
-        </Checkbox>
-      )
-    }),
-    columnHelper.accessor('name', {
-      header: 'Ürün Adı',
-      cell: info => (
-        <span className="font-medium text-gray-900">{info.getValue()}</span>
-      )
-    }),
-    columnHelper.accessor('barcode', {
-      header: 'Barkod',
-      cell: info => (
-        <span className="text-gray-500">{info.getValue() || '-'}</span>
-      )
-    }),
-    columnHelper.accessor('stock', {
-      header: 'Stok',
-      cell: info => {
-        const val = info.getValue();
-        return (
-          <span
-            className={`rounded-full px-2 py-1 text-xs font-bold ${val < 10 ? 'bg-danger/10 text-danger' : 'bg-success/10 text-success'}`}>
-            {val}
-          </span>
-        );
-      }
-    }),
-    columnHelper.accessor('price', {
-      header: 'Fiyat',
-      cell: info => <span>₺{info.getValue().toFixed(2)}</span>
-    }),
-    columnHelper.display({
-      id: 'actions',
-      header: 'İşlemler',
-      cell: props => (
-        <div className="flex gap-2">
-          <Button
-            variant="tertiary"
-            isIconOnly
-            onPress={() => navigate(`/inventory/edit/${props.row.original.id}`)}
-            aria-label="Düzenle">
-            <Edit className="text-lg" />
-          </Button>
-          <Button
-            variant="ghost"
-            isIconOnly
-            className="text-danger"
-            onPress={async () => {
-              const confirmed = await confirm({
-                title: 'Ürünü Sil',
-                description: 'Bu ürünü silmek istediğinize emin misiniz?',
-                confirmText: 'Sil',
-                variant: 'danger'
-              });
-              if (confirmed) {
-                deleteItem(props.row.original.id);
+  const columns = useMemo(() => {
+    const cols = [];
+
+    if (hasInventoryPermission) {
+      cols.push(
+        columnHelper.display({
+          id: 'selection',
+          header: ({ table }) => (
+            <Checkbox
+              isSelected={table.getIsAllPageRowsSelected()}
+              isIndeterminate={
+                !table.getIsAllPageRowsSelected() &&
+                table.getIsSomePageRowsSelected()
               }
-            }}
-            aria-label="Sil">
-            <Trash2 className="text-lg" />
-          </Button>
-        </div>
-      )
-    })
-  ];
+              onChange={(val: boolean) => table.toggleAllPageRowsSelected(val)}
+              aria-label="Tümünü seç">
+              <Checkbox.Content>
+                <Checkbox.Control>
+                  <Checkbox.Indicator />
+                </Checkbox.Control>
+              </Checkbox.Content>
+            </Checkbox>
+          ),
+          cell: ({ row }) => (
+            <Checkbox
+              isSelected={row.getIsSelected()}
+              onChange={(val: boolean) => row.toggleSelected(val)}
+              aria-label={`${row.original.name} seç`}>
+              <Checkbox.Content>
+                <Checkbox.Control>
+                  <Checkbox.Indicator />
+                </Checkbox.Control>
+              </Checkbox.Content>
+            </Checkbox>
+          )
+        })
+      );
+    }
+
+    cols.push(
+      columnHelper.accessor('name', {
+        header: 'Ürün Adı',
+        cell: info => (
+          <span className="font-medium text-gray-900">{info.getValue()}</span>
+        )
+      }),
+      columnHelper.accessor('barcode', {
+        header: 'Barkod',
+        cell: info => (
+          <span className="text-gray-500">{info.getValue() || '-'}</span>
+        )
+      }),
+      columnHelper.accessor('stock', {
+        header: 'Stok',
+        cell: info => {
+          const val = info.getValue();
+          return (
+            <span
+              className={`rounded-full px-2 py-1 text-xs font-bold ${val < 10 ? 'bg-danger/10 text-danger' : 'bg-success/10 text-success'}`}>
+              {val}
+            </span>
+          );
+        }
+      }),
+      columnHelper.accessor('price', {
+        header: 'Fiyat',
+        cell: info => <span>₺{info.getValue().toFixed(2)}</span>
+      })
+    );
+
+    if (hasInventoryPermission) {
+      cols.push(
+        columnHelper.display({
+          id: 'actions',
+          header: 'İşlemler',
+          cell: props => (
+            <div className="flex gap-2">
+              <Button
+                variant="tertiary"
+                isIconOnly
+                onPress={() =>
+                  navigate(`/inventory/edit/${props.row.original.id}`)
+                }
+                aria-label="Düzenle">
+                <Edit className="text-lg" />
+              </Button>
+              <Button
+                variant="ghost"
+                isIconOnly
+                className="text-danger"
+                onPress={async () => {
+                  const confirmed = await confirm({
+                    title: 'Ürünü Sil',
+                    description: 'Bu ürünü silmek istediğinize emin misiniz?',
+                    confirmText: 'Sil',
+                    variant: 'danger'
+                  });
+                  if (confirmed) {
+                    deleteItem(props.row.original.id);
+                  }
+                }}
+                aria-label="Sil">
+                <Trash2 className="text-lg" />
+              </Button>
+            </div>
+          )
+        })
+      );
+    }
+
+    return cols;
+  }, [hasInventoryPermission, columnHelper, navigate, confirm, deleteItem]);
 
   const filteredItems = useMemo(() => {
     return items.filter(

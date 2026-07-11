@@ -6,10 +6,16 @@ import { Plus } from 'lucide-react';
 import { Button } from '@heroui/react';
 import posthog from 'posthog-js';
 
+import { useAuthStore } from '@/features/auth/store/useAuthStore';
+
 export const InventoryView: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const { loadItems } = useInventoryStore();
+  const { activeMembership } = useAuthStore();
+  const isOwner = activeMembership?.role === 'OWNER';
+  const hasInventoryPermission =
+    isOwner || activeMembership?.permissions.includes('MANAGE_INVENTORY');
 
   useEffect(() => {
     posthog.capture('inventory_viewed', {
@@ -19,13 +25,19 @@ export const InventoryView: React.FC = () => {
 
     // Check if we need to auto-open the form with a barcode
     const addBarcode = searchParams.get('add');
-    if (addBarcode) {
+    if (addBarcode && hasInventoryPermission) {
       // Remove query param from current view and navigate to new form
       searchParams.delete('add');
       setSearchParams(searchParams, { replace: true });
       navigate(`/inventory/new?barcode=${addBarcode}`);
     }
-  }, [loadItems, searchParams, setSearchParams, navigate]);
+  }, [
+    loadItems,
+    searchParams,
+    setSearchParams,
+    navigate,
+    hasInventoryPermission
+  ]);
 
   return (
     <div className="mx-auto flex h-full max-w-7xl flex-col p-4 md:p-6">
@@ -39,9 +51,11 @@ export const InventoryView: React.FC = () => {
           </p>
         </div>
 
-        <Button onPress={() => navigate('/inventory/new')} variant="primary">
-          <Plus className="mr-2 text-xl" /> Yeni Ürün Ekle
-        </Button>
+        {hasInventoryPermission && (
+          <Button onPress={() => navigate('/inventory/new')} variant="primary">
+            <Plus className="mr-2 text-xl" /> Yeni Ürün Ekle
+          </Button>
+        )}
       </div>
 
       <div className="min-h-0 flex-1">

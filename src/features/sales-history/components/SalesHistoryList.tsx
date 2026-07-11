@@ -11,11 +11,16 @@ import {
 import { Button } from '@heroui/react';
 import { useNavigate } from 'react-router-dom';
 import { useConfirm } from '@/shared/contexts/ConfirmDialogContext';
+import { useAuthStore } from '@/features/auth';
 
 export const SalesHistoryList: React.FC = () => {
   const { sales, cancelSale } = useSalesHistoryStore();
   const { confirm } = useConfirm();
   const { customers } = useCustomerStore();
+  const { activeMembership } = useAuthStore();
+  const isOwner = activeMembership?.role === 'OWNER';
+  const hasCancelPermission =
+    isOwner || activeMembership?.permissions.includes('MANAGE_SALES_HISTORY');
   const [expandedSaleId, setExpandedSaleId] = useState<string | null>(null);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
   const navigate = useNavigate();
@@ -157,17 +162,18 @@ export const SalesHistoryList: React.FC = () => {
                             <Package size={16} className="text-primary" />
                             Satış Detayları
                           </h4>
-                          {sale.status !== 'cancelled' && (
-                            <Button
-                              variant="danger"
-                              onPress={() => handleCancelSale(sale.id)}
-                              isDisabled={cancellingId === sale.id}
-                              className="h-8 rounded-lg px-3 text-xs">
-                              {cancellingId === sale.id
-                                ? 'İptal Ediliyor...'
-                                : 'Satışı İptal Et'}
-                            </Button>
-                          )}
+                          {sale.status !== 'cancelled' &&
+                            hasCancelPermission && (
+                              <Button
+                                variant="danger"
+                                onPress={() => handleCancelSale(sale.id)}
+                                isDisabled={cancellingId === sale.id}
+                                className="h-8 rounded-lg px-3 text-xs">
+                                {cancellingId === sale.id
+                                  ? 'İptal Ediliyor...'
+                                  : 'Satışı İptal Et'}
+                              </Button>
+                            )}
                         </div>
 
                         {sale.cart && sale.cart.length > 0 ? (

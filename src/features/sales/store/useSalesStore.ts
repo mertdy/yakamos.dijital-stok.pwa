@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { writeBatch, doc, collection, increment } from 'firebase/firestore';
 import { db, auth } from '@/core/firebase/config';
+import { useAuthStore } from '@/features/auth/store/useAuthStore';
 import posthog from 'posthog-js';
 
 export interface CartItem {
@@ -184,6 +185,12 @@ export const useSalesStore = create<SalesState>()(
           get();
         if (cart.length === 0) return false;
 
+        const profile = useAuthStore.getState().profile;
+        if (!profile?.activeCompanyId) {
+          console.error('No active company selected');
+          return false;
+        }
+
         const user = auth.currentUser;
         if (!user) {
           console.error('User not authenticated');
@@ -214,17 +221,16 @@ export const useSalesStore = create<SalesState>()(
           const createdAt = new Date().toISOString();
           const invoiceNumber = `INV-${Date.now().toString().slice(-6)}`;
 
-          // Initialize Firestore Batch
           const batch = writeBatch(db);
 
-          // 1. Create Sale Document
           const saleRef = doc(collection(db, 'sales'));
           batch.set(saleRef, {
             userId: user.uid,
+            companyId: profile.activeCompanyId,
             invoiceNumber,
             customerId,
             subtotal,
-            discount: discountAmount, // keeping backward compatibility
+            discount: discountAmount,
             discountType,
             discountValue,
             totalAmount,
@@ -234,19 +240,17 @@ export const useSalesStore = create<SalesState>()(
             cart
           });
 
-          // 2. Add Sale Items and Decrement Inventory
           for (const item of cart) {
-            // Sale Item
             const saleItemRef = doc(collection(db, 'saleItems'));
             batch.set(saleItemRef, {
               saleId: saleRef.id,
               userId: user.uid,
+              companyId: profile.activeCompanyId,
               inventoryId: item.inventoryId,
               quantity: item.quantity,
               unitPrice: item.price
             });
 
-            // Decrement Inventory
             const invRef = doc(db, 'inventory', item.inventoryId);
             batch.update(invRef, {
               stock: increment(-item.quantity),
@@ -254,7 +258,6 @@ export const useSalesStore = create<SalesState>()(
             });
           }
 
-          // 3. Increment Customer Debt if Credit
           if (paymentMethod === 'Credit' && customerId) {
             const customerRef = doc(db, 'customers', customerId);
             batch.update(customerRef, {
@@ -262,7 +265,6 @@ export const useSalesStore = create<SalesState>()(
             });
           }
 
-          // Firestore will cache this batch and sync when online
           batch.commit().catch(err => {
             console.error('Firestore background batch sync failed', err);
             posthog.captureException(err, {

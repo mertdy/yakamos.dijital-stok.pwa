@@ -10,6 +10,18 @@ vi.mock('../store/useCustomerStore', () => ({
 }));
 
 // Mock react-router-dom
+vi.mock('@/features/auth', () => ({
+  useAuthStore: Object.assign(
+    () => ({
+      activeMembership: { role: 'OWNER', permissions: [] }
+    }),
+    {
+      getState: () => ({
+        activeMembership: { role: 'OWNER', permissions: [] }
+      })
+    }
+  )
+}));
 const mockNavigate = vi.fn();
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual('react-router-dom');

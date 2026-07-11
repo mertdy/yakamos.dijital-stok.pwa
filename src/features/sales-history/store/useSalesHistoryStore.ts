@@ -11,6 +11,7 @@ import {
   where
 } from 'firebase/firestore';
 import { db, auth } from '@/core/firebase/config';
+import { useAuthStore } from '@/features/auth/store/useAuthStore';
 import { toast } from '@heroui/react';
 import type { CartItem } from '@/features/sales';
 import posthog from 'posthog-js';
@@ -18,6 +19,7 @@ import posthog from 'posthog-js';
 export interface SaleTransaction {
   id: string;
   userId: string;
+  companyId: string;
   invoiceNumber: string;
   customerId: string | null;
   subtotal: number;
@@ -74,13 +76,17 @@ export const useSalesHistoryStore = create<SalesHistoryState>((set, get) => ({
     const user = auth.currentUser;
     if (!user) return;
 
+    const profile = useAuthStore.getState().profile;
+    const activeMembership = useAuthStore.getState().activeMembership;
+    if (!profile?.activeCompanyId) return;
+
     set({ isLoading: true });
     try {
       const salesRef = collection(db, 'sales');
-      // Sadece 500 satış çekeceğiz ve geri kalan filtrelemeyi client-side yapacağız.
+      // Query sales for current company
       const q = query(
         salesRef,
-        where('userId', '==', user.uid),
+        where('companyId', '==', profile.activeCompanyId),
         orderBy('createdAt', 'desc'),
         limit(500)
       );
@@ -90,6 +96,16 @@ export const useSalesHistoryStore = create<SalesHistoryState>((set, get) => ({
         id: doc.id,
         ...doc.data()
       })) as SaleTransaction[];
+
+      // Filter by cashier if cashier role and lacks VIEW_SALES_HISTORY permission
+      const isOwner = activeMembership?.role === 'OWNER';
+      if (
+        !isOwner &&
+        activeMembership?.role === 'EMPLOYEE' &&
+        !activeMembership.permissions.includes('VIEW_SALES_HISTORY')
+      ) {
+        fetchedSales = fetchedSales.filter(s => s.userId === user.uid);
+      }
 
       const { filters } = get();
 
@@ -147,7 +163,7 @@ export const useSalesHistoryStore = create<SalesHistoryState>((set, get) => ({
     }
   },
 
-  cancelSale: async (saleId: string) => {
+  cancelSale: async saleId => {
     try {
       const sale = get().sales.find(s => s.id === saleId);
       if (!sale) throw new Error('Satış bulunamadı');

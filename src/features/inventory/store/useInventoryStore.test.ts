@@ -24,6 +24,15 @@ vi.mock('@/core/firebase/config', () => ({
   }
 }));
 
+vi.mock('@/features/auth/store/useAuthStore', () => ({
+  useAuthStore: {
+    getState: () => ({
+      profile: { activeCompanyId: 'test-company-id' },
+      activeMembership: { role: 'OWNER', permissions: [] }
+    })
+  }
+}));
+
 async function buildStore() {
   const { useInventoryStore } = await import('./useInventoryStore');
   return useInventoryStore;

@@ -5,10 +5,16 @@ import { Plus, Search, User, Phone, Edit2, Eye } from 'lucide-react';
 import { Button } from '@heroui/react';
 import posthog from 'posthog-js';
 
+import { useAuthStore } from '@/features/auth/store/useAuthStore';
+
 export const CustomerListView: React.FC = () => {
   const { customers, loadCustomers, isLoading } = useCustomerStore();
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
+  const { activeMembership } = useAuthStore();
+  const isOwner = activeMembership?.role === 'OWNER';
+  const hasCustomerPermission =
+    isOwner || activeMembership?.permissions.includes('MANAGE_CUSTOMERS');
 
   useEffect(() => {
     posthog.capture('customers_viewed', {
@@ -35,9 +41,11 @@ export const CustomerListView: React.FC = () => {
             Müşterilerinizi ve veresiye limitlerini yönetin.
           </p>
         </div>
-        <Button onPress={() => navigate('/customers/new')} variant="primary">
-          <Plus className="mr-2 text-xl" /> Yeni Müşteri
-        </Button>
+        {hasCustomerPermission && (
+          <Button onPress={() => navigate('/customers/new')} variant="primary">
+            <Plus className="mr-2 text-xl" /> Yeni Müşteri
+          </Button>
+        )}
       </div>
 
       <div className="min-h-0 flex-1">
@@ -194,15 +202,17 @@ export const CustomerListView: React.FC = () => {
                               aria-label="Hesap Detayı">
                               <Eye className="text-lg" />
                             </Button>
-                            <Button
-                              variant="tertiary"
-                              isIconOnly
-                              onPress={() =>
-                                navigate(`/customers/edit/${customer.id}`)
-                              }
-                              aria-label="Müşteriyi Düzenle">
-                              <Edit2 className="text-lg" />
-                            </Button>
+                            {hasCustomerPermission && (
+                              <Button
+                                variant="tertiary"
+                                isIconOnly
+                                onPress={() =>
+                                  navigate(`/customers/edit/${customer.id}`)
+                                }
+                                aria-label="Müşteriyi Düzenle">
+                                <Edit2 className="text-lg" />
+                              </Button>
+                            )}
                           </div>
                         </td>
                       </tr>
