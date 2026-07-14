@@ -82,6 +82,12 @@ const AVAILABLE_PERMISSIONS: {
     description: 'Müşterilerden tahsilat kaydı girebilir ve borç düşebilir.'
   },
   {
+    key: 'SHARE_CUSTOMER_STATEMENT',
+    label: 'WhatsApp Ekstresi Paylaş',
+    description:
+      'Müşterilerin finansal ekstrelerini WhatsApp üzerinden paylaşabilir.'
+  },
+  {
     key: 'VIEW_SALES_HISTORY',
     label: 'Tüm Satış Geçmişini Gör',
     description:
@@ -512,6 +518,8 @@ export const CompanySettingsView = () => {
                               {perm === 'MANAGE_INVENTORY' && 'Envanter'}
                               {perm === 'MANAGE_CUSTOMERS' && 'Müşteriler'}
                               {perm === 'TAKE_PAYMENT' && 'Ödemeler'}
+                              {perm === 'SHARE_CUSTOMER_STATEMENT' &&
+                                'Ekstre Paylaşımı'}
                               {perm === 'VIEW_SALES_HISTORY' && 'Satış Geçmişi'}
                               {perm === 'MANAGE_SALES_HISTORY' &&
                                 'Satış İptali'}

@@ -19,6 +19,7 @@ vi.mock('firebase/firestore', () => {
       exists: () => true,
       data: () => ({ stock: 10, totalDebt: 100 })
     })),
+    increment: vi.fn(value => value),
     writeBatch: vi.fn(() => batchMock)
   };
 });

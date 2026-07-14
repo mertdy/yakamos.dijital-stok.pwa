@@ -60,7 +60,7 @@ describe('useCustomerStore', () => {
     const newCustomer = {
       name: 'Ahmet',
       surname: 'Yılmaz',
-      phone: '555',
+      phone: '05551234567',
       email: 'ahmet@test.com',
       creditLimit: 500
     };
@@ -108,6 +108,15 @@ describe('useCustomerStore', () => {
           invoiceNumber: 'INV-123',
           paymentMethod: 'Credit'
         })
+      },
+      {
+        id: 's-cancelled',
+        data: () => ({
+          totalAmount: 999,
+          createdAt: new Date().toISOString(),
+          paymentMethod: 'Credit',
+          status: 'cancelled'
+        })
       }
     ];
 
@@ -131,5 +140,32 @@ describe('useCustomerStore', () => {
     expect(txs.length).toBe(2);
     expect(txs[0].type).toBeDefined();
     expect(getDocs).toHaveBeenCalledTimes(2);
+  });
+
+  it('records a tenant-scoped WhatsApp statement audit entry', async () => {
+    const store = await buildStore();
+
+    const id = await store.getState().recordStatementShare({
+      customerId: 'c1',
+      periodStart: '2026-07-01',
+      periodEnd: '2026-07-31',
+      openingBalanceMinor: 10_000,
+      closingBalanceMinor: 15_000,
+      transactionCount: 2,
+      includedTransactions: true,
+      messageCharacterCount: 300
+    });
+
+    expect(id).toBeDefined();
+    expect(setDoc).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        companyId: 'test-company-id',
+        createdBy: 'test-user-id',
+        channel: 'WHATSAPP',
+        mode: 'CLICK_TO_CHAT',
+        status: 'OPENED'
+      })
+    );
   });
 });

@@ -56,6 +56,11 @@ Firestore
 
 Firebase Storage
 
+Customer statements are calculated from company-scoped credit sales and
+payments. WhatsApp sharing uses a prefilled click-to-chat URL and stores only
+audit metadata in `statementShares`; no provider token or automated sender is
+used.
+
 ---
 
 # Offline

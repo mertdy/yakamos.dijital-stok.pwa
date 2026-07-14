@@ -8,7 +8,8 @@ import {
   doc,
   writeBatch,
   getDoc,
-  where
+  where,
+  increment
 } from 'firebase/firestore';
 import { db, auth } from '@/core/firebase/config';
 import { useAuthStore } from '@/features/auth/store/useAuthStore';
@@ -189,12 +190,7 @@ export const useSalesHistoryStore = create<SalesHistoryState>((set, get) => ({
       // 3. Revert customer debt if it was a credit sale
       if (sale.paymentMethod === 'Credit' && sale.customerId) {
         const customerRef = doc(db, 'customers', sale.customerId);
-        const customerSnap = await getDoc(customerRef);
-        if (customerSnap.exists()) {
-          const currentDebt = customerSnap.data().totalDebt || 0;
-          const newDebt = Math.max(0, currentDebt - sale.totalAmount);
-          batch.update(customerRef, { totalDebt: newDebt });
-        }
+        batch.update(customerRef, { totalDebt: increment(-sale.totalAmount) });
       }
 
       await batch.commit();

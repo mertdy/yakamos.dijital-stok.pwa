@@ -14,6 +14,7 @@ import {
 import { db, auth } from '@/core/firebase/config';
 import { useAuthStore } from '@/features/auth/store/useAuthStore';
 import posthog from 'posthog-js';
+import { normalizeWhatsAppPhone } from '../domain/customerStatement';
 
 export interface Customer {
   id: string;
@@ -48,6 +49,28 @@ export interface CustomerTransaction {
   discountValue?: number;
   subtotal?: number;
   invoiceNumber?: string;
+  status?: 'completed' | 'cancelled';
+}
+
+export interface StatementShareInput {
+  customerId: string;
+  periodStart: string;
+  periodEnd: string;
+  openingBalanceMinor: number;
+  closingBalanceMinor: number;
+  transactionCount: number;
+  includedTransactions: boolean;
+  messageCharacterCount: number;
+}
+
+export interface StatementShare extends StatementShareInput {
+  id: string;
+  companyId: string;
+  createdBy: string;
+  channel: 'WHATSAPP';
+  mode: 'CLICK_TO_CHAT';
+  status: 'OPENED';
+  createdAt: string;
 }
 
 interface CustomerState {
@@ -72,6 +95,7 @@ interface CustomerState {
   getCustomerTransactions: (
     customerId: string
   ) => Promise<CustomerTransaction[]>;
+  recordStatementShare: (input: StatementShareInput) => Promise<string>;
   clearCustomers: () => void;
 }
 
@@ -124,9 +148,16 @@ export const useCustomerStore = create<CustomerState>((set, get) => ({
 
     const id = crypto.randomUUID();
     const createdAt = new Date().toISOString();
+    const normalizedPhone = newCustomerData.phone?.trim()
+      ? normalizeWhatsAppPhone(newCustomerData.phone)
+      : '';
+    if (newCustomerData.phone?.trim() && !normalizedPhone) {
+      throw new Error('Invalid customer phone number');
+    }
     const newCustomer: Customer = {
       id,
       ...newCustomerData,
+      phone: normalizedPhone || '',
       totalDebt: 0,
       createdAt,
       userId: user.uid,
@@ -160,22 +191,32 @@ export const useCustomerStore = create<CustomerState>((set, get) => ({
 
     set({ isLoading: true });
     try {
+      const normalizedPhone = customerData.phone?.trim()
+        ? normalizeWhatsAppPhone(customerData.phone)
+        : customerData.phone;
+      if (customerData.phone?.trim() && !normalizedPhone) {
+        throw new Error('Invalid customer phone number');
+      }
+      const normalizedCustomerData =
+        customerData.phone === undefined
+          ? customerData
+          : { ...customerData, phone: normalizedPhone || '' };
       const customerRef = doc(db, 'customers', id);
       await updateDoc(customerRef, {
-        ...customerData,
+        ...normalizedCustomerData,
         updatedAt: new Date().toISOString()
       });
 
       set(state => ({
         customers: state.customers.map(c =>
-          c.id === id ? { ...c, ...customerData } : c
+          c.id === id ? { ...c, ...normalizedCustomerData } : c
         ),
         isLoading: false
       }));
 
       posthog.capture('customer_updated', {
         customer_id: id,
-        updated_fields: Object.keys(customerData)
+        updated_fields: Object.keys(normalizedCustomerData)
       });
     } catch (error) {
       console.error('Error updating customer:', error);
@@ -246,15 +287,22 @@ export const useCustomerStore = create<CustomerState>((set, get) => ({
       return [];
     }
 
+    const profile = useAuthStore.getState().profile;
+    if (!profile?.activeCompanyId) {
+      console.error('No active company selected');
+      return [];
+    }
+
     try {
       const salesQuery = query(
         collection(db, 'sales'),
+        where('companyId', '==', profile.activeCompanyId),
         where('customerId', '==', customerId),
         where('paymentMethod', '==', 'Credit')
       );
       const salesSnapshot = await getDocs(salesQuery);
-      const salesTransactions: CustomerTransaction[] = salesSnapshot.docs.map(
-        doc => {
+      const salesTransactions: CustomerTransaction[] = salesSnapshot.docs
+        .map<CustomerTransaction>(doc => {
           const data = doc.data();
           return {
             id: doc.id,
@@ -268,13 +316,18 @@ export const useCustomerStore = create<CustomerState>((set, get) => ({
             discountType: data.discountType,
             discountValue: data.discountValue,
             subtotal: data.subtotal,
-            invoiceNumber: data.invoiceNumber
+            invoiceNumber: data.invoiceNumber,
+            status:
+              String(data.status).toLowerCase() === 'cancelled'
+                ? 'cancelled'
+                : 'completed'
           };
-        }
-      );
+        })
+        .filter(transaction => transaction.status !== 'cancelled');
 
       const paymentsQuery = query(
         collection(db, 'payments'),
+        where('companyId', '==', profile.activeCompanyId),
         where('customerId', '==', customerId)
       );
       const paymentsSnapshot = await getDocs(paymentsQuery);
@@ -300,6 +353,44 @@ export const useCustomerStore = create<CustomerState>((set, get) => ({
       console.error('Error fetching customer transactions:', error);
       return [];
     }
+  },
+
+  recordStatementShare: async input => {
+    const profile = useAuthStore.getState().profile;
+    const membership = useAuthStore.getState().activeMembership;
+    if (!profile?.activeCompanyId) {
+      throw new Error('No active company selected');
+    }
+
+    const user = auth.currentUser;
+    if (!user) throw new Error('User not authenticated');
+
+    const canShare =
+      membership?.role === 'OWNER' ||
+      membership?.permissions.includes('SHARE_CUSTOMER_STATEMENT');
+    if (!canShare) throw new Error('Missing statement share permission');
+
+    const id = crypto.randomUUID();
+    const share: StatementShare = {
+      id,
+      ...input,
+      companyId: profile.activeCompanyId,
+      createdBy: user.uid,
+      channel: 'WHATSAPP',
+      mode: 'CLICK_TO_CHAT',
+      status: 'OPENED',
+      createdAt: new Date().toISOString()
+    };
+
+    await setDoc(doc(db, 'statementShares', id), share);
+    posthog.capture('customer_statement_opened', {
+      customer_id: input.customerId,
+      statement_share_id: id,
+      transaction_count: input.transactionCount,
+      included_transactions: input.includedTransactions,
+      message_character_count: input.messageCharacterCount
+    });
+    return id;
   },
 
   clearCustomers: () => {

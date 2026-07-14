@@ -132,6 +132,9 @@ Capabilities
 - Credit
 - Payments
 - History
+- Date-ranged account statements with opening and closing balances
+- User-confirmed WhatsApp statement sharing
+- Tenant-scoped statement share audit history
 
 ---
 

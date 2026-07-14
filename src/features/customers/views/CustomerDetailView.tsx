@@ -11,7 +11,9 @@ import {
   ReceiptText,
   ChevronDown,
   ChevronUp,
-  Package
+  Package,
+  MessageCircle,
+  PhoneCall
 } from 'lucide-react';
 import { Button } from '@heroui/react';
 import {
@@ -19,8 +21,10 @@ import {
   type CustomerTransaction
 } from '../store/useCustomerStore';
 import { PaymentModal } from '../components/PaymentModal';
+import { ShareStatementModal } from '../components/ShareStatementModal';
 import { useAuthStore } from '@/features/auth';
 import posthog from 'posthog-js';
+import { normalizeWhatsAppPhone } from '../domain/customerStatement';
 
 export const CustomerDetailView: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -31,10 +35,14 @@ export const CustomerDetailView: React.FC = () => {
   const isOwner = activeMembership?.role === 'OWNER';
   const hasPaymentPermission =
     isOwner || activeMembership?.permissions.includes('TAKE_PAYMENT');
+  const hasStatementSharePermission =
+    isOwner ||
+    activeMembership?.permissions.includes('SHARE_CUSTOMER_STATEMENT');
 
   const [transactions, setTransactions] = useState<CustomerTransaction[]>([]);
   const [isLoadingTx, setIsLoadingTx] = useState(true);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [isStatementModalOpen, setIsStatementModalOpen] = useState(false);
   const [expandedTxId, setExpandedTxId] = useState<string | null>(null);
 
   const toggleExpand = (txId: string) => {
@@ -106,6 +114,7 @@ export const CustomerDetailView: React.FC = () => {
   const limit = customer.creditLimit || 0;
   const isExceeded = limit > 0 && debt >= limit;
   const percentage = limit > 0 ? Math.min((debt / limit) * 100, 100) : 0;
+  const hasValidWhatsAppPhone = Boolean(normalizeWhatsAppPhone(customer.phone));
 
   return (
     <div className="mx-auto flex h-full max-w-7xl flex-col space-y-6 p-4 md:p-6">
@@ -208,14 +217,34 @@ export const CustomerDetailView: React.FC = () => {
       </div>
 
       {/* Actions */}
-      {hasPaymentPermission && (
-        <div className="flex gap-4">
-          <Button
-            variant="primary"
-            className="flex-1 border-none bg-[#2E7D32] py-4 text-lg shadow-md hover:bg-[#1B5E20]"
-            onClick={() => setIsPaymentModalOpen(true)}>
-            Tahsilat Al
-          </Button>
+      {(hasPaymentPermission || hasStatementSharePermission) && (
+        <div className="flex flex-col gap-3 sm:flex-row">
+          {hasPaymentPermission && (
+            <Button
+              variant="primary"
+              className="flex-1 border-none bg-[#2E7D32] py-4 text-lg shadow-md hover:bg-[#1B5E20]"
+              onClick={() => setIsPaymentModalOpen(true)}>
+              Tahsilat Al
+            </Button>
+          )}
+          {hasStatementSharePermission &&
+            (hasValidWhatsAppPhone ? (
+              <Button
+                variant="primary"
+                className="flex-1 border-none bg-[#25D366] py-4 text-lg text-white shadow-md hover:bg-[#1DB954]"
+                onPress={() => setIsStatementModalOpen(true)}>
+                <MessageCircle className="mr-2" size={20} />
+                WhatsApp Ekstresi
+              </Button>
+            ) : (
+              <Button
+                variant="secondary"
+                className="flex-1 border border-amber-200 bg-amber-50 py-4 text-amber-800"
+                onPress={() => navigate(`/customers/edit/${customer.id}`)}>
+                <PhoneCall className="mr-2" size={20} />
+                Telefon Ekle / Düzelt
+              </Button>
+            ))}
         </div>
       )}
 
@@ -420,6 +449,12 @@ export const CustomerDetailView: React.FC = () => {
         customerId={customer.id}
         currentDebt={debt}
         onPaymentSuccess={loadTransactions}
+      />
+      <ShareStatementModal
+        isOpen={isStatementModalOpen}
+        onClose={() => setIsStatementModalOpen(false)}
+        customer={customer}
+        transactions={transactions}
       />
     </div>
   );

@@ -44,6 +44,13 @@ payments
 
 Debt payments.
 
+statementShares
+
+Audits customer statement sharing attempts. Documents include `companyId`,
+`customerId`, statement period and balance snapshots, channel, mode, status,
+actor and creation time. Click-to-chat shares use the `OPENED` status; this
+does not claim that the customer received the message.
+
 settings
 
 Company configuration.

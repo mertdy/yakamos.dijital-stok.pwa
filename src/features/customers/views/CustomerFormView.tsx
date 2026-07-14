@@ -9,11 +9,17 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import posthog from 'posthog-js';
+import { normalizeWhatsAppPhone } from '../domain/customerStatement';
 
 const customerSchema = z.object({
   name: z.string().min(2, 'Müşteri adı en az 2 karakter olmalıdır'),
   surname: z.string().optional(),
-  phone: z.string().optional(),
+  phone: z
+    .string()
+    .optional()
+    .refine(value => !value?.trim() || Boolean(normalizeWhatsAppPhone(value)), {
+      message: 'Geçerli bir telefon numarası giriniz'
+    }),
   email: z
     .union([
       z.literal(''),
@@ -78,6 +84,9 @@ export const CustomerFormView: React.FC = () => {
   const onSubmit = async (data: CustomerFormData) => {
     setIsSaving(true);
     try {
+      const normalizedPhone = data.phone?.trim()
+        ? normalizeWhatsAppPhone(data.phone)
+        : '';
       posthog.capture('customer_form_submitted', {
         form_mode: isEditMode ? 'edit' : 'create',
         customer_id: id,
@@ -90,7 +99,7 @@ export const CustomerFormView: React.FC = () => {
         await updateCustomer(id, {
           name: data.name.trim(),
           surname: data.surname?.trim() || '',
-          phone: data.phone?.trim() || '',
+          phone: normalizedPhone || '',
           email: data.email?.trim() || '',
           creditLimit: data.creditLimit || 0
         });
@@ -99,7 +108,7 @@ export const CustomerFormView: React.FC = () => {
         const newId = await addCustomer({
           name: data.name.trim(),
           surname: data.surname?.trim() || '',
-          phone: data.phone?.trim() || '',
+          phone: normalizedPhone || '',
           email: data.email?.trim() || '',
           creditLimit: data.creditLimit || 0
         });

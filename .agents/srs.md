@@ -32,6 +32,12 @@ Customers
 
 Users shall manage customers.
 
+Authorized users shall generate date-ranged customer account statements.
+
+Authorized users shall preview and open a customer statement in WhatsApp.
+
+The system shall audit statement sharing without claiming delivery.
+
 ---
 
 Dashboard
