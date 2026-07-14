@@ -85,7 +85,11 @@ describe('AccountSettingsView', () => {
   it('renders employee permissions correctly', () => {
     storeState.activeMembership = {
       role: 'EMPLOYEE',
-      permissions: ['TAKE_PAYMENT', 'MANAGE_CUSTOMERS']
+      permissions: [
+        'TAKE_PAYMENT',
+        'MANAGE_CUSTOMERS',
+        'SHARE_CUSTOMER_STATEMENT'
+      ]
     } as any;
     render(<AccountSettingsView />);
 
@@ -93,6 +97,7 @@ describe('AccountSettingsView', () => {
     expect(screen.getByText('Atanmış Yetkileriniz')).toBeInTheDocument();
     expect(screen.getByText('Ödeme Alıcı')).toBeInTheDocument();
     expect(screen.getByText('Müşteri Yönetimi')).toBeInTheDocument();
+    expect(screen.getByText('WhatsApp Ekstresi Paylaş')).toBeInTheDocument();
     expect(screen.queryByText('Dashboard Görünümü')).not.toBeInTheDocument();
   });
 

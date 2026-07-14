@@ -19,6 +19,10 @@ import type {
   PermissionKey
 } from '@/core/types/tenant';
 import {
+  AVAILABLE_PERMISSIONS,
+  PERMISSION_META
+} from '@/core/types/permissions';
+import {
   Building2,
   Users,
   Mail,
@@ -54,52 +58,6 @@ const inviteSchema = z.object({
 });
 
 type InviteFormData = z.infer<typeof inviteSchema>;
-
-const AVAILABLE_PERMISSIONS: {
-  key: PermissionKey;
-  label: string;
-  description: string;
-}[] = [
-  {
-    key: 'VIEW_DASHBOARD',
-    label: 'Dashboard Grafiklerini Gör',
-    description: 'Ciro, kar/zarar grafikleri ve özet istatistikleri görebilir.'
-  },
-  {
-    key: 'MANAGE_INVENTORY',
-    label: 'Envanter Yönetimi',
-    description:
-      'Yeni ürün ekleyebilir, fiyatları değiştirebilir ve ürün silebilir.'
-  },
-  {
-    key: 'MANAGE_CUSTOMERS',
-    label: 'Müşteri Yönetimi',
-    description: 'Yeni veresiye müşteri ekleyebilir ve limit güncelleyebilir.'
-  },
-  {
-    key: 'TAKE_PAYMENT',
-    label: 'Ödeme & Tahsilat Al',
-    description: 'Müşterilerden tahsilat kaydı girebilir ve borç düşebilir.'
-  },
-  {
-    key: 'SHARE_CUSTOMER_STATEMENT',
-    label: 'WhatsApp Ekstresi Paylaş',
-    description:
-      'Müşterilerin finansal ekstrelerini WhatsApp üzerinden paylaşabilir.'
-  },
-  {
-    key: 'VIEW_SALES_HISTORY',
-    label: 'Tüm Satış Geçmişini Gör',
-    description:
-      'Kendi yaptığı satışlar dışında diğer çalışanların satışlarını da görebilir.'
-  },
-  {
-    key: 'MANAGE_SALES_HISTORY',
-    label: 'Satış İptal Et / Sil',
-    description:
-      'Geçmiş satış faturalarını iptal edebilir ve stokları geri döndürebilir.'
-  }
-];
 
 export const CompanySettingsView = () => {
   const {
@@ -514,15 +472,7 @@ export const CompanySettingsView = () => {
                             <span
                               key={perm}
                               className="rounded border border-gray-200/50 bg-gray-100 px-2 py-0.5 text-[10px] font-bold text-gray-600">
-                              {perm === 'VIEW_DASHBOARD' && 'Dashboard'}
-                              {perm === 'MANAGE_INVENTORY' && 'Envanter'}
-                              {perm === 'MANAGE_CUSTOMERS' && 'Müşteriler'}
-                              {perm === 'TAKE_PAYMENT' && 'Ödemeler'}
-                              {perm === 'SHARE_CUSTOMER_STATEMENT' &&
-                                'Ekstre Paylaşımı'}
-                              {perm === 'VIEW_SALES_HISTORY' && 'Satış Geçmişi'}
-                              {perm === 'MANAGE_SALES_HISTORY' &&
-                                'Satış İptali'}
+                              {PERMISSION_META[perm].shortLabel}
                             </span>
                           ))
                         )}

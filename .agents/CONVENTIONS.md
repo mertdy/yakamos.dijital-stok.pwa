@@ -164,6 +164,20 @@ camelCase for utilities
 
 ---
 
+# Permission Metadata
+
+Every `PermissionKey` must have an exhaustive label, short label and
+description entry in `src/core/types/permissions.ts`.
+
+Account Settings, Company Settings and invitation views must consume the
+shared `PERMISSION_META` or `AVAILABLE_PERMISSIONS` exports. Never add local
+permission label mappings inside components.
+
+When adding a permission, update its authorization checks and add coverage for
+both permission assignment and Account Settings display.
+
+---
+
 # Styling
 
 Tailwind CSS only.

@@ -4,7 +4,8 @@ import { Button, Card, toast, Tooltip } from '@heroui/react';
 import { useAuthStore } from '../store/useAuthStore';
 import { db } from '@/core/firebase/config';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
-import type { Invitation } from '@/core/types/tenant';
+import type { Invitation, PermissionKey } from '@/core/types/tenant';
+import { PERMISSION_META } from '@/core/types/permissions';
 import {
   Loader2,
   CheckCircle2,
@@ -15,38 +16,6 @@ import {
   Shield,
   ShieldCheck
 } from 'lucide-react';
-
-const PERMISSION_META: Record<string, { label: string; description: string }> =
-  {
-    VIEW_DASHBOARD: {
-      label: 'Dashboard Görünümü',
-      description:
-        'Ciro, kar/zarar grafikleri ve günlük özet istatistiklerini görebilir.'
-    },
-    MANAGE_INVENTORY: {
-      label: 'Envanter Yönetimi',
-      description:
-        'Yeni ürün ekleyebilir, fiyatları düzenleyebilir ve ürün silebilir.'
-    },
-    MANAGE_CUSTOMERS: {
-      label: 'Müşteri Yönetimi',
-      description:
-        'Yeni veresiye müşteri ekleyebilir ve müşteri limitini güncelleyebilir.'
-    },
-    TAKE_PAYMENT: {
-      label: 'Ödeme Alıcı',
-      description: 'Müşterilerden tahsilat kaydedebilir ve borcu düşürebilir.'
-    },
-    VIEW_SALES_HISTORY: {
-      label: 'Satış Geçmişi',
-      description: 'Tüm çalışanların geçmiş satış fatural arını görebilir.'
-    },
-    MANAGE_SALES_HISTORY: {
-      label: 'Satış İptali',
-      description:
-        'Geçmiş satış fatural arını iptal edebilir ve stoğu geri yükleyebilir.'
-    }
-  };
 
 export const AccountSettingsView = () => {
   const {
@@ -207,7 +176,7 @@ export const AccountSettingsView = () => {
                 hakkınız bulunmaktadır.
               </p>
               <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
-                {(Object.keys(PERMISSION_META) as string[]).map(perm => (
+                {(Object.keys(PERMISSION_META) as PermissionKey[]).map(perm => (
                   <Tooltip key={perm} delay={0} closeDelay={0}>
                     <Tooltip.Trigger>
                       <div className="flex cursor-help items-center gap-2 rounded-xl border border-gray-100 bg-gray-50 px-3 py-2">
@@ -246,14 +215,14 @@ export const AccountSettingsView = () => {
                           className="text-primary flex-shrink-0"
                         />
                         <span className="text-xs font-semibold text-gray-700">
-                          {PERMISSION_META[perm]?.label ?? perm}
+                          {PERMISSION_META[perm].label}
                         </span>
                       </div>
                     </Tooltip.Trigger>
                     <Tooltip.Content showArrow>
                       <Tooltip.Arrow />
                       <span className="px-1 py-0.5 text-xs font-medium">
-                        {PERMISSION_META[perm]?.description ?? perm}
+                        {PERMISSION_META[perm].description}
                       </span>
                     </Tooltip.Content>
                   </Tooltip>
@@ -301,12 +270,7 @@ export const AccountSettingsView = () => {
                         <span
                           key={perm}
                           className="inline-flex rounded border border-gray-100 bg-white px-2 py-0.5 text-[10px] font-semibold text-gray-600 shadow-sm">
-                          {perm === 'VIEW_DASHBOARD' && 'Dashboard Görünümü'}
-                          {perm === 'MANAGE_INVENTORY' && 'Envanter Yönetimi'}
-                          {perm === 'MANAGE_CUSTOMERS' && 'Müşteri Yönetimi'}
-                          {perm === 'TAKE_PAYMENT' && 'Ödeme Alıcı'}
-                          {perm === 'VIEW_SALES_HISTORY' && 'Satış Geçmişi'}
-                          {perm === 'MANAGE_SALES_HISTORY' && 'Satış İptali'}
+                          {PERMISSION_META[perm].label}
                         </span>
                       ))}
                     </div>
