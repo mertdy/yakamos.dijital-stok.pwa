@@ -140,8 +140,7 @@ export const MainLayout: React.FC = () => {
     { name: 'Satış', path: '/sales', icon: MonitorCheck },
     { name: 'Satış Geçmişi', path: '/sales-history', icon: History },
     { name: 'Müşteriler', path: '/customers', icon: Users },
-    { name: 'Envanter', path: '/inventory', icon: Package },
-    { name: 'Hesap Ayarları', path: '/account-settings', icon: User }
+    { name: 'Envanter', path: '/inventory', icon: Package }
   ];
 
   let filteredNavItems = baseNavItems;
@@ -160,6 +159,11 @@ export const MainLayout: React.FC = () => {
       { name: 'Şirket Ayarları', path: '/company-settings', icon: Settings }
     ];
   }
+
+  filteredNavItems = [
+    ...filteredNavItems,
+    { name: 'Hesap Ayarları', path: '/account-settings', icon: User }
+  ];
 
   return (
     <div className="bg-background flex h-screen w-full flex-col overflow-hidden md:flex-row">
