@@ -23,7 +23,6 @@ import {
   Plus,
   Loader2,
   CheckCircle2,
-  CloudDownload,
   CloudCheck,
   ChevronRight,
   CreditCard,
@@ -38,6 +37,7 @@ import {
   Header,
   Label,
   Modal,
+  Spinner,
   Tooltip,
   toast
 } from '@heroui/react';
@@ -506,9 +506,10 @@ export const MainLayout: React.FC = () => {
                           <Label>{m.companyName}</Label>
                           <span className="ml-auto flex items-center text-xs">
                             {preparingCompanyId === m.companyId ? (
-                              <CloudDownload
-                                size={15}
-                                className="text-primary animate-bounce"
+                              <Spinner
+                                size="sm"
+                                color="current"
+                                className="text-primary size-[15px]"
                                 aria-label="Çevrim dışı kullanım için hazırlanıyor"
                               />
                             ) : offlineReadyCompanyIds.includes(m.companyId) ? (
@@ -601,7 +602,9 @@ export const MainLayout: React.FC = () => {
           <div className={clsx(isCollapsed && 'flex justify-center')}>
             <SyncIndicator
               iconOnly={isCollapsed}
-              tooltipPlacement={isCollapsed ? 'right' : undefined}
+              tooltipPlacement="right"
+              isPreparing={preparingCompanyId === activeCompany?.id}
+              fullWidth={!isCollapsed}
             />
           </div>
           {user && (
@@ -689,7 +692,9 @@ export const MainLayout: React.FC = () => {
             {activeCompany?.name || 'Dijital Stok'}
           </h1>
           <div className="flex items-center gap-3">
-            <SyncIndicator />
+            <SyncIndicator
+              isPreparing={preparingCompanyId === activeCompany?.id}
+            />
             {user && (
               <img
                 src={
