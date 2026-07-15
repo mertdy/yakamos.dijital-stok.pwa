@@ -207,14 +207,16 @@ export const MainLayout: React.FC = () => {
               isCollapsed && 'flex-col justify-center'
             )}>
             {!isCollapsed && (
-              <h1 className="text-primary flex items-center gap-2 text-lg font-bold">
-                <Store className="flex-shrink-0 text-xl" />
+              <h1 className="text-primary flex h-9 items-center gap-2 text-base font-bold">
+                <Store size={22} className="flex-shrink-0" />
                 <span className="whitespace-nowrap">Dijital Stok</span>
               </h1>
             )}
 
             {isCollapsed && !isSidebarHovered ? (
-              <Store className="text-primary flex-shrink-0 text-xl" />
+              <div className="text-primary flex h-9 w-9 items-center justify-center">
+                <Store size={22} />
+              </div>
             ) : (
               <Tooltip delay={0} closeDelay={0}>
                 <Tooltip.Trigger>
