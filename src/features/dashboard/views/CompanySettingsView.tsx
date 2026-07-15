@@ -42,6 +42,7 @@ import {
 } from 'lucide-react';
 import { Download } from 'lucide-react';
 import { DataExportWizard } from '../components/DataExportWizard';
+import { DataImportWizard } from '../components/DataImportWizard';
 import { useConfirm } from '@/shared/contexts/ConfirmDialogContext';
 import { FormInput } from '@/shared/components/FormInput';
 import { PhoneInput } from '@/shared/components/PhoneInput';
@@ -85,6 +86,7 @@ export const CompanySettingsView = () => {
   const [invitations, setInvitations] = useState<Invitation[]>([]);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [isExportWizardOpen, setIsExportWizardOpen] = useState(false);
+  const [isImportWizardOpen, setIsImportWizardOpen] = useState(false);
 
   // Invite Modal State
   const [inviteModalOpen, setInviteModalOpen] = useState(false);
@@ -286,9 +288,6 @@ export const CompanySettingsView = () => {
             yönetin.
           </p>
         </div>
-        <Button variant="secondary" onPress={() => setIsExportWizardOpen(true)}>
-          <Download size={17} className="mr-2" /> Verileri Dışa Aktar
-        </Button>
       </div>
 
       <div className="space-y-6 pb-6">
@@ -353,17 +352,14 @@ export const CompanySettingsView = () => {
 
         {/* Employees Card */}
         <Card className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
-          <div className="mb-5 flex items-center justify-between border-b border-gray-100 pb-3">
+          <div className="border-b border-gray-100 pb-3">
             <h2 className="flex items-center gap-2 text-lg font-bold text-gray-900">
               <Users size={20} className="text-primary" /> Çalışan Yönetimi
             </h2>
-            <Button
-              variant="primary"
-              size="sm"
-              onPress={() => setInviteModalOpen(true)}>
-              <UserPlus size={16} className="mr-1.5" /> Personel Davet Et
-            </Button>
           </div>
+          <p className="mt-3 mb-5 text-sm text-gray-500">
+            Çalışanlarınızı, yetkilerini ve bekleyen davetleri buradan yönetin.
+          </p>
 
           {/* Pending Invitations list */}
           {invitations.length > 0 && (
@@ -479,6 +475,46 @@ export const CompanySettingsView = () => {
               </div>
             )}
           </div>
+          <div className="mt-5 flex justify-end pt-4">
+            <Button variant="primary" onPress={() => setInviteModalOpen(true)}>
+              <UserPlus size={16} className="mr-1.5" /> Personel Davet Et
+            </Button>
+          </div>
+        </Card>
+        <Card className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
+          <h2 className="mb-5 flex items-center gap-2 border-b border-gray-100 pb-3 text-lg font-bold text-gray-900">
+            <Download size={20} className="text-primary" /> Veri Yönetimi
+          </h2>
+          <p className="mb-5 text-sm text-gray-500">
+            İşletmenizin envanter ve müşteri verilerini güvenle içe veya dışa
+            aktarın.
+          </p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="rounded-xl border border-gray-100 bg-gray-50/60 p-4">
+              <p className="font-semibold text-gray-800">Verileri İçe Aktar</p>
+              <p className="mt-1 text-xs leading-5 text-gray-500">
+                CSV, XLSX veya XLS dosyasından envanter ve müşteri ekleyin.
+              </p>
+              <Button
+                className="mt-4"
+                variant="secondary"
+                onPress={() => setIsImportWizardOpen(true)}>
+                Dosyadan İçe Aktar
+              </Button>
+            </div>
+            <div className="rounded-xl border border-gray-100 bg-gray-50/60 p-4">
+              <p className="font-semibold text-gray-800">Verileri Dışa Aktar</p>
+              <p className="mt-1 text-xs leading-5 text-gray-500">
+                İşletme verilerini CSV veya Excel biçiminde indirin.
+              </p>
+              <Button
+                className="mt-4"
+                variant="secondary"
+                onPress={() => setIsExportWizardOpen(true)}>
+                Dışa Aktarma Seçenekleri
+              </Button>
+            </div>
+          </div>
         </Card>
       </div>
 
@@ -489,6 +525,10 @@ export const CompanySettingsView = () => {
           company={activeCompany}
         />
       )}
+      <DataImportWizard
+        isOpen={isImportWizardOpen}
+        onClose={() => setIsImportWizardOpen(false)}
+      />
 
       {/* Invite Modal */}
       <Modal
