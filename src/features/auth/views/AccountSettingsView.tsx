@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button, Card, toast, Tooltip } from '@heroui/react';
+import { Button, Card, Input, Label, toast, Tooltip } from '@heroui/react';
 import { useAuthStore } from '../store/useAuthStore';
 import { db } from '@/core/firebase/config';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
@@ -11,11 +11,26 @@ import {
   CheckCircle2,
   XCircle,
   Building2,
+  CalendarDays,
+  Clock3,
   User,
   Mail,
   Shield,
-  ShieldCheck
+  ShieldCheck,
+  Save
 } from 'lucide-react';
+
+const formatAuthDate = (value?: string | null) => {
+  if (!value) return '-';
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '-';
+
+  return new Intl.DateTimeFormat('tr-TR', {
+    dateStyle: 'long',
+    timeStyle: 'short'
+  }).format(date);
+};
 
 export const AccountSettingsView = () => {
   const {
@@ -23,12 +38,22 @@ export const AccountSettingsView = () => {
     activeMembership,
     activeCompany,
     acceptInvitation,
-    declineInvitation
+    declineInvitation,
+    updateDisplayName
   } = useAuthStore();
   const navigate = useNavigate();
   const [invitations, setInvitations] = useState<Invitation[]>([]);
   const [isCheckingInvites, setIsCheckingInvites] = useState(true);
   const [actionInviteId, setActionInviteId] = useState<string | null>(null);
+  const [displayName, setDisplayName] = useState(user?.displayName ?? '');
+  const [isSavingName, setIsSavingName] = useState(false);
+  const usesEmailPassword = user?.providerData?.some(
+    provider => provider.providerId === 'password'
+  );
+
+  useEffect(() => {
+    setDisplayName(user?.displayName ?? '');
+  }, [user?.displayName]);
 
   useEffect(() => {
     if (!user?.email) return;
@@ -79,6 +104,26 @@ export const AccountSettingsView = () => {
       toast.danger('Davet reddedilirken bir hata oluştu.');
     } finally {
       setActionInviteId(null);
+    }
+  };
+
+  const handleDisplayNameSubmit = async (event: FormEvent) => {
+    event.preventDefault();
+    const name = displayName.trim();
+    if (!name) {
+      toast.danger('Lütfen adınızı girin.');
+      return;
+    }
+
+    setIsSavingName(true);
+    try {
+      await updateDisplayName(name);
+      toast.success('Adınız güncellendi.');
+    } catch (error) {
+      console.error('Display name update error:', error);
+      toast.danger('Adınız güncellenirken bir hata oluştu.');
+    } finally {
+      setIsSavingName(false);
     }
   };
 
@@ -157,7 +202,64 @@ export const AccountSettingsView = () => {
                 </p>
               </div>
             </div>
+
+            <div className="flex items-center gap-3">
+              <div className="rounded-xl bg-gray-50 p-2.5 text-gray-400">
+                <CalendarDays size={18} />
+              </div>
+              <div>
+                <p className="text-xs font-medium text-gray-500">
+                  Üyelik Tarihi
+                </p>
+                <p className="text-sm font-semibold text-gray-800">
+                  {formatAuthDate(user?.metadata?.creationTime)}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <div className="rounded-xl bg-gray-50 p-2.5 text-gray-400">
+                <Clock3 size={18} />
+              </div>
+              <div>
+                <p className="text-xs font-medium text-gray-500">
+                  Son Giriş Zamanı
+                </p>
+                <p className="text-sm font-semibold text-gray-800">
+                  {formatAuthDate(user?.metadata?.lastSignInTime)}
+                </p>
+              </div>
+            </div>
           </div>
+
+          {usesEmailPassword && (
+            <form
+              onSubmit={handleDisplayNameSubmit}
+              className="border-t border-gray-100 pt-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+                <div className="flex flex-1 flex-col gap-1.5">
+                  <Label htmlFor="display-name">İsim Soyisim</Label>
+                  <Input
+                    id="display-name"
+                    value={displayName}
+                    onChange={event => setDisplayName(event.target.value)}
+                    placeholder="Adınız ve soyadınız"
+                  />
+                </div>
+                <Button
+                  type="submit"
+                  variant="primary"
+                  isDisabled={isSavingName || !displayName.trim()}>
+                  {isSavingName ? (
+                    <Loader2 size={16} className="animate-spin" />
+                  ) : (
+                    <Save size={16} className="mr-1.5" />
+                  )}
+                  Kaydet
+                </Button>
+              </div>
+            </form>
+          )}
         </Card>
 
         {/* Permissions Card */}

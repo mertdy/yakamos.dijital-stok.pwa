@@ -6,6 +6,7 @@ import {
   createUserWithEmailAndPassword,
   sendPasswordResetEmail,
   sendEmailVerification,
+  updateProfile,
   type User
 } from 'firebase/auth';
 import {
@@ -76,6 +77,7 @@ interface AuthState {
   loginWithGoogle: () => Promise<void>;
   loginWithEmail: (email: string, password: string) => Promise<void>;
   registerWithEmail: (email: string, password: string) => Promise<void>;
+  updateDisplayName: (displayName: string) => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   logout: () => Promise<void>;
 
@@ -404,6 +406,20 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     } finally {
       set({ isLoading: false });
     }
+  },
+
+  updateDisplayName: async displayName => {
+    const user = get().user;
+    const name = displayName.trim();
+
+    if (!user) throw new Error('User not authenticated');
+    if (!name) throw new Error('Display name is required');
+
+    await updateProfile(user, { displayName: name });
+    await updateDoc(doc(db, 'users', user.uid), { name });
+
+    posthog.identify(user.uid, { name });
+    set({ user });
   },
 
   resetPassword: async email => {

@@ -9,12 +9,18 @@ vi.mock('react-router-dom', () => ({
 
 const mockAcceptInvitation = vi.fn();
 const mockDeclineInvitation = vi.fn();
+const mockUpdateDisplayName = vi.fn();
 
 const storeState = {
   user: {
     uid: 'test-user-id',
     displayName: 'Test User',
-    email: 'test@example.com'
+    email: 'test@example.com',
+    providerData: [{ providerId: 'password' }],
+    metadata: {
+      creationTime: '2025-01-15T10:30:00.000Z',
+      lastSignInTime: '2025-02-20T12:45:00.000Z'
+    }
   },
   activeMembership: {
     role: 'OWNER'
@@ -24,7 +30,8 @@ const storeState = {
     name: 'Test Company'
   },
   acceptInvitation: mockAcceptInvitation,
-  declineInvitation: mockDeclineInvitation
+  declineInvitation: mockDeclineInvitation,
+  updateDisplayName: mockUpdateDisplayName
 };
 
 vi.mock('../store/useAuthStore', () => ({
@@ -71,6 +78,9 @@ describe('AccountSettingsView', () => {
     expect(screen.getByText('test@example.com')).toBeInTheDocument();
     expect(screen.getByText('Test Company')).toBeInTheDocument();
     expect(screen.getByText('Şirket Sahibi')).toBeInTheDocument();
+    expect(screen.getByText('Üyelik Tarihi')).toBeInTheDocument();
+    expect(screen.getByText('Son Giriş Zamanı')).toBeInTheDocument();
+    expect(screen.getByLabelText('İsim Soyisim')).toHaveValue('Test User');
 
     // Check Permissions info for OWNER
     expect(
@@ -80,6 +90,19 @@ describe('AccountSettingsView', () => {
     ).toBeInTheDocument();
     expect(screen.getByText('Dashboard Görünümü')).toBeInTheDocument();
     expect(screen.getByText('Envanter Yönetimi')).toBeInTheDocument();
+  });
+
+  it('updates the display name for email-password users', async () => {
+    render(<AccountSettingsView />);
+
+    fireEvent.change(screen.getByLabelText('İsim Soyisim'), {
+      target: { value: 'Yeni İsim' }
+    });
+    fireEvent.click(screen.getByRole('button', { name: /kaydet/i }));
+
+    await waitFor(() => {
+      expect(mockUpdateDisplayName).toHaveBeenCalledWith('Yeni İsim');
+    });
   });
 
   it('renders employee permissions correctly', () => {

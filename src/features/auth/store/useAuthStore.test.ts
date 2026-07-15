@@ -4,9 +4,11 @@ import {
   createUserWithEmailAndPassword,
   sendPasswordResetEmail,
   sendEmailVerification,
+  updateProfile,
   signInWithPopup,
   signOut
 } from 'firebase/auth';
+import { updateDoc } from 'firebase/firestore';
 import { getAuthErrorMessage } from './useAuthStore';
 
 // ─── Firebase mocks ───────────────────────────────────────────────────────────
@@ -17,7 +19,8 @@ vi.mock('firebase/auth', () => ({
   signInWithEmailAndPassword: vi.fn(),
   createUserWithEmailAndPassword: vi.fn(),
   sendPasswordResetEmail: vi.fn(),
-  sendEmailVerification: vi.fn()
+  sendEmailVerification: vi.fn(),
+  updateProfile: vi.fn()
 }));
 
 vi.mock('firebase/firestore', () => ({
@@ -234,6 +237,23 @@ describe('useAuthStore', () => {
       'Bu e-posta adresi zaten kullanılıyor.'
     );
     expect(store.getState().isLoading).toBe(false);
+  });
+
+  // ── updateDisplayName ─────────────────────────────────────────────────────
+
+  it('updates the Firebase Auth and Firestore profile names', async () => {
+    const user = { uid: 'user-1', displayName: 'Eski İsim' } as never;
+    const store = await buildStore();
+    store.setState({ user });
+
+    await store.getState().updateDisplayName('  Yeni İsim  ');
+
+    expect(updateProfile).toHaveBeenCalledWith(user, {
+      displayName: 'Yeni İsim'
+    });
+    expect(updateDoc).toHaveBeenCalledWith(expect.anything(), {
+      name: 'Yeni İsim'
+    });
   });
 
   // ── resetPassword ────────────────────────────────────────────────────────
