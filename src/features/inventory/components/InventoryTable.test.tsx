@@ -12,6 +12,7 @@ vi.mock('lucide-react', () => ({
   ArrowUp: () => <div data-testid="icon-arrow-up" />,
   ArrowDown: () => <div data-testid="icon-arrow-down" />,
   Search: () => <div data-testid="icon-search" />,
+  Barcode: () => <div data-testid="icon-barcode" />,
   CheckSquare: () => <div data-testid="icon-check-square" />,
   X: () => <div data-testid="icon-x" />
 }));
@@ -76,6 +77,7 @@ describe('InventoryTable', () => {
   const confirmMock = vi.fn();
   const deleteItemMock = vi.fn();
   const deleteItemsMock = vi.fn();
+  const updateItemMock = vi.fn();
 
   const mockItems = [
     { id: '1', name: 'Apple', barcode: '111', stock: 5, price: 1.2 },
@@ -91,7 +93,8 @@ describe('InventoryTable', () => {
     mockUseInventoryStore.mockReturnValue({
       items: mockItems,
       deleteItem: deleteItemMock,
-      deleteItems: deleteItemsMock
+      deleteItems: deleteItemsMock,
+      updateItem: updateItemMock
     });
   });
 
@@ -99,7 +102,8 @@ describe('InventoryTable', () => {
     mockUseInventoryStore.mockReturnValue({
       items: [],
       deleteItem: deleteItemMock,
-      deleteItems: deleteItemsMock
+      deleteItems: deleteItemsMock,
+      updateItem: updateItemMock
     });
 
     render(<InventoryTable />);

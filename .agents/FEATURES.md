@@ -56,6 +56,7 @@ Capabilities
 - Delete
 - Search
 - Barcode lookup
+- Browser-printable product, shelf, discount and package labels with bulk selection
 
 Dependencies
 
@@ -170,6 +171,12 @@ Export
 Firestore cache.
 
 Automatic synchronization.
+
+---
+
+# Application Recovery
+
+Unexpected React render errors and uncaught browser errors show a recovery screen with retry and support actions. Technical context is recorded in PostHog without form data.
 
 ---
 

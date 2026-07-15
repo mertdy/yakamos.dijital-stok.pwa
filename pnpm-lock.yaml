@@ -59,6 +59,9 @@ dependencies:
   '@tanstack/react-table':
     specifier: ^8.21.3
     version: 8.21.3(react-dom@19.2.7)(react@19.2.7)
+  '@types/jsbarcode':
+    specifier: ^3.11.4
+    version: 3.11.4
   '@zxing/browser':
     specifier: ^0.2.0
     version: 0.2.0(@zxing/library@0.22.0)
@@ -80,6 +83,9 @@ dependencies:
   framer-motion:
     specifier: ^12.40.0
     version: 12.40.0(react-dom@19.2.7)(react@19.2.7)
+  jsbarcode:
+    specifier: ^3.12.3
+    version: 3.12.3
   libphonenumber-js:
     specifier: ^1.13.8
     version: 1.13.8
@@ -3754,6 +3760,12 @@ packages:
       '@types/node': 24.13.2
     dev: true
 
+  /@types/jsbarcode@3.11.4:
+    resolution: {integrity: sha512-VBcpTAnEMH0Gbh8JpV14CgOtJjCYjsvR2FoDRyoYPE0gUxtApf8N4c+HKEOyz/iiIZkMzqrzBA3XX7+KgKxxsA==}
+    dependencies:
+      '@types/node': 24.13.2
+    dev: false
+
   /@types/json-schema@7.0.15:
     resolution: {integrity: sha512-5+fP8P8MFNC+AyZCDxrB2pkZFPGzqQWUzpSeuuVLvm8VMcorNYavBqoFcxK8bQz4Qsbn4oUEEem4wDLfcysGHA==}
     dev: true
@@ -5810,6 +5822,10 @@ packages:
 
   /js-tokens@4.0.0:
     resolution: {integrity: sha512-RdJUflcE3cUzKiMqQgsCu06FPu9UdIJO0beYbPhHN4k6apgJtifcoCtT9bcxOpYBtpD2kCM6Sbzg4CausW/PKQ==}
+
+  /jsbarcode@3.12.3:
+    resolution: {integrity: sha512-CuHU9hC6dPsHF5oVFMo8NW76uQVjH4L22CsP4hW+dNnGywJHC/B0ThA1CTDVLnxKLrrpYdicBLnd2xsgTfRnvg==}
+    dev: false
 
   /jsdom@29.1.1:
     resolution: {integrity: sha512-ECi4Fi2f7BdJtUKTflYRTiaMxIB0O6zfR1fX0GXpUrf6flp8QIYn1UT20YQqdSOfk2dfkCwS8LAFoJDEppNK5Q==}

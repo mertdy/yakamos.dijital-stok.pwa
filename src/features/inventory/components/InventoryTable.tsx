@@ -1,4 +1,12 @@
-import { useState, useMemo } from 'react';
+import {
+  lazy,
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState
+} from 'react';
 import { clsx } from 'clsx';
 import {
   createColumnHelper,
@@ -20,6 +28,7 @@ import {
   ArrowDown,
   Search,
   CheckSquare,
+  Barcode,
   X
 } from 'lucide-react';
 import {
@@ -34,12 +43,28 @@ import { useNavigate } from 'react-router-dom';
 import { useGlobalBarcodeScanner } from '@/shared/hooks/useGlobalBarcodeScanner';
 import { useConfirm } from '@/shared/contexts/ConfirmDialogContext';
 import { useAuthStore } from '@/features/auth';
+import { createInternalBarcode } from '../domain/labelPrinting';
 
-export const InventoryTable: React.FC = () => {
-  const { items, deleteItem, deleteItems } = useInventoryStore();
+const LabelPrintModal = lazy(() =>
+  import('./LabelPrintModal').then(module => ({
+    default: module.LabelPrintModal
+  }))
+);
+
+interface InventoryTableProps {
+  initialPrintItemId?: string | null;
+}
+
+export const InventoryTable: React.FC<InventoryTableProps> = ({
+  initialPrintItemId = null
+}) => {
+  const { items, deleteItem, deleteItems, updateItem } = useInventoryStore();
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState('');
   const [rowSelection, setRowSelection] = useState<Record<string, boolean>>({});
+  const [isLabelPrintOpen, setIsLabelPrintOpen] = useState(false);
+  const [labelItems, setLabelItems] = useState<InventoryItem[]>([]);
+  const handledInitialPrintId = useRef<string | null>(null);
   const navigate = useNavigate();
   const { confirm } = useConfirm();
 
@@ -69,6 +94,36 @@ export const InventoryTable: React.FC = () => {
   const isOwner = activeMembership?.role === 'OWNER';
   const hasInventoryPermission =
     isOwner || activeMembership?.permissions.includes('MANAGE_INVENTORY');
+
+  const openLabelPrint = useCallback(
+    async (selectedItems: InventoryItem[]) => {
+      const itemsWithBarcodes = await Promise.all(
+        selectedItems.map(async item => {
+          if (item.barcode) return item;
+          const barcode = createInternalBarcode(item);
+          await updateItem(item.id, { barcode });
+          return { ...item, barcode };
+        })
+      );
+      setLabelItems(itemsWithBarcodes);
+      setIsLabelPrintOpen(true);
+    },
+    [updateItem]
+  );
+
+  useEffect(() => {
+    if (
+      !initialPrintItemId ||
+      !hasInventoryPermission ||
+      handledInitialPrintId.current === initialPrintItemId
+    )
+      return;
+    const item = items.find(candidate => candidate.id === initialPrintItemId);
+    if (item) {
+      handledInitialPrintId.current = initialPrintItemId;
+      void openLabelPrint([item]);
+    }
+  }, [hasInventoryPermission, initialPrintItemId, items, openLabelPrint]);
 
   const columnHelper = createColumnHelper<InventoryItem>();
 
@@ -164,6 +219,13 @@ export const InventoryTable: React.FC = () => {
                 <Edit className="text-lg" />
               </Button>
               <Button
+                variant="tertiary"
+                isIconOnly
+                onPress={() => void openLabelPrint([props.row.original])}
+                aria-label="Etiket Bas">
+                <Barcode className="text-lg" />
+              </Button>
+              <Button
                 variant="ghost"
                 isIconOnly
                 className="text-danger"
@@ -188,7 +250,14 @@ export const InventoryTable: React.FC = () => {
     }
 
     return cols;
-  }, [hasInventoryPermission, columnHelper, navigate, confirm, deleteItem]);
+  }, [
+    hasInventoryPermission,
+    columnHelper,
+    navigate,
+    confirm,
+    deleteItem,
+    openLabelPrint
+  ]);
 
   const filteredItems = useMemo(() => {
     return items.filter(
@@ -252,6 +321,16 @@ export const InventoryTable: React.FC = () => {
               {selectedIds.length} ürün seçildi
             </Description>
             <div className="flex items-center gap-1.5">
+              <Button
+                variant="secondary"
+                size="sm"
+                onPress={() =>
+                  void openLabelPrint(
+                    filteredItems.filter(item => selectedIds.includes(item.id))
+                  )
+                }>
+                <Barcode className="mr-1" size={16} /> Etiket Bas
+              </Button>
               <Tooltip delay={0} closeDelay={0}>
                 <Button
                   variant="tertiary"
@@ -391,6 +470,15 @@ export const InventoryTable: React.FC = () => {
           </tbody>
         </table>
       </div>
+      {isLabelPrintOpen && (
+        <Suspense fallback={null}>
+          <LabelPrintModal
+            isOpen={isLabelPrintOpen}
+            items={labelItems}
+            onClose={() => setIsLabelPrintOpen(false)}
+          />
+        </Suspense>
+      )}
     </div>
   );
 };

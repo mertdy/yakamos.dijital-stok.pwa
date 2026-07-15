@@ -7,6 +7,7 @@ import App from './App.tsx';
 import './index.css';
 
 import { ConfirmDialogProvider } from './shared/contexts/ConfirmDialogContext';
+import { AppErrorBoundary } from './shared/components/AppErrorBoundary';
 import posthog from 'posthog-js';
 import { FirebaseCrashlytics } from '@capacitor-firebase/crashlytics';
 import { Capacitor } from '@capacitor/core';
@@ -41,14 +42,16 @@ const initCrashlytics = async () => {
 initCrashlytics();
 
 createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <I18nProvider locale="tr-TR">
-      <ToastProvider />
-      <BrowserRouter>
-        <ConfirmDialogProvider>
-          <App />
-        </ConfirmDialogProvider>
-      </BrowserRouter>
-    </I18nProvider>
-  </StrictMode>
+  <AppErrorBoundary>
+    <StrictMode>
+      <I18nProvider locale="tr-TR">
+        <ToastProvider />
+        <BrowserRouter>
+          <ConfirmDialogProvider>
+            <App />
+          </ConfirmDialogProvider>
+        </BrowserRouter>
+      </I18nProvider>
+    </StrictMode>
+  </AppErrorBoundary>
 );

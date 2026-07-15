@@ -1,9 +1,19 @@
-import { useEffect, useState, useCallback, useRef } from 'react';
+import {
+  lazy,
+  Suspense,
+  useEffect,
+  useState,
+  useCallback,
+  useRef
+} from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { useInventoryStore } from '../store/useInventoryStore';
+import {
+  useInventoryStore,
+  type InventoryItem
+} from '../store/useInventoryStore';
 import { ScannerModal } from '@/features/sales';
 import { Button } from '@heroui/react';
 import { FormInput } from '@/shared/components/FormInput';
@@ -17,6 +27,13 @@ import {
 } from 'lucide-react';
 import { toast } from '@heroui/react';
 import posthog from 'posthog-js';
+import { createInternalBarcode } from '../domain/labelPrinting';
+
+const LabelPrintModal = lazy(() =>
+  import('../components/LabelPrintModal').then(module => ({
+    default: module.LabelPrintModal
+  }))
+);
 
 const productSchema = z.object({
   name: z.string().min(2, 'Ürün adı en az 2 karakter olmalıdır'),
@@ -50,6 +67,8 @@ export const ProductFormView: React.FC = () => {
     null
   );
   const [isSaving, setIsSaving] = useState(false);
+  const [isLabelPrintOpen, setIsLabelPrintOpen] = useState(false);
+  const [labelItems, setLabelItems] = useState<InventoryItem[]>([]);
 
   const {
     control,
@@ -164,8 +183,23 @@ export const ProductFormView: React.FC = () => {
       });
 
       if (isEditMode && id) {
+        const previousPrice = items.find(item => item.id === id)?.price;
         await updateItem(id, data);
-        toast.success('Ürün güncellendi');
+        toast.success(
+          previousPrice !== data.price
+            ? 'Fiyat güncellendi'
+            : 'Ürün güncellendi',
+          previousPrice !== data.price
+            ? {
+                actionProps: {
+                  children: 'Yeni Etiket Bastır',
+                  className: 'bg-primary text-white font-medium',
+                  size: 'sm',
+                  onPress: () => navigate(`/inventory?print=${id}`)
+                }
+              }
+            : undefined
+        );
       } else {
         if (data.barcode) {
           const existingItem = items.find(
@@ -204,6 +238,20 @@ export const ProductFormView: React.FC = () => {
   const handleScan = (barcode: string) => {
     setValue('barcode', barcode, { shouldValidate: true });
     searchProductByBarcode(barcode);
+  };
+
+  const openLabelPrint = async () => {
+    const item = items.find(candidate => candidate.id === id);
+    if (!item) return;
+
+    if (item.barcode) {
+      setLabelItems([item]);
+    } else {
+      const barcode = createInternalBarcode(item);
+      await updateItem(item.id, { barcode });
+      setLabelItems([{ ...item, barcode }]);
+    }
+    setIsLabelPrintOpen(true);
   };
 
   return (
@@ -329,6 +377,14 @@ export const ProductFormView: React.FC = () => {
           </div>
 
           <div className="flex justify-end gap-3 border-t border-gray-100 pt-4">
+            {isEditMode && (
+              <Button
+                variant="secondary"
+                type="button"
+                onPress={() => void openLabelPrint()}>
+                Etiket Bas
+              </Button>
+            )}
             <Button variant="ghost" type="button" onPress={() => navigate(-1)}>
               İptal
             </Button>
@@ -352,6 +408,15 @@ export const ProductFormView: React.FC = () => {
         onClose={() => setIsScannerOpen(false)}
         onScan={handleScan}
       />
+      {isEditMode && isLabelPrintOpen && (
+        <Suspense fallback={null}>
+          <LabelPrintModal
+            isOpen={isLabelPrintOpen}
+            items={labelItems}
+            onClose={() => setIsLabelPrintOpen(false)}
+          />
+        </Suspense>
+      )}
     </div>
   );
 };

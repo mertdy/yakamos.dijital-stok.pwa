@@ -127,6 +127,10 @@ export const useInventoryStore = getSingletonStore('inventory', () =>
 
       const mergedItem = { ...currentItem, ...updatedData, updatedAt };
 
+      set(state => ({
+        items: state.items.map(item => (item.id === id ? mergedItem : item))
+      }));
+
       setDoc(doc(db, 'inventory', id), mergedItem, { merge: true }).catch(
         err => {
           console.error('Firestore background sync failed', err);

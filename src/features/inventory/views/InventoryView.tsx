@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { InventoryTable } from '../components/InventoryTable';
 import { useInventoryStore } from '../store/useInventoryStore';
@@ -13,6 +13,7 @@ export const InventoryView: React.FC = () => {
   const navigate = useNavigate();
   const { loadItems } = useInventoryStore();
   const { activeMembership } = useAuthStore();
+  const [printItemId, setPrintItemId] = useState<string | null>(null);
   const isOwner = activeMembership?.role === 'OWNER';
   const hasInventoryPermission =
     isOwner || activeMembership?.permissions.includes('MANAGE_INVENTORY');
@@ -39,6 +40,14 @@ export const InventoryView: React.FC = () => {
     hasInventoryPermission
   ]);
 
+  useEffect(() => {
+    const itemId = searchParams.get('print');
+    if (!itemId || !hasInventoryPermission) return;
+    setPrintItemId(itemId);
+    searchParams.delete('print');
+    setSearchParams(searchParams, { replace: true });
+  }, [hasInventoryPermission, searchParams, setSearchParams]);
+
   return (
     <div className="mx-auto flex h-full max-w-7xl flex-col p-4 md:p-6">
       <div className="mb-6 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
@@ -59,7 +68,7 @@ export const InventoryView: React.FC = () => {
       </div>
 
       <div className="min-h-0 flex-1">
-        <InventoryTable />
+        <InventoryTable initialPrintItemId={printItemId} />
       </div>
     </div>
   );
