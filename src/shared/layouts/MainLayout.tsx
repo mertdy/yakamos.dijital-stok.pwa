@@ -70,6 +70,14 @@ const SidebarTooltip: React.FC<SidebarTooltipProps> = ({ label, children }) => (
   </Tooltip>
 );
 
+const BrandMark: React.FC = () => (
+  <div className="from-primary shadow-primary/25 ring-primary/10 relative flex h-9 w-9 flex-shrink-0 items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br via-blue-500 to-indigo-500 text-white shadow-lg ring-1">
+    <Store size={19} strokeWidth={2.5} />
+    <span className="absolute top-1 right-1 h-1.5 w-1.5 rounded-full bg-white/90 shadow-sm" />
+    <span className="absolute -bottom-2 -left-2 h-5 w-5 rounded-full bg-white/15" />
+  </div>
+);
+
 export const MainLayout: React.FC = () => {
   useAppHotkeys();
   const {
@@ -288,15 +296,22 @@ export const MainLayout: React.FC = () => {
               isCollapsed && 'flex-col justify-center'
             )}>
             {!isCollapsed && (
-              <h1 className="text-primary flex h-9 items-center gap-2 text-base font-bold">
-                <Store size={22} className="flex-shrink-0" />
-                <span className="whitespace-nowrap">Dijital Stok</span>
+              <h1 className="ml-2.5 flex h-9 items-center gap-2.5">
+                <BrandMark />
+                <span className="flex flex-col leading-none whitespace-nowrap">
+                  <span className="text-[10px] font-bold tracking-[0.18em] text-gray-400 uppercase">
+                    Dijital
+                  </span>
+                  <span className="from-primary bg-gradient-to-r to-indigo-500 bg-clip-text text-lg font-extrabold tracking-tight text-transparent">
+                    Stok
+                  </span>
+                </span>
               </h1>
             )}
 
             {isCollapsed && !isSidebarHovered ? (
-              <div className="text-primary flex h-9 w-9 items-center justify-center">
-                <Store size={22} />
+              <div aria-label="Dijital Stok" role="img">
+                <BrandMark />
               </div>
             ) : isCollapsed ? (
               <SidebarTooltip label="Kenar çubuğunu genişlet">
