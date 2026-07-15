@@ -188,6 +188,14 @@ Keep utility classes readable.
 
 Extract repeated styles.
 
+Use `clsx` for every conditional or dynamically composed `className`. Do not
+use template literals, string concatenation or standalone ternaries for
+conditional classes.
+
+```tsx
+className={clsx('base-class', isActive && 'active-class')}
+```
+
 ---
 
 # Form Controls
