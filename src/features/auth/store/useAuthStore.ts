@@ -18,6 +18,7 @@ import {
   setDoc,
   updateDoc,
   deleteDoc,
+  getDocFromCache,
   query,
   where,
   onSnapshot,
@@ -265,7 +266,8 @@ export const useAuthStore = getSingletonStore('auth', () =>
 
             set({
               profile: profileData,
-              activeMembership
+              activeMembership,
+              activeCompany: null
             });
 
             if (profileData.activeCompanyId) {
@@ -277,6 +279,8 @@ export const useAuthStore = getSingletonStore('auth', () =>
                 companySnap => {
                   if (companySnap.exists()) {
                     set({ activeCompany: companySnap.data() as Company });
+                  } else {
+                    set({ activeCompany: null });
                   }
                 }
               );
@@ -513,7 +517,37 @@ export const useAuthStore = getSingletonStore('auth', () =>
       if (!user) throw new Error('User not authenticated');
 
       const userRef = doc(db, 'users', user.uid);
-      await updateDoc(userRef, { activeCompanyId: companyId });
+      const updatePromise = updateDoc(userRef, { activeCompanyId: companyId });
+
+      if (!navigator.onLine) {
+        const [companySnap, profile] = await Promise.all([
+          getDocFromCache(doc(db, 'companies', companyId)),
+          Promise.resolve(get().profile)
+        ]);
+        const activeMembership = get().memberships.find(
+          membership => membership.companyId === companyId
+        );
+
+        if (!companySnap.exists() || !activeMembership || !profile) {
+          updatePromise.catch(error =>
+            console.error('Queued offline company switch failed', error)
+          );
+          throw new Error('Company is not available in the offline cache');
+        }
+
+        set({
+          profile: { ...profile, activeCompanyId: companyId },
+          activeMembership,
+          activeCompany: companySnap.data() as Company
+        });
+
+        updatePromise.catch(error =>
+          console.error('Queued offline company switch failed', error)
+        );
+        return;
+      }
+
+      await updatePromise;
     },
 
     updateCompanyProfile: async details => {

@@ -19,9 +19,12 @@ import {
   Settings,
   ChevronDown,
   Building2,
+  WifiOff,
   Plus,
   Loader2,
   CheckCircle2,
+  CloudDownload,
+  CloudCheck,
   ChevronRight,
   CreditCard,
   CircleUserRound,
@@ -47,6 +50,10 @@ import {
   normalizePhoneNumber,
   optionalPhoneNumberSchema
 } from '@/shared/utils/phoneNumber';
+import {
+  getOfflineReadyCompanyIds,
+  prepareCompanyForOffline
+} from '@/shared/utils/offlineCompanyCache';
 
 const newCompanySchema = z.object({
   name: z
@@ -105,6 +112,13 @@ export const MainLayout: React.FC = () => {
   const [newCompanyModalOpen, setNewCompanyModalOpen] = useState(false);
   const [isCreatingCompany, setIsCreatingCompany] = useState(false);
   const [isSwitching, setIsSwitching] = useState(false);
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [offlineReadyCompanyIds, setOfflineReadyCompanyIds] = useState(() =>
+    getOfflineReadyCompanyIds(user?.uid)
+  );
+  const [preparingCompanyId, setPreparingCompanyId] = useState<string | null>(
+    null
+  );
 
   const handleCollapsedSidebarClick = (
     event: React.MouseEvent<HTMLElement>
@@ -131,6 +145,47 @@ export const MainLayout: React.FC = () => {
       setIsCollapsed(false);
     }
   }, [location.pathname]);
+
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
+  useEffect(() => {
+    setOfflineReadyCompanyIds(getOfflineReadyCompanyIds(user?.uid));
+  }, [user?.uid]);
+
+  useEffect(() => {
+    if (!isOnline || !user?.uid || !activeCompany?.id) return;
+
+    let isCancelled = false;
+    setPreparingCompanyId(activeCompany.id);
+
+    prepareCompanyForOffline(user.uid, activeCompany.id)
+      .then(() => {
+        if (!isCancelled) {
+          setOfflineReadyCompanyIds(getOfflineReadyCompanyIds(user.uid));
+        }
+      })
+      .catch(error => {
+        console.warn('Offline company preparation failed', error);
+      })
+      .finally(() => {
+        if (!isCancelled) setPreparingCompanyId(null);
+      });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [activeCompany?.id, isOnline, user?.uid]);
 
   // Redirect if employee lacks dashboard view permission
   useEffect(() => {
@@ -170,6 +225,14 @@ export const MainLayout: React.FC = () => {
     }
 
     if (selectedKey === activeCompany?.id) return;
+
+    const isOfflineReady = offlineReadyCompanyIds.includes(selectedKey);
+    if (!isOnline && !isOfflineReady) {
+      toast.warning(
+        'Bu işletmenin verileri bu cihazda henüz çevrim dışı kullanıma hazır değil.'
+      );
+      return;
+    }
 
     if (cart.length > 0) {
       const productCount = cart.reduce((sum, item) => sum + item.quantity, 0);
@@ -396,6 +459,20 @@ export const MainLayout: React.FC = () => {
                   }
                   selectionMode="single"
                   onSelectionChange={handleSelectionChange}>
+                  {!isOnline && (
+                    <Dropdown.Item
+                      id="offline-status"
+                      textValue="Çevrim dışı durum bilgisi"
+                      isDisabled>
+                      <div className="flex items-start gap-2 py-1 text-xs leading-4 text-amber-700">
+                        <WifiOff size={15} className="mt-0.5 flex-shrink-0" />
+                        <span>
+                          Çevrim dışısınız. Yalnızca bu cihazda hazır olan
+                          işletmelere geçebilirsiniz.
+                        </span>
+                      </div>
+                    </Dropdown.Item>
+                  )}
                   <Dropdown.Item
                     id="new-company"
                     textValue="Yeni İşletme Kur"
@@ -408,20 +485,44 @@ export const MainLayout: React.FC = () => {
 
                   <Dropdown.Section>
                     <Header className="pointer-events-none px-3 py-1 text-[10px] font-bold uppercase opacity-50">
-                      İşletmelerim
+                      {isOnline ? 'İşletmelerim' : 'Çevrim dışı işletmeler'}
                     </Header>
                     {memberships.map(m => (
                       <Dropdown.Item
                         id={m.companyId}
                         key={m.companyId}
                         textValue={m.companyName}
+                        isDisabled={
+                          isSwitching ||
+                          (!isOnline &&
+                            !offlineReadyCompanyIds.includes(m.companyId))
+                        }
                         className={clsx(
                           m.companyId === activeCompany?.id &&
                             'text-primary bg-primary/5 font-bold'
                         )}>
-                        <div className="flex items-center gap-2">
+                        <div className="flex w-full items-center gap-2">
                           <Building2 size={16} />
                           <Label>{m.companyName}</Label>
+                          <span className="ml-auto flex items-center text-xs">
+                            {preparingCompanyId === m.companyId ? (
+                              <CloudDownload
+                                size={15}
+                                className="text-primary animate-bounce"
+                                aria-label="Çevrim dışı kullanım için hazırlanıyor"
+                              />
+                            ) : offlineReadyCompanyIds.includes(m.companyId) ? (
+                              <CloudCheck
+                                size={15}
+                                className="text-emerald-500"
+                                aria-label="Çevrim dışı kullanıma hazır"
+                              />
+                            ) : !isOnline ? (
+                              <span className="text-[10px] font-medium text-gray-400">
+                                İnternet gerekli
+                              </span>
+                            ) : null}
+                          </span>
                         </div>
                       </Dropdown.Item>
                     ))}
