@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { getSingletonStore } from '@/shared/utils/getSingletonStore';
 import {
   signInWithPopup,
   signOut,
@@ -194,404 +195,406 @@ const checkAndMigrateLegacyUser = async (user: User): Promise<UserProfile> => {
   return profileData;
 };
 
-export const useAuthStore = create<AuthState>((set, get) => ({
-  user: null,
-  profile: null,
-  activeMembership: null,
-  memberships: [],
-  activeCompany: null,
-  isLoading: false,
-  isInitialized: false,
-  authError: null,
+export const useAuthStore = getSingletonStore('auth', () =>
+  create<AuthState>((set, get) => ({
+    user: null,
+    profile: null,
+    activeMembership: null,
+    memberships: [],
+    activeCompany: null,
+    isLoading: false,
+    isInitialized: false,
+    authError: null,
 
-  unsubscribeProfile: null,
-  unsubscribeMemberships: null,
-  unsubscribeActiveCompany: null,
+    unsubscribeProfile: null,
+    unsubscribeMemberships: null,
+    unsubscribeActiveCompany: null,
 
-  setUser: async user => {
-    const {
-      unsubscribeProfile,
-      unsubscribeMemberships,
-      unsubscribeActiveCompany
-    } = get();
-    if (unsubscribeProfile) unsubscribeProfile();
-    if (unsubscribeMemberships) unsubscribeMemberships();
-    if (unsubscribeActiveCompany) unsubscribeActiveCompany();
+    setUser: async user => {
+      const {
+        unsubscribeProfile,
+        unsubscribeMemberships,
+        unsubscribeActiveCompany
+      } = get();
+      if (unsubscribeProfile) unsubscribeProfile();
+      if (unsubscribeMemberships) unsubscribeMemberships();
+      if (unsubscribeActiveCompany) unsubscribeActiveCompany();
 
-    set({
-      unsubscribeProfile: null,
-      unsubscribeMemberships: null,
-      unsubscribeActiveCompany: null
-    });
-
-    if (!user) {
-      posthog.reset();
       set({
-        user: null,
-        profile: null,
-        activeMembership: null,
-        memberships: [],
-        activeCompany: null,
-        isInitialized: true,
-        isLoading: false
+        unsubscribeProfile: null,
+        unsubscribeMemberships: null,
+        unsubscribeActiveCompany: null
       });
-      return;
-    }
 
-    posthog.identify(user.uid, {
-      email: user.email ?? undefined,
-      name: user.displayName ?? undefined
-    });
-
-    set({ isLoading: true });
-
-    try {
-      await checkAndMigrateLegacyUser(user);
-
-      // Listen to profile
-      const subProfile = onSnapshot(
-        doc(db, 'users', user.uid),
-        async userSnap => {
-          if (!userSnap.exists()) return;
-          const profileData = userSnap.data() as UserProfile;
-
-          const memberships = get().memberships;
-          const activeMembership =
-            memberships.find(
-              m => m.companyId === profileData.activeCompanyId
-            ) || null;
-
-          set({
-            profile: profileData,
-            activeMembership
-          });
-
-          if (profileData.activeCompanyId) {
-            const { unsubscribeActiveCompany: oldSubCompany } = get();
-            if (oldSubCompany) oldSubCompany();
-
-            const subCompany = onSnapshot(
-              doc(db, 'companies', profileData.activeCompanyId),
-              companySnap => {
-                if (companySnap.exists()) {
-                  set({ activeCompany: companySnap.data() as Company });
-                }
-              }
-            );
-            set({ unsubscribeActiveCompany: subCompany });
-          } else {
-            set({ activeCompany: null });
-          }
-        }
-      );
-
-      // Listen to memberships
-      const membershipsQuery = query(
-        collection(db, 'memberships'),
-        where('userId', '==', user.uid)
-      );
-      const subMemberships = onSnapshot(membershipsQuery, snap => {
-        const memberships: Membership[] = [];
-        snap.forEach(doc => {
-          memberships.push(doc.data() as Membership);
-        });
-
-        const profile = get().profile;
-        const activeCompanyId = profile?.activeCompanyId;
-        const activeMembership =
-          memberships.find(m => m.companyId === activeCompanyId) || null;
-
+      if (!user) {
+        posthog.reset();
         set({
-          memberships,
-          activeMembership,
+          user: null,
+          profile: null,
+          activeMembership: null,
+          memberships: [],
+          activeCompany: null,
           isInitialized: true,
           isLoading: false
         });
+        return;
+      }
+
+      posthog.identify(user.uid, {
+        email: user.email ?? undefined,
+        name: user.displayName ?? undefined
       });
 
-      set({
-        user,
-        unsubscribeProfile: subProfile,
-        unsubscribeMemberships: subMemberships
-      });
-    } catch (err) {
-      console.error('Error setting user profile:', err);
-      set({
-        user,
-        isInitialized: true,
-        isLoading: false
-      });
-    }
-  },
+      set({ isLoading: true });
 
-  clearError: () => set({ authError: null }),
+      try {
+        await checkAndMigrateLegacyUser(user);
 
-  loginWithGoogle: async () => {
-    set({ isLoading: true, authError: null });
-    try {
-      const result = await signInWithPopup(auth, googleProvider);
-      posthog.identify(result.user.uid, {
-        email: result.user.email ?? undefined,
-        name: result.user.displayName ?? undefined
-      });
-      posthog.capture('user_logged_in', {
-        login_method: 'google',
-        is_email_verified: result.user.emailVerified
-      });
-    } catch (error: unknown) {
-      console.error('Google login failed:', error);
-      posthog.captureException(error, {
-        context: 'login_with_google'
-      });
-      const code = (error as { code?: string }).code ?? '';
-      set({ authError: getAuthErrorMessage(code) });
-      throw error;
-    } finally {
-      set({ isLoading: false });
-    }
-  },
+        // Listen to profile
+        const subProfile = onSnapshot(
+          doc(db, 'users', user.uid),
+          async userSnap => {
+            if (!userSnap.exists()) return;
+            const profileData = userSnap.data() as UserProfile;
 
-  loginWithEmail: async (email, password) => {
-    set({ isLoading: true, authError: null });
-    try {
-      const credential = await signInWithEmailAndPassword(
-        auth,
-        email,
-        password
-      );
-      posthog.identify(credential.user.uid, {
-        email: credential.user.email ?? undefined,
-        name: credential.user.displayName ?? undefined
-      });
-      posthog.capture('user_logged_in', {
-        login_method: 'email',
-        is_email_verified: credential.user.emailVerified
-      });
-    } catch (error: unknown) {
-      posthog.captureException(error, {
-        context: 'login_with_email'
-      });
-      const code = (error as { code?: string }).code ?? '';
-      set({ authError: getAuthErrorMessage(code) });
-      throw error;
-    } finally {
-      set({ isLoading: false });
-    }
-  },
+            const memberships = get().memberships;
+            const activeMembership =
+              memberships.find(
+                m => m.companyId === profileData.activeCompanyId
+              ) || null;
 
-  registerWithEmail: async (email, password) => {
-    set({ isLoading: true, authError: null });
-    try {
-      const credential = await createUserWithEmailAndPassword(
-        auth,
-        email,
-        password
-      );
-      await sendEmailVerification(credential.user);
-      posthog.identify(credential.user.uid, {
-        email: credential.user.email ?? undefined,
-        name: credential.user.displayName ?? undefined
-      });
-      posthog.capture('user_registered', {
-        registration_method: 'email',
-        verification_email_sent: true
-      });
-    } catch (error: unknown) {
-      posthog.captureException(error, {
-        context: 'register_with_email'
-      });
-      const code = (error as { code?: string }).code ?? '';
-      set({ authError: getAuthErrorMessage(code) });
-      throw error;
-    } finally {
-      set({ isLoading: false });
-    }
-  },
+            set({
+              profile: profileData,
+              activeMembership
+            });
 
-  updateDisplayName: async displayName => {
-    const user = get().user;
-    const name = displayName.trim();
+            if (profileData.activeCompanyId) {
+              const { unsubscribeActiveCompany: oldSubCompany } = get();
+              if (oldSubCompany) oldSubCompany();
 
-    if (!user) throw new Error('User not authenticated');
-    if (!name) throw new Error('Display name is required');
+              const subCompany = onSnapshot(
+                doc(db, 'companies', profileData.activeCompanyId),
+                companySnap => {
+                  if (companySnap.exists()) {
+                    set({ activeCompany: companySnap.data() as Company });
+                  }
+                }
+              );
+              set({ unsubscribeActiveCompany: subCompany });
+            } else {
+              set({ activeCompany: null });
+            }
+          }
+        );
 
-    await updateProfile(user, { displayName: name });
-    await updateDoc(doc(db, 'users', user.uid), { name });
+        // Listen to memberships
+        const membershipsQuery = query(
+          collection(db, 'memberships'),
+          where('userId', '==', user.uid)
+        );
+        const subMemberships = onSnapshot(membershipsQuery, snap => {
+          const memberships: Membership[] = [];
+          snap.forEach(doc => {
+            memberships.push(doc.data() as Membership);
+          });
 
-    posthog.identify(user.uid, { name });
-    set({ user });
-  },
+          const profile = get().profile;
+          const activeCompanyId = profile?.activeCompanyId;
+          const activeMembership =
+            memberships.find(m => m.companyId === activeCompanyId) || null;
 
-  resetPassword: async email => {
-    set({ isLoading: true, authError: null });
-    try {
-      await sendPasswordResetEmail(auth, email);
-      posthog.capture('password_reset_requested', {
-        request_source: 'login_view'
-      });
-    } catch (error: unknown) {
-      posthog.captureException(error, {
-        context: 'reset_password'
-      });
-      const code = (error as { code?: string }).code ?? '';
-      set({ authError: getAuthErrorMessage(code) });
-      throw error;
-    } finally {
-      set({ isLoading: false });
-    }
-  },
+          set({
+            memberships,
+            activeMembership,
+            isInitialized: true,
+            isLoading: false
+          });
+        });
 
-  logout: async () => {
-    set({ isLoading: true });
-    try {
-      const currentUser = auth.currentUser;
-      if (currentUser) {
-        posthog.capture('user_logged_out', {
-          had_verified_email: currentUser.emailVerified
+        set({
+          user,
+          unsubscribeProfile: subProfile,
+          unsubscribeMemberships: subMemberships
+        });
+      } catch (err) {
+        console.error('Error setting user profile:', err);
+        set({
+          user,
+          isInitialized: true,
+          isLoading: false
         });
       }
-      await signOut(auth);
-      posthog.reset();
-      useInventoryStore.getState().clearItems();
-      useCustomerStore.getState().clearCustomers();
-      useSalesStore.getState().clearCart();
-      useSalesStore.getState().clearHeldSales();
-      useSalesHistoryStore.getState().clearSales();
-      usePreferencesStore.getState().clearPreferences();
-    } catch (error) {
-      console.error('Logout failed:', error);
-      posthog.captureException(error, {
-        context: 'logout'
-      });
-    } finally {
-      set({ isLoading: false });
+    },
+
+    clearError: () => set({ authError: null }),
+
+    loginWithGoogle: async () => {
+      set({ isLoading: true, authError: null });
+      try {
+        const result = await signInWithPopup(auth, googleProvider);
+        posthog.identify(result.user.uid, {
+          email: result.user.email ?? undefined,
+          name: result.user.displayName ?? undefined
+        });
+        posthog.capture('user_logged_in', {
+          login_method: 'google',
+          is_email_verified: result.user.emailVerified
+        });
+      } catch (error: unknown) {
+        console.error('Google login failed:', error);
+        posthog.captureException(error, {
+          context: 'login_with_google'
+        });
+        const code = (error as { code?: string }).code ?? '';
+        set({ authError: getAuthErrorMessage(code) });
+        throw error;
+      } finally {
+        set({ isLoading: false });
+      }
+    },
+
+    loginWithEmail: async (email, password) => {
+      set({ isLoading: true, authError: null });
+      try {
+        const credential = await signInWithEmailAndPassword(
+          auth,
+          email,
+          password
+        );
+        posthog.identify(credential.user.uid, {
+          email: credential.user.email ?? undefined,
+          name: credential.user.displayName ?? undefined
+        });
+        posthog.capture('user_logged_in', {
+          login_method: 'email',
+          is_email_verified: credential.user.emailVerified
+        });
+      } catch (error: unknown) {
+        posthog.captureException(error, {
+          context: 'login_with_email'
+        });
+        const code = (error as { code?: string }).code ?? '';
+        set({ authError: getAuthErrorMessage(code) });
+        throw error;
+      } finally {
+        set({ isLoading: false });
+      }
+    },
+
+    registerWithEmail: async (email, password) => {
+      set({ isLoading: true, authError: null });
+      try {
+        const credential = await createUserWithEmailAndPassword(
+          auth,
+          email,
+          password
+        );
+        await sendEmailVerification(credential.user);
+        posthog.identify(credential.user.uid, {
+          email: credential.user.email ?? undefined,
+          name: credential.user.displayName ?? undefined
+        });
+        posthog.capture('user_registered', {
+          registration_method: 'email',
+          verification_email_sent: true
+        });
+      } catch (error: unknown) {
+        posthog.captureException(error, {
+          context: 'register_with_email'
+        });
+        const code = (error as { code?: string }).code ?? '';
+        set({ authError: getAuthErrorMessage(code) });
+        throw error;
+      } finally {
+        set({ isLoading: false });
+      }
+    },
+
+    updateDisplayName: async displayName => {
+      const user = get().user;
+      const name = displayName.trim();
+
+      if (!user) throw new Error('User not authenticated');
+      if (!name) throw new Error('Display name is required');
+
+      await updateProfile(user, { displayName: name });
+      await updateDoc(doc(db, 'users', user.uid), { name });
+
+      posthog.identify(user.uid, { name });
+      set({ user });
+    },
+
+    resetPassword: async email => {
+      set({ isLoading: true, authError: null });
+      try {
+        await sendPasswordResetEmail(auth, email);
+        posthog.capture('password_reset_requested', {
+          request_source: 'login_view'
+        });
+      } catch (error: unknown) {
+        posthog.captureException(error, {
+          context: 'reset_password'
+        });
+        const code = (error as { code?: string }).code ?? '';
+        set({ authError: getAuthErrorMessage(code) });
+        throw error;
+      } finally {
+        set({ isLoading: false });
+      }
+    },
+
+    logout: async () => {
+      set({ isLoading: true });
+      try {
+        const currentUser = auth.currentUser;
+        if (currentUser) {
+          posthog.capture('user_logged_out', {
+            had_verified_email: currentUser.emailVerified
+          });
+        }
+        await signOut(auth);
+        posthog.reset();
+        useInventoryStore.getState().clearItems();
+        useCustomerStore.getState().clearCustomers();
+        useSalesStore.getState().clearCart();
+        useSalesStore.getState().clearHeldSales();
+        useSalesHistoryStore.getState().clearSales();
+        usePreferencesStore.getState().clearPreferences();
+      } catch (error) {
+        console.error('Logout failed:', error);
+        posthog.captureException(error, {
+          context: 'logout'
+        });
+      } finally {
+        set({ isLoading: false });
+      }
+    },
+
+    createCompany: async (name, details) => {
+      const user = get().user;
+      if (!user) throw new Error('User not authenticated');
+
+      const companyId = crypto.randomUUID();
+      const createdAt = new Date().toISOString();
+
+      const companyRef = doc(db, 'companies', companyId);
+      const companyData: Company = {
+        id: companyId,
+        name,
+        ownerId: user.uid,
+        phone: details?.phone || null,
+        address: details?.address || null,
+        receiptHeader: details?.receiptHeader || null,
+        createdAt
+      };
+      await setDoc(companyRef, companyData);
+
+      const membershipId = `${user.uid}_${companyId}`;
+      const membershipRef = doc(db, 'memberships', membershipId);
+      const membershipData: Membership = {
+        id: membershipId,
+        userId: user.uid,
+        companyId,
+        companyName: name,
+        role: 'OWNER',
+        permissions: [],
+        createdAt
+      };
+      await setDoc(membershipRef, membershipData);
+
+      const userRef = doc(db, 'users', user.uid);
+      await updateDoc(userRef, { activeCompanyId: companyId });
+
+      return companyId;
+    },
+
+    switchCompany: async companyId => {
+      const user = get().user;
+      if (!user) throw new Error('User not authenticated');
+
+      const userRef = doc(db, 'users', user.uid);
+      await updateDoc(userRef, { activeCompanyId: companyId });
+    },
+
+    updateCompanyProfile: async details => {
+      const activeCompany = get().activeCompany;
+      if (!activeCompany) throw new Error('No active company selected');
+
+      const companyRef = doc(db, 'companies', activeCompany.id);
+      await updateDoc(companyRef, details);
+    },
+
+    inviteEmployee: async (email, permissions) => {
+      const activeCompany = get().activeCompany;
+      const user = get().user;
+      if (!activeCompany || !user)
+        throw new Error('Active company or user missing');
+
+      const inviteId = crypto.randomUUID();
+      const invitation: Invitation = {
+        id: inviteId,
+        companyId: activeCompany.id,
+        companyName: activeCompany.name,
+        email: email.toLowerCase().trim(),
+        permissions,
+        status: 'PENDING',
+        createdAt: new Date().toISOString(),
+        invitedBy: user.uid
+      };
+
+      await setDoc(doc(db, 'invitations', inviteId), invitation);
+    },
+
+    updateEmployeePermissions: async (userId, permissions) => {
+      const activeCompany = get().activeCompany;
+      if (!activeCompany) throw new Error('No active company');
+
+      const membershipId = `${userId}_${activeCompany.id}`;
+      const membershipRef = doc(db, 'memberships', membershipId);
+      await updateDoc(membershipRef, { permissions });
+    },
+
+    removeEmployee: async userId => {
+      const activeCompany = get().activeCompany;
+      if (!activeCompany) throw new Error('No active company');
+
+      const membershipId = `${userId}_${activeCompany.id}`;
+      await deleteDoc(doc(db, 'memberships', membershipId));
+    },
+
+    acceptInvitation: async invitationId => {
+      const user = get().user;
+      if (!user) throw new Error('User not authenticated');
+
+      const inviteRef = doc(db, 'invitations', invitationId);
+      const inviteSnap = await getDoc(inviteRef);
+      if (!inviteSnap.exists()) throw new Error('Invitation not found');
+      const invite = inviteSnap.data() as Invitation;
+
+      const createdAt = new Date().toISOString();
+
+      const membershipId = `${user.uid}_${invite.companyId}`;
+      const membershipRef = doc(db, 'memberships', membershipId);
+      const membershipData: Membership = {
+        id: membershipId,
+        userId: user.uid,
+        companyId: invite.companyId,
+        companyName: invite.companyName,
+        role: 'EMPLOYEE',
+        permissions: invite.permissions,
+        createdAt
+      };
+      await setDoc(membershipRef, membershipData);
+
+      await updateDoc(inviteRef, { status: 'ACCEPTED' });
+
+      const userRef = doc(db, 'users', user.uid);
+      await updateDoc(userRef, { activeCompanyId: invite.companyId });
+    },
+
+    declineInvitation: async invitationId => {
+      const inviteRef = doc(db, 'invitations', invitationId);
+      await updateDoc(inviteRef, { status: 'DECLINED' });
     }
-  },
-
-  createCompany: async (name, details) => {
-    const user = get().user;
-    if (!user) throw new Error('User not authenticated');
-
-    const companyId = crypto.randomUUID();
-    const createdAt = new Date().toISOString();
-
-    const companyRef = doc(db, 'companies', companyId);
-    const companyData: Company = {
-      id: companyId,
-      name,
-      ownerId: user.uid,
-      phone: details?.phone || null,
-      address: details?.address || null,
-      receiptHeader: details?.receiptHeader || null,
-      createdAt
-    };
-    await setDoc(companyRef, companyData);
-
-    const membershipId = `${user.uid}_${companyId}`;
-    const membershipRef = doc(db, 'memberships', membershipId);
-    const membershipData: Membership = {
-      id: membershipId,
-      userId: user.uid,
-      companyId,
-      companyName: name,
-      role: 'OWNER',
-      permissions: [],
-      createdAt
-    };
-    await setDoc(membershipRef, membershipData);
-
-    const userRef = doc(db, 'users', user.uid);
-    await updateDoc(userRef, { activeCompanyId: companyId });
-
-    return companyId;
-  },
-
-  switchCompany: async companyId => {
-    const user = get().user;
-    if (!user) throw new Error('User not authenticated');
-
-    const userRef = doc(db, 'users', user.uid);
-    await updateDoc(userRef, { activeCompanyId: companyId });
-  },
-
-  updateCompanyProfile: async details => {
-    const activeCompany = get().activeCompany;
-    if (!activeCompany) throw new Error('No active company selected');
-
-    const companyRef = doc(db, 'companies', activeCompany.id);
-    await updateDoc(companyRef, details);
-  },
-
-  inviteEmployee: async (email, permissions) => {
-    const activeCompany = get().activeCompany;
-    const user = get().user;
-    if (!activeCompany || !user)
-      throw new Error('Active company or user missing');
-
-    const inviteId = crypto.randomUUID();
-    const invitation: Invitation = {
-      id: inviteId,
-      companyId: activeCompany.id,
-      companyName: activeCompany.name,
-      email: email.toLowerCase().trim(),
-      permissions,
-      status: 'PENDING',
-      createdAt: new Date().toISOString(),
-      invitedBy: user.uid
-    };
-
-    await setDoc(doc(db, 'invitations', inviteId), invitation);
-  },
-
-  updateEmployeePermissions: async (userId, permissions) => {
-    const activeCompany = get().activeCompany;
-    if (!activeCompany) throw new Error('No active company');
-
-    const membershipId = `${userId}_${activeCompany.id}`;
-    const membershipRef = doc(db, 'memberships', membershipId);
-    await updateDoc(membershipRef, { permissions });
-  },
-
-  removeEmployee: async userId => {
-    const activeCompany = get().activeCompany;
-    if (!activeCompany) throw new Error('No active company');
-
-    const membershipId = `${userId}_${activeCompany.id}`;
-    await deleteDoc(doc(db, 'memberships', membershipId));
-  },
-
-  acceptInvitation: async invitationId => {
-    const user = get().user;
-    if (!user) throw new Error('User not authenticated');
-
-    const inviteRef = doc(db, 'invitations', invitationId);
-    const inviteSnap = await getDoc(inviteRef);
-    if (!inviteSnap.exists()) throw new Error('Invitation not found');
-    const invite = inviteSnap.data() as Invitation;
-
-    const createdAt = new Date().toISOString();
-
-    const membershipId = `${user.uid}_${invite.companyId}`;
-    const membershipRef = doc(db, 'memberships', membershipId);
-    const membershipData: Membership = {
-      id: membershipId,
-      userId: user.uid,
-      companyId: invite.companyId,
-      companyName: invite.companyName,
-      role: 'EMPLOYEE',
-      permissions: invite.permissions,
-      createdAt
-    };
-    await setDoc(membershipRef, membershipData);
-
-    await updateDoc(inviteRef, { status: 'ACCEPTED' });
-
-    const userRef = doc(db, 'users', user.uid);
-    await updateDoc(userRef, { activeCompanyId: invite.companyId });
-  },
-
-  declineInvitation: async invitationId => {
-    const inviteRef = doc(db, 'invitations', invitationId);
-    await updateDoc(inviteRef, { status: 'DECLINED' });
-  }
-}));
+  }))
+);

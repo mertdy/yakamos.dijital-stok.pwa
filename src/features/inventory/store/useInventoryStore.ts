@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { getSingletonStore } from '@/shared/utils/getSingletonStore';
 import {
   collection,
   doc,
@@ -40,150 +41,154 @@ interface InventoryState {
   clearItems: () => void;
 }
 
-export const useInventoryStore = create<InventoryState>((set, get) => ({
-  items: [],
-  isLoading: false,
-  unsubscribeSnapshot: null,
+export const useInventoryStore = getSingletonStore('inventory', () =>
+  create<InventoryState>((set, get) => ({
+    items: [],
+    isLoading: false,
+    unsubscribeSnapshot: null,
 
-  loadItems: () => {
-    const profile = useAuthStore.getState().profile;
-    if (!profile?.activeCompanyId) return;
+    loadItems: () => {
+      const profile = useAuthStore.getState().profile;
+      if (!profile?.activeCompanyId) return;
 
-    const { unsubscribeSnapshot } = get();
-    if (unsubscribeSnapshot) {
-      unsubscribeSnapshot();
-    }
-
-    set({ isLoading: true });
-
-    const q = query(
-      collection(db, 'inventory'),
-      where('companyId', '==', profile.activeCompanyId)
-    );
-
-    const unsubscribe = onSnapshot(
-      q,
-      snapshot => {
-        const items: InventoryItem[] = [];
-        snapshot.forEach(doc => {
-          items.push({ id: doc.id, ...doc.data() } as InventoryItem);
-        });
-        set({ items, isLoading: false });
-      },
-      error => {
-        console.error('Firestore snapshot error:', error);
-        set({ isLoading: false });
+      const { unsubscribeSnapshot } = get();
+      if (unsubscribeSnapshot) {
+        unsubscribeSnapshot();
       }
-    );
 
-    set({ unsubscribeSnapshot: unsubscribe });
-  },
+      set({ isLoading: true });
 
-  addItem: async newItemData => {
-    const profile = useAuthStore.getState().profile;
-    if (!profile?.activeCompanyId)
-      throw new Error('No active company selected');
+      const q = query(
+        collection(db, 'inventory'),
+        where('companyId', '==', profile.activeCompanyId)
+      );
 
-    const user = auth.currentUser;
-    if (!user) throw new Error('User not authenticated');
+      const unsubscribe = onSnapshot(
+        q,
+        snapshot => {
+          const items: InventoryItem[] = [];
+          snapshot.forEach(doc => {
+            items.push({ id: doc.id, ...doc.data() } as InventoryItem);
+          });
+          set({ items, isLoading: false });
+        },
+        error => {
+          console.error('Firestore snapshot error:', error);
+          set({ isLoading: false });
+        }
+      );
 
-    const id = crypto.randomUUID();
-    const updatedAt = new Date().toISOString();
-    const newItem: InventoryItem = {
-      id,
-      ...newItemData,
-      updatedAt,
-      userId: user.uid,
-      companyId: profile.activeCompanyId
-    };
+      set({ unsubscribeSnapshot: unsubscribe });
+    },
 
-    setDoc(doc(db, 'inventory', id), newItem).catch(err => {
-      console.error('Firestore background sync failed', err);
-      posthog.captureException(err, {
-        context: 'inventory_add_item',
+    addItem: async newItemData => {
+      const profile = useAuthStore.getState().profile;
+      if (!profile?.activeCompanyId)
+        throw new Error('No active company selected');
+
+      const user = auth.currentUser;
+      if (!user) throw new Error('User not authenticated');
+
+      const id = crypto.randomUUID();
+      const updatedAt = new Date().toISOString();
+      const newItem: InventoryItem = {
+        id,
+        ...newItemData,
+        updatedAt,
+        userId: user.uid,
+        companyId: profile.activeCompanyId
+      };
+
+      setDoc(doc(db, 'inventory', id), newItem).catch(err => {
+        console.error('Firestore background sync failed', err);
+        posthog.captureException(err, {
+          context: 'inventory_add_item',
+          inventory_id: id
+        });
+      });
+
+      posthog.capture('inventory_item_created', {
+        inventory_id: id,
+        has_barcode: Boolean(newItem.barcode),
+        initial_stock: newItem.stock,
+        price: newItem.price
+      });
+    },
+
+    updateItem: async (id, updatedData) => {
+      const user = auth.currentUser;
+      if (!user) throw new Error('User not authenticated');
+
+      const updatedAt = new Date().toISOString();
+      const currentItem = get().items.find(i => i.id === id);
+      if (!currentItem) return;
+
+      const mergedItem = { ...currentItem, ...updatedData, updatedAt };
+
+      setDoc(doc(db, 'inventory', id), mergedItem, { merge: true }).catch(
+        err => {
+          console.error('Firestore background sync failed', err);
+          posthog.captureException(err, {
+            context: 'inventory_update_item',
+            inventory_id: id
+          });
+        }
+      );
+
+      posthog.capture('inventory_item_updated', {
+        inventory_id: id,
+        has_barcode: Boolean(mergedItem.barcode),
+        stock: mergedItem.stock,
+        price: mergedItem.price
+      });
+    },
+
+    deleteItem: async id => {
+      const user = auth.currentUser;
+      if (!user) throw new Error('User not authenticated');
+
+      deleteDoc(doc(db, 'inventory', id)).catch(err => {
+        console.error('Firestore background sync failed', err);
+        posthog.captureException(err, {
+          context: 'inventory_delete_item',
+          inventory_id: id
+        });
+      });
+
+      posthog.capture('inventory_item_deleted', {
         inventory_id: id
       });
-    });
+    },
 
-    posthog.capture('inventory_item_created', {
-      inventory_id: id,
-      has_barcode: Boolean(newItem.barcode),
-      initial_stock: newItem.stock,
-      price: newItem.price
-    });
-  },
+    deleteItems: async ids => {
+      const user = auth.currentUser;
+      if (!user) throw new Error('User not authenticated');
 
-  updateItem: async (id, updatedData) => {
-    const user = auth.currentUser;
-    if (!user) throw new Error('User not authenticated');
-
-    const updatedAt = new Date().toISOString();
-    const currentItem = get().items.find(i => i.id === id);
-    if (!currentItem) return;
-
-    const mergedItem = { ...currentItem, ...updatedData, updatedAt };
-
-    setDoc(doc(db, 'inventory', id), mergedItem, { merge: true }).catch(err => {
-      console.error('Firestore background sync failed', err);
-      posthog.captureException(err, {
-        context: 'inventory_update_item',
-        inventory_id: id
+      const batch = writeBatch(db);
+      ids.forEach(id => {
+        batch.delete(doc(db, 'inventory', id));
       });
-    });
 
-    posthog.capture('inventory_item_updated', {
-      inventory_id: id,
-      has_barcode: Boolean(mergedItem.barcode),
-      stock: mergedItem.stock,
-      price: mergedItem.price
-    });
-  },
-
-  deleteItem: async id => {
-    const user = auth.currentUser;
-    if (!user) throw new Error('User not authenticated');
-
-    deleteDoc(doc(db, 'inventory', id)).catch(err => {
-      console.error('Firestore background sync failed', err);
-      posthog.captureException(err, {
-        context: 'inventory_delete_item',
-        inventory_id: id
+      await batch.commit().catch(err => {
+        console.error('Firestore background sync batch failed', err);
+        posthog.captureException(err, {
+          context: 'inventory_delete_items',
+          inventory_ids: ids
+        });
       });
-    });
 
-    posthog.capture('inventory_item_deleted', {
-      inventory_id: id
-    });
-  },
-
-  deleteItems: async ids => {
-    const user = auth.currentUser;
-    if (!user) throw new Error('User not authenticated');
-
-    const batch = writeBatch(db);
-    ids.forEach(id => {
-      batch.delete(doc(db, 'inventory', id));
-    });
-
-    await batch.commit().catch(err => {
-      console.error('Firestore background sync batch failed', err);
-      posthog.captureException(err, {
-        context: 'inventory_delete_items',
+      posthog.capture('inventory_items_deleted', {
+        count: ids.length,
         inventory_ids: ids
       });
-    });
+    },
 
-    posthog.capture('inventory_items_deleted', {
-      count: ids.length,
-      inventory_ids: ids
-    });
-  },
-
-  clearItems: () => {
-    const { unsubscribeSnapshot } = get();
-    if (unsubscribeSnapshot) {
-      unsubscribeSnapshot();
+    clearItems: () => {
+      const { unsubscribeSnapshot } = get();
+      if (unsubscribeSnapshot) {
+        unsubscribeSnapshot();
+      }
+      set({ items: [], unsubscribeSnapshot: null });
     }
-    set({ items: [], unsubscribeSnapshot: null });
-  }
-}));
+  }))
+);
