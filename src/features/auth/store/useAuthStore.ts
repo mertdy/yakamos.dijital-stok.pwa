@@ -521,6 +521,41 @@ export const useAuthStore = getSingletonStore('auth', () =>
       if (!activeCompany) throw new Error('No active company selected');
 
       const companyRef = doc(db, 'companies', activeCompany.id);
+
+      if (
+        typeof details.name === 'string' &&
+        details.name !== activeCompany.name
+      ) {
+        const membershipsSnapshot = await getDocs(
+          query(
+            collection(db, 'memberships'),
+            where('companyId', '==', activeCompany.id)
+          )
+        );
+        const membershipDocs = membershipsSnapshot.docs;
+
+        // Firestore batches allow at most 500 writes. Reserve one write in the
+        // first batch for the company document itself.
+        for (let start = 0; start < Math.max(membershipDocs.length, 1); ) {
+          const isFirstBatch = start === 0;
+          const batchSize = isFirstBatch ? 499 : 500;
+          const membershipBatch = membershipDocs.slice(
+            start,
+            start + batchSize
+          );
+          const batch = writeBatch(db);
+
+          if (isFirstBatch) batch.update(companyRef, details);
+          membershipBatch.forEach(membershipDoc => {
+            batch.update(membershipDoc.ref, { companyName: details.name });
+          });
+
+          await batch.commit();
+          start += membershipBatch.length || 1;
+        }
+        return;
+      }
+
       await updateDoc(companyRef, details);
     },
 

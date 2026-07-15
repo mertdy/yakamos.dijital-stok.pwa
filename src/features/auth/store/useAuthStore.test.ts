@@ -8,7 +8,7 @@ import {
   signInWithPopup,
   signOut
 } from 'firebase/auth';
-import { updateDoc } from 'firebase/firestore';
+import { getDocs, updateDoc, writeBatch } from 'firebase/firestore';
 import { getAuthErrorMessage } from './useAuthStore';
 
 // ─── Firebase mocks ───────────────────────────────────────────────────────────
@@ -31,7 +31,9 @@ vi.mock('firebase/firestore', () => ({
   collection: vi.fn(),
   query: vi.fn(),
   where: vi.fn(),
-  updateDoc: vi.fn().mockResolvedValue(undefined)
+  updateDoc: vi.fn().mockResolvedValue(undefined),
+  getDocs: vi.fn(),
+  writeBatch: vi.fn()
 }));
 
 vi.mock('@/core/firebase/config', () => ({
@@ -254,6 +256,36 @@ describe('useAuthStore', () => {
     expect(updateDoc).toHaveBeenCalledWith(expect.anything(), {
       name: 'Yeni İsim'
     });
+  });
+
+  it('synchronizes membership names when the company name changes', async () => {
+    const batch = { update: vi.fn(), commit: vi.fn().mockResolvedValue(null) };
+    vi.mocked(getDocs).mockResolvedValue({
+      docs: [{ ref: { id: 'membership-1' } }, { ref: { id: 'membership-2' } }]
+    } as never);
+    vi.mocked(writeBatch).mockReturnValue(batch as never);
+
+    const store = await buildStore();
+    store.setState({
+      activeCompany: {
+        id: 'company-1',
+        name: 'Eski İşletme',
+        ownerId: 'user-1',
+        createdAt: '2026-01-01T00:00:00.000Z'
+      }
+    });
+
+    await store.getState().updateCompanyProfile({ name: 'Yeni İşletme' });
+
+    expect(batch.update).toHaveBeenCalledTimes(3);
+    expect(batch.update).toHaveBeenCalledWith(expect.anything(), {
+      name: 'Yeni İşletme'
+    });
+    expect(batch.update).toHaveBeenCalledWith(
+      { id: 'membership-1' },
+      { companyName: 'Yeni İşletme' }
+    );
+    expect(batch.commit).toHaveBeenCalledOnce();
   });
 
   // ── resetPassword ────────────────────────────────────────────────────────
