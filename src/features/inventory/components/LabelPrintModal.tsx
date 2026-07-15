@@ -13,6 +13,7 @@ import { Check, Printer, Tag } from 'lucide-react';
 import type { InventoryItem } from '../store/useInventoryStore';
 import {
   DEFAULT_LABEL_FIELDS,
+  DEFAULT_LABEL_SIZE_ID,
   formatPrice,
   formatUpdatedAt,
   LABEL_SIZES,
@@ -53,7 +54,7 @@ export const LabelPrintModal = ({
   onClose
 }: LabelPrintModalProps) => {
   const [template, setTemplate] = useState<LabelTemplate>('PRODUCT_BARCODE');
-  const [sizeId, setSizeId] = useState('40x30');
+  const [sizeId, setSizeId] = useState(DEFAULT_LABEL_SIZE_ID);
   const [fields, setFields] = useState<LabelField[]>(DEFAULT_LABEL_FIELDS);
   const [printItems, setPrintItems] = useState<PrintItem[]>([]);
   const printRef = useRef<HTMLDivElement>(null);
@@ -64,7 +65,7 @@ export const LabelPrintModal = ({
     if (!isOpen) return;
     setPrintItems(items.map(item => ({ item, quantity: 1 })));
     setTemplate('PRODUCT_BARCODE');
-    setSizeId('40x30');
+    setSizeId(DEFAULT_LABEL_SIZE_ID);
     setFields(DEFAULT_LABEL_FIELDS);
   }, [isOpen, items]);
 
@@ -327,7 +328,11 @@ const LabelPreview = ({
         ? ({
             '--label-width': `${size.widthMm}mm`,
             '--label-height': `${size.heightMm}mm`,
-            '--label-columns': size.columns ?? 1
+            '--label-columns': size.columns ?? 1,
+            '--label-padding-top': `${size.pagePaddingMm?.top ?? 0}mm`,
+            '--label-padding-right': `${size.pagePaddingMm?.right ?? 0}mm`,
+            '--label-padding-bottom': `${size.pagePaddingMm?.bottom ?? 0}mm`,
+            '--label-padding-left': `${size.pagePaddingMm?.left ?? 0}mm`
           } as React.CSSProperties)
         : undefined
     }>
@@ -399,7 +404,7 @@ const getPageStyle = (size: LabelSize): string => `
 
 const LabelPrintStyles = () => (
   <style>{`
-    .label-print-grid { display: grid; grid-template-columns: repeat(var(--label-columns), var(--label-width)); gap: 0; width: fit-content; }
+    .label-print-grid { display: grid; grid-template-columns: repeat(var(--label-columns), var(--label-width)); gap: 0; width: fit-content; padding: var(--label-padding-top) var(--label-padding-right) var(--label-padding-bottom) var(--label-padding-left); }
     .label-print-item { box-sizing: border-box; width: var(--label-width); height: var(--label-height); overflow: hidden; padding: 2.2mm; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #111827; background: #fff; font-family: Arial, sans-serif; text-align: center; }
     .label-print-name { width: 100%; overflow: hidden; font-size: 10pt; line-height: 1.15; font-weight: 700; }
     .label-print-price { margin: .5mm 0; font-size: 13pt; font-weight: 800; }

@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { createInternalBarcode, getBarcodeFormat } from './labelPrinting';
+import {
+  createInternalBarcode,
+  DEFAULT_LABEL_SIZE_ID,
+  getBarcodeFormat,
+  LABEL_SIZES
+} from './labelPrinting';
 
 describe('label printing helpers', () => {
   it('uses retail formats for valid numeric barcodes', () => {
@@ -24,5 +29,19 @@ describe('label printing helpers', () => {
         updatedAt: '2026-01-01T00:00:00.000Z'
       })
     ).toBe('D1234567890AB');
+  });
+
+  it('defaults to the standard 40 × 30 mm thermal label and includes common A4 layouts', () => {
+    expect(DEFAULT_LABEL_SIZE_ID).toBe('40x30');
+    expect(LABEL_SIZES.map(size => size.id)).toEqual(
+      expect.arrayContaining([
+        'a4-2x7',
+        'a4-3x7',
+        'a4-3x8',
+        'a4-3x9',
+        'a4-4x10',
+        'a4-5x13'
+      ])
+    );
   });
 });
