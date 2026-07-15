@@ -332,7 +332,7 @@ export const CompanySettingsView = () => {
             <div className="flex justify-end pt-4">
               <Button
                 type="submit"
-                className="h-11 rounded-xl px-8 font-bold"
+                variant="primary"
                 isDisabled={isSavingProfile}>
                 {isSavingProfile ? (
                   <Loader2 className="mr-2 animate-spin" size={18} />
@@ -354,7 +354,6 @@ export const CompanySettingsView = () => {
             <Button
               variant="primary"
               size="sm"
-              className="rounded-xl font-bold"
               onPress={() => setInviteModalOpen(true)}>
               <UserPlus size={16} className="mr-1.5" /> Personel Davet Et
             </Button>
