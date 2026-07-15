@@ -627,17 +627,19 @@ export const CompanySettingsView = () => {
         }}>
         <button style={{ display: 'none' }} aria-hidden="true" tabIndex={-1} />
         <Modal.Backdrop>
-          <Modal.Container>
-            <Modal.Dialog className="w-full max-w-lg overflow-hidden rounded-3xl bg-white p-6 shadow-xl outline-none">
+          <Modal.Container scroll="inside">
+            <Modal.Dialog className="flex h-[min(92vh,760px)] w-full max-w-lg flex-col overflow-hidden rounded-3xl bg-white shadow-xl outline-none">
               <Modal.CloseTrigger />
-              <form onSubmit={handleSubmitInvite(handleInviteSubmit)}>
+              <form
+                onSubmit={handleSubmitInvite(handleInviteSubmit)}
+                className="flex h-full min-h-0 flex-col">
                 <Modal.Header>
                   <Modal.Heading className="text-xl">
                     Yeni Çalışan Davet Et
                   </Modal.Heading>
                 </Modal.Header>
 
-                <Modal.Body className="space-y-4">
+                <Modal.Body className="min-h-0 flex-1 space-y-4 overflow-y-auto px-6">
                   <FormInput
                     control={controlInvite}
                     name="email"
@@ -697,7 +699,7 @@ export const CompanySettingsView = () => {
                     <label className="block border-b border-gray-100 pb-1 text-sm font-semibold text-gray-700">
                       Kullanıcı İzinleri
                     </label>
-                    <div className="max-h-60 space-y-2 overflow-y-auto pr-1">
+                    <div className="space-y-2">
                       {AVAILABLE_PERMISSIONS.map(perm => (
                         <Checkbox
                           key={perm.key}
@@ -716,7 +718,7 @@ export const CompanySettingsView = () => {
                   </div>
                 </Modal.Body>
 
-                <Modal.Footer className="flex gap-3 pt-6">
+                <Modal.Footer className="flex flex-none gap-3 border-t border-gray-100 p-4 pb-2">
                   <Button
                     type="button"
                     variant="ghost"
