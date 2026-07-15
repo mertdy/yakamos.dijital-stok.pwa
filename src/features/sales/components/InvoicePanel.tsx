@@ -186,7 +186,7 @@ export const InvoicePanel: React.FC<Props> = ({
                 % Yüzde
               </button>
             </div>
-            <div className="relative flex-1">
+            <div className="relative w-40">
               <Tag
                 className="absolute top-1/2 left-2.5 -translate-y-1/2 text-gray-400"
                 size={14}
@@ -196,7 +196,7 @@ export const InvoicePanel: React.FC<Props> = ({
                 placeholder="İndirim Miktarı"
                 value={discountValue === 0 ? '' : discountValue}
                 onChange={handleDiscountChange}
-                className="h-8 pl-8 text-xs"
+                className="h-8 w-full pl-8 text-xs"
               />
             </div>
           </div>

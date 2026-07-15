@@ -114,7 +114,7 @@ export const GlobalProductSearch: React.FC<Props> = ({ onOpenScanner }) => {
   const showDropdown = isFocused && debouncedQuery.trim().length > 0;
 
   return (
-    <div className="relative z-40 flex-shrink-0" ref={containerRef}>
+    <div className="relative flex-shrink-0" ref={containerRef}>
       <Search
         className="absolute top-1/2 left-4 -translate-y-1/2 text-gray-400"
         size={18}
