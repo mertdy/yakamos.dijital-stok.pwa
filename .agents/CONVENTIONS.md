@@ -209,6 +209,10 @@ Use HeroUI form controls throughout the application. Do not add native
   `FormInput` or `Controller`/`useController` instead.
 - Keep standalone controlled search/filter inputs as HeroUI `Input` when they
   are not forms and do not require schema validation.
+- Use the shared `PhoneInput` for every phone-number form field. It owns country
+  selection, as-you-type formatting and the React Hook Form connection. Use
+  `isValidPhoneNumber` in Zod refinements and `normalizePhoneNumber` before
+  persistence so stored values use E.164 format.
 
 ---
 

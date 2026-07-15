@@ -42,6 +42,11 @@ import {
 } from 'lucide-react';
 import { useConfirm } from '@/shared/contexts/ConfirmDialogContext';
 import { FormInput } from '@/shared/components/FormInput';
+import { PhoneInput } from '@/shared/components/PhoneInput';
+import {
+  normalizePhoneNumber,
+  optionalPhoneNumberSchema
+} from '@/shared/utils/phoneNumber';
 
 // Company Profile Schema
 const companyProfileSchema = z.object({
@@ -50,12 +55,7 @@ const companyProfileSchema = z.object({
     .min(3, 'İşletme adı en az 3 karakter olmalıdır')
     .max(50, 'İşletme adı en fazla 50 karakter olmalıdır'),
   receiptHeader: z.string().optional(),
-  phone: z
-    .string()
-    .optional()
-    .refine(val => !val || /^[0-9+\s-]{10,15}$/.test(val), {
-      message: 'Geçersiz telefon numarası formatı'
-    }),
+  phone: optionalPhoneNumberSchema,
   address: z.string().optional()
 });
 
@@ -105,7 +105,8 @@ export const CompanySettingsView = () => {
     handleSubmit: handleSubmitProfile,
     setValue: setProfileValue
   } = useForm<CompanyProfileFormData>({
-    resolver: zodResolver(companyProfileSchema)
+    resolver: zodResolver(companyProfileSchema),
+    mode: 'onChange'
   });
 
   const {
@@ -169,7 +170,7 @@ export const CompanySettingsView = () => {
     try {
       await updateCompanyProfile({
         name: data.name,
-        phone: data.phone || null,
+        phone: normalizePhoneNumber(data.phone),
         address: data.address || null,
         receiptHeader: data.receiptHeader || null
       });
@@ -312,12 +313,11 @@ export const CompanySettingsView = () => {
             />
 
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-              <FormInput
+              <PhoneInput
                 control={controlProfile}
                 name="phone"
                 label="Telefon Numarası"
-                type="tel"
-                placeholder="Örn: 05551234567"
+                placeholder="555 555 55 55"
               />
 
               <FormInput

@@ -11,16 +11,13 @@ import * as z from 'zod';
 import posthog from 'posthog-js';
 import { normalizeWhatsAppPhone } from '../domain/customerStatement';
 import { FormInput } from '@/shared/components/FormInput';
+import { PhoneInput } from '@/shared/components/PhoneInput';
+import { optionalPhoneNumberSchema } from '@/shared/utils/phoneNumber';
 
 const customerSchema = z.object({
   name: z.string().min(2, 'Müşteri adı en az 2 karakter olmalıdır'),
   surname: z.string().optional(),
-  phone: z
-    .string()
-    .optional()
-    .refine(value => !value?.trim() || Boolean(normalizeWhatsAppPhone(value)), {
-      message: 'Geçerli bir telefon numarası giriniz'
-    }),
+  phone: optionalPhoneNumberSchema,
   email: z
     .union([
       z.literal(''),
@@ -173,12 +170,11 @@ export const CustomerFormView: React.FC = () => {
           </div>
 
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-            <FormInput
+            <PhoneInput
               control={control}
               name="phone"
               label="Telefon Numarası"
-              type="tel"
-              placeholder="0555 555 5555"
+              placeholder="555 555 55 55"
             />
             <FormInput
               control={control}

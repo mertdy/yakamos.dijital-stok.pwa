@@ -74,6 +74,9 @@ dependencies:
   framer-motion:
     specifier: ^12.40.0
     version: 12.40.0(react-dom@19.2.7)(react@19.2.7)
+  libphonenumber-js:
+    specifier: ^1.13.8
+    version: 1.13.8
   lucide-react:
     specifier: ^1.21.0
     version: 1.21.0(react@19.2.7)
@@ -5885,6 +5888,10 @@ packages:
       prelude-ls: 1.2.1
       type-check: 0.4.0
     dev: true
+
+  /libphonenumber-js@1.13.8:
+    resolution: {integrity: sha512-80xal1m93rADejw2pMp2MSzFhHCPLEspjHxnH2UtqI+DgAmElsbmLMiqk9niwH9NWAfjsRtaJI+qBrOEmRx9nQ==}
+    dev: false
 
   /lie@3.1.1:
     resolution: {integrity: sha512-RiNhHysUjhrDQntfYSfY4MU24coXXdEOgw9WGcKHNeEwffDYbF//u87M1EWaMGzuFoSbqW0C9C6lEEhDOAswfw==}

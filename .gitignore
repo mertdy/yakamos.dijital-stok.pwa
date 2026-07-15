@@ -37,3 +37,5 @@ playwright-report/
 test-results/
 blob-report/
 .eslintcache
+# heroui-agents-md
+.heroui-docs/

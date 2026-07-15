@@ -26,6 +26,11 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { FormInput } from '@/shared/components/FormInput';
+import { PhoneInput } from '@/shared/components/PhoneInput';
+import {
+  normalizePhoneNumber,
+  optionalPhoneNumberSchema
+} from '@/shared/utils/phoneNumber';
 
 const newCompanySchema = z.object({
   name: z
@@ -33,12 +38,7 @@ const newCompanySchema = z.object({
     .min(3, 'İşletme adı en az 3 karakter olmalıdır')
     .max(50, 'İşletme adı en fazla 50 karakter olmalıdır'),
   receiptHeader: z.string().optional(),
-  phone: z
-    .string()
-    .optional()
-    .refine(val => !val || /^[0-9+\s-]{10,15}$/.test(val), {
-      message: 'Geçersiz telefon numarası formatı'
-    }),
+  phone: optionalPhoneNumberSchema,
   address: z.string().optional()
 });
 
@@ -116,7 +116,7 @@ export const MainLayout: React.FC = () => {
     setIsCreatingCompany(true);
     try {
       await createCompany(data.name, {
-        phone: data.phone,
+        phone: normalizePhoneNumber(data.phone) || undefined,
         address: data.address,
         receiptHeader: data.receiptHeader
       });
@@ -426,12 +426,11 @@ export const MainLayout: React.FC = () => {
                     placeholder="Örn: YAKAMOS GIDA LTD. ŞTİ."
                   />
 
-                  <FormInput
+                  <PhoneInput
                     control={control}
                     name="phone"
                     label="Telefon (Opsiyonel)"
-                    type="tel"
-                    placeholder="Örn: 05551234567"
+                    placeholder="555 555 55 55"
                   />
 
                   <FormInput

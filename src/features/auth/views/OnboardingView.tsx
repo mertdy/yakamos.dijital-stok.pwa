@@ -17,6 +17,11 @@ import {
   Building2
 } from 'lucide-react';
 import { FormInput } from '@/shared/components/FormInput';
+import { PhoneInput } from '@/shared/components/PhoneInput';
+import {
+  normalizePhoneNumber,
+  optionalPhoneNumberSchema
+} from '@/shared/utils/phoneNumber';
 
 const onboardingSchema = z.object({
   name: z
@@ -24,12 +29,7 @@ const onboardingSchema = z.object({
     .min(3, 'İşletme adı en az 3 karakter olmalıdır')
     .max(50, 'İşletme adı en fazla 50 karakter olmalıdır'),
   receiptHeader: z.string().optional(),
-  phone: z
-    .string()
-    .optional()
-    .refine(val => !val || /^[0-9+\s-]{10,15}$/.test(val), {
-      message: 'Geçersiz telefon numarası formatı'
-    }),
+  phone: optionalPhoneNumberSchema,
   address: z.string().optional()
 });
 
@@ -77,7 +77,7 @@ export const OnboardingView = () => {
     setIsSubmitting(true);
     try {
       await createCompany(data.name, {
-        phone: data.phone,
+        phone: normalizePhoneNumber(data.phone) || undefined,
         address: data.address,
         receiptHeader: data.receiptHeader
       });
@@ -233,12 +233,11 @@ export const OnboardingView = () => {
             />
 
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-              <FormInput
+              <PhoneInput
                 control={control}
                 name="phone"
                 label="Telefon (Opsiyonel)"
-                type="tel"
-                placeholder="Örn: 05551234567"
+                placeholder="555 555 55 55"
               />
 
               <FormInput
