@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
+import { clsx } from 'clsx';
 import {
   Search,
   Package,
@@ -65,7 +66,10 @@ const SortableItem = ({
     <div
       ref={setNodeRef}
       style={style}
-      className={`mb-2 flex items-center gap-3 rounded-xl border bg-white p-3 ${isDragging ? 'border-primary shadow-md' : 'border-gray-100'}`}>
+      className={clsx(
+        'mb-2 flex items-center gap-3 rounded-xl border bg-white p-3',
+        isDragging ? 'border-primary shadow-md' : 'border-gray-100'
+      )}>
       <div
         {...attributes}
         {...listeners}
@@ -247,7 +251,12 @@ export const QuickAddEditModal: React.FC<Props> = ({ isOpen, onClose }) => {
                             <button
                               disabled={isAdded}
                               onClick={() => handleAddItem(item.id)}
-                              className={`flex-shrink-0 rounded-lg p-2 transition-colors ${isAdded ? 'bg-success/10 text-success' : 'bg-primary/10 text-primary hover:bg-primary/20'}`}>
+                              className={clsx(
+                                'flex-shrink-0 rounded-lg p-2 transition-colors',
+                                isAdded
+                                  ? 'bg-success/10 text-success'
+                                  : 'bg-primary/10 text-primary hover:bg-primary/20'
+                              )}>
                               {isAdded ? (
                                 <CheckCircle2 size={18} />
                               ) : (

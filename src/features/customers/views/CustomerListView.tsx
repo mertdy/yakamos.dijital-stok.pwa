@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { clsx } from 'clsx';
 import { useNavigate } from 'react-router-dom';
 import { useCustomerStore } from '../store/useCustomerStore';
 import { Plus, Search, User, Phone, Edit2, Eye } from 'lucide-react';
@@ -161,7 +162,10 @@ export const CustomerListView: React.FC = () => {
                         </td>
                         <td className="px-6 py-4 text-right text-sm">
                           <span
-                            className={`font-semibold ${debt > 0 ? 'text-orange-600' : 'text-gray-600'}`}>
+                            className={clsx(
+                              'font-semibold',
+                              debt > 0 ? 'text-orange-600' : 'text-gray-600'
+                            )}>
                             ₺
                             {debt.toLocaleString('tr-TR', {
                               minimumFractionDigits: 2
@@ -174,12 +178,24 @@ export const CustomerListView: React.FC = () => {
                               <>
                                 <div className="h-2 w-24 overflow-hidden rounded-full bg-gray-100">
                                   <div
-                                    className={`h-full rounded-full ${isExceeded ? 'bg-danger' : percentage > 80 ? 'bg-orange-500' : 'bg-success'}`}
+                                    className={clsx(
+                                      'h-full rounded-full',
+                                      isExceeded
+                                        ? 'bg-danger'
+                                        : percentage > 80
+                                          ? 'bg-orange-500'
+                                          : 'bg-success'
+                                    )}
                                     style={{ width: `${percentage}%` }}
                                   />
                                 </div>
                                 <span
-                                  className={`rounded-md px-2 py-0.5 text-[10px] font-bold ${isExceeded ? 'bg-danger/10 text-danger' : 'bg-gray-100 text-gray-500'}`}>
+                                  className={clsx(
+                                    'rounded-md px-2 py-0.5 text-[10px] font-bold',
+                                    isExceeded
+                                      ? 'bg-danger/10 text-danger'
+                                      : 'bg-gray-100 text-gray-500'
+                                  )}>
                                   %{percentage.toFixed(0)}
                                 </span>
                               </>

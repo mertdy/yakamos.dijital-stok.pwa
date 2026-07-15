@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
+import { clsx } from 'clsx';
 import { BrowserMultiFormatReader } from '@zxing/browser';
 import {
   BarcodeScanner,
@@ -291,10 +292,13 @@ const ScannerModal: React.FC<ScannerModalProps> = ({
         if (!open) onClose();
       }}>
       <button style={{ display: 'none' }} aria-hidden="true" tabIndex={-1} />
-      <Modal.Backdrop className={isNativeScanning ? 'bg-transparent' : ''}>
+      <Modal.Backdrop className={clsx(isNativeScanning && 'bg-transparent')}>
         <Modal.Container>
           <Modal.Dialog
-            className={`w-full max-w-md overflow-hidden rounded-[28px] bg-white shadow-2xl outline-none ${isNativeScanning ? 'bg-transparent shadow-none' : ''}`}>
+            className={clsx(
+              'w-full max-w-md overflow-hidden rounded-[28px] bg-white shadow-2xl outline-none',
+              isNativeScanning && 'bg-transparent shadow-none'
+            )}>
             <Modal.CloseTrigger />
             <Modal.Header>
               <Modal.Heading className="text-xl">Barkod Okut</Modal.Heading>

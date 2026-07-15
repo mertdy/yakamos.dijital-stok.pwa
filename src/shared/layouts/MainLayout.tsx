@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { clsx } from 'clsx';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { SyncIndicator } from '@/shared/components/SyncIndicator';
 import { useAppHotkeys } from '@/shared/hooks/useAppHotkeys';
@@ -165,9 +166,10 @@ export const MainLayout: React.FC = () => {
     <div className="bg-background flex h-screen w-full flex-col overflow-hidden md:flex-row">
       {/* Desktop Sidebar */}
       <aside
-        className={`bg-background relative hidden flex-col border-r border-gray-200/50 transition-all duration-300 ease-in-out md:flex ${
+        className={clsx(
+          'bg-background relative hidden flex-col border-r border-gray-200/50 transition-all duration-300 ease-in-out md:flex',
           isCollapsed ? 'w-20 items-center' : 'w-64'
-        }`}>
+        )}>
         {/* Toggle Button */}
         <button
           onClick={() => setIsCollapsed(!isCollapsed)}
@@ -177,9 +179,15 @@ export const MainLayout: React.FC = () => {
 
         {/* Top Section: Header & Company Switcher */}
         <div
-          className={`flex w-full flex-col gap-3 border-b border-gray-100 p-4 ${isCollapsed ? 'items-center px-2' : ''}`}>
+          className={clsx(
+            'flex w-full flex-col gap-3 border-b border-gray-100 p-4',
+            isCollapsed && 'items-center px-2'
+          )}>
           <div
-            className={`flex w-full items-center justify-between gap-2 ${isCollapsed ? 'flex-col justify-center gap-2' : ''}`}>
+            className={clsx(
+              'flex w-full items-center justify-between gap-2',
+              isCollapsed && 'flex-col justify-center'
+            )}>
             <h1 className="text-primary flex items-center gap-2 text-lg font-bold">
               <Store className="flex-shrink-0 text-xl" />
               {!isCollapsed && (
@@ -195,11 +203,12 @@ export const MainLayout: React.FC = () => {
               <Button
                 variant="ghost"
                 aria-label="İşletme Seç"
-                className={`flex w-full items-center justify-between rounded-2xl font-medium text-gray-600 transition-all duration-200 hover:bg-gray-100/80 ${
+                className={clsx(
+                  'flex w-full items-center justify-between rounded-2xl font-medium text-gray-600 transition-all duration-200 hover:bg-gray-100/80',
                   isCollapsed
                     ? 'h-11 min-w-0 justify-center p-3'
                     : 'h-11 gap-3 px-4 py-2.5'
-                }`}
+                )}
                 isDisabled={isSwitching}>
                 <div className="flex min-w-0 items-center gap-3">
                   <Building2 className="flex-shrink-0 text-lg text-gray-500" />
@@ -243,11 +252,10 @@ export const MainLayout: React.FC = () => {
                         id={m.companyId}
                         key={m.companyId}
                         textValue={m.companyName}
-                        className={
-                          m.companyId === activeCompany?.id
-                            ? 'text-primary bg-primary/5 font-bold'
-                            : ''
-                        }>
+                        className={clsx(
+                          m.companyId === activeCompany?.id &&
+                            'text-primary bg-primary/5 font-bold'
+                        )}>
                         <div className="flex items-center gap-2">
                           <Building2 size={16} />
                           <Label>{m.companyName}</Label>
@@ -263,20 +271,23 @@ export const MainLayout: React.FC = () => {
 
         {/* Middle Section: Scrollable Navigation */}
         <nav
-          className={`w-full flex-1 space-y-1.5 overflow-y-auto px-4 py-4 ${isCollapsed ? 'px-2' : ''}`}>
+          className={clsx(
+            'w-full flex-1 space-y-1.5 overflow-y-auto px-4 py-4',
+            isCollapsed && 'px-2'
+          )}>
           {filteredNavItems.map(item => (
             <NavLink
               key={item.path}
               to={item.path}
               aria-label={isCollapsed ? item.name : undefined}
               className={({ isActive }) =>
-                `flex items-center rounded-2xl transition-all duration-200 ${
-                  isCollapsed ? 'justify-center p-3' : 'gap-3 px-4 py-2.5'
-                } ${
+                clsx(
+                  'flex items-center rounded-2xl transition-all duration-200',
+                  isCollapsed ? 'justify-center p-3' : 'gap-3 px-4 py-2.5',
                   isActive
                     ? 'bg-primary/10 text-primary font-semibold'
                     : 'font-medium text-gray-600 hover:bg-gray-100/80'
-                }`
+                )
               }>
               <item.icon className="flex-shrink-0 text-lg" />
               {!isCollapsed && (
@@ -290,17 +301,26 @@ export const MainLayout: React.FC = () => {
 
         {/* Bottom Section: User Profile & Logout */}
         <div
-          className={`flex w-full flex-col gap-3 border-t border-gray-100 p-4 ${isCollapsed ? 'items-center px-2' : ''}`}>
+          className={clsx(
+            'flex w-full flex-col gap-3 border-t border-gray-100 p-4',
+            isCollapsed && 'items-center px-2'
+          )}>
           {user && (
             <div
-              className={`flex items-center gap-3 rounded-2xl border border-gray-100 bg-gray-50/50 ${isCollapsed ? 'justify-center p-1.5' : 'w-full p-3'}`}>
+              className={clsx(
+                'flex items-center gap-3 rounded-2xl border border-gray-100 bg-gray-50/50',
+                isCollapsed ? 'justify-center p-1.5' : 'w-full p-3'
+              )}>
               <img
                 src={
                   user.photoURL ||
                   `https://ui-avatars.com/api/?name=${user.displayName || 'User'}&background=random`
                 }
                 alt="User avatar"
-                className={`${isCollapsed ? 'h-8 w-8' : 'h-10 w-10'} flex-shrink-0 rounded-full object-cover shadow-sm transition-all`}
+                className={clsx(
+                  isCollapsed ? 'h-8 w-8' : 'h-10 w-10',
+                  'flex-shrink-0 rounded-full object-cover shadow-sm transition-all'
+                )}
               />
               {!isCollapsed && (
                 <div className="flex min-w-0 flex-col overflow-hidden">
@@ -319,11 +339,12 @@ export const MainLayout: React.FC = () => {
           <Button
             variant="ghost"
             aria-label="Çıkış Yap"
-            className={`text-danger hover:bg-danger/10 w-full font-semibold ${
+            className={clsx(
+              'text-danger hover:bg-danger/10 w-full font-semibold',
               isCollapsed
                 ? 'h-10 justify-center px-0'
                 : 'h-11 justify-start gap-3 rounded-2xl px-4 py-2.5'
-            }`}
+            )}
             onPress={logout}>
             <LogOut size={18} className="text-danger flex-shrink-0" />
             {!isCollapsed && <span className="text-sm">Çıkış Yap</span>}

@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import { clsx } from 'clsx';
 import { Card, Tabs, Select, ListBox, Table, Chip } from '@heroui/react';
 import { useDashboardStats } from '../hooks/useDashboardStats';
 import type { ChartPeriod } from '../hooks/useDashboardStats';
@@ -172,7 +173,7 @@ export const DashboardView: React.FC = () => {
             </div>
             <div className="bg-default-100 h-2 w-full overflow-hidden rounded-full">
               <div
-                className={`h-full rounded-full ${color}`}
+                className={clsx('h-full rounded-full', color)}
                 style={{
                   width: `${maxVal > 0 ? (item.value / maxVal) * 100 : 0}%`
                 }}

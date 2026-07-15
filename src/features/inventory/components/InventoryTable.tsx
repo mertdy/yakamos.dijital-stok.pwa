@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { clsx } from 'clsx';
 import {
   createColumnHelper,
   flexRender,
@@ -129,7 +130,12 @@ export const InventoryTable: React.FC = () => {
           const val = info.getValue();
           return (
             <span
-              className={`rounded-full px-2 py-1 text-xs font-bold ${val < 10 ? 'bg-danger/10 text-danger' : 'bg-success/10 text-success'}`}>
+              className={clsx(
+                'rounded-full px-2 py-1 text-xs font-bold',
+                val < 10
+                  ? 'bg-danger/10 text-danger'
+                  : 'bg-success/10 text-success'
+              )}>
               {val}
             </span>
           );
@@ -333,7 +339,12 @@ export const InventoryTable: React.FC = () => {
                   return (
                     <th
                       key={header.id}
-                      className={`${isSelection ? 'w-12 px-4' : 'cursor-pointer px-6 hover:bg-gray-100'} py-4 text-sm font-semibold whitespace-nowrap text-gray-600 transition-colors`}
+                      className={clsx(
+                        isSelection
+                          ? 'w-12 px-4'
+                          : 'cursor-pointer px-6 hover:bg-gray-100',
+                        'py-4 text-sm font-semibold whitespace-nowrap text-gray-600 transition-colors'
+                      )}
                       onClick={
                         isSelection
                           ? undefined
@@ -361,13 +372,19 @@ export const InventoryTable: React.FC = () => {
             {table.getRowModel().rows.map(row => (
               <tr
                 key={row.id}
-                className={`border-b border-gray-100 transition-colors hover:bg-gray-50/50 ${row.getIsSelected() ? 'bg-primary-50/20' : ''}`}>
+                className={clsx(
+                  'border-b border-gray-100 transition-colors hover:bg-gray-50/50',
+                  row.getIsSelected() && 'bg-primary-50/20'
+                )}>
                 {row.getVisibleCells().map(cell => {
                   const isSelection = cell.column.id === 'selection';
                   return (
                     <td
                       key={cell.id}
-                      className={`${isSelection ? 'w-12 px-4' : 'px-6'} py-4 text-sm`}>
+                      className={clsx(
+                        isSelection ? 'w-12 px-4' : 'px-6',
+                        'py-4 text-sm'
+                      )}>
                       {flexRender(
                         cell.column.columnDef.cell,
                         cell.getContext()

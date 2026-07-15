@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { clsx } from 'clsx';
 import { WifiOff, Cloud } from 'lucide-react';
 import { Tooltip } from '@heroui/react';
 
@@ -29,11 +30,12 @@ export const SyncIndicator: React.FC<SyncIndicatorProps> = ({
       <Tooltip delay={0} closeDelay={0}>
         <Tooltip.Trigger>
           <div
-            className={`flex-shrink-0 cursor-help rounded-lg border p-1.5 transition-colors ${
+            className={clsx(
+              'flex-shrink-0 cursor-help rounded-lg border p-1.5 transition-colors',
               isOnline
                 ? 'border-emerald-200 bg-emerald-50 text-emerald-600'
                 : 'border-amber-200 bg-amber-50 text-amber-600'
-            }`}>
+            )}>
             {isOnline ? <Cloud size={14} /> : <WifiOff size={14} />}
           </div>
         </Tooltip.Trigger>

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { clsx } from 'clsx';
 import { useSalesHistoryStore } from '../store/useSalesHistoryStore';
 import { useCustomerStore } from '@/features/customers';
 import { Search, Filter, X } from 'lucide-react';
@@ -55,7 +56,12 @@ export const SalesHistoryFilters: React.FC = () => {
         <Button
           variant={showAdvanced ? 'primary' : 'outline'}
           onPress={() => setShowAdvanced(!showAdvanced)}
-          className={`h-9 gap-2 rounded-xl ${showAdvanced ? 'bg-primary/10 text-primary hover:bg-primary/20 border-none shadow-none' : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'}`}>
+          className={clsx(
+            'h-9 gap-2 rounded-xl',
+            showAdvanced
+              ? 'bg-primary/10 text-primary hover:bg-primary/20 border-none shadow-none'
+              : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
+          )}>
           <Filter size={16} />
           <span className="hidden sm:inline">Gelişmiş Filtreler</span>
         </Button>

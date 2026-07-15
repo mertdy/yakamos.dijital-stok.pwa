@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback, Fragment } from 'react';
+import { clsx } from 'clsx';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -174,7 +175,14 @@ export const CustomerDetailView: React.FC = () => {
             </div>
           </div>
           <div
-            className={`text-4xl font-black ${debt > 0 ? 'text-orange-600' : debt < 0 ? 'text-blue-600' : 'text-gray-900'}`}>
+            className={clsx(
+              'text-4xl font-black',
+              debt > 0
+                ? 'text-orange-600'
+                : debt < 0
+                  ? 'text-blue-600'
+                  : 'text-gray-900'
+            )}>
             {debt < 0 ? '+' : ''}₺
             {Math.abs(debt).toLocaleString('tr-TR', {
               minimumFractionDigits: 2
@@ -191,7 +199,12 @@ export const CustomerDetailView: React.FC = () => {
             </div>
             {limit > 0 ? (
               <span
-                className={`rounded-md px-2 py-0.5 text-[10px] font-bold ${isExceeded ? 'bg-danger/10 text-danger' : 'bg-gray-100 text-gray-500'}`}>
+                className={clsx(
+                  'rounded-md px-2 py-0.5 text-[10px] font-bold',
+                  isExceeded
+                    ? 'bg-danger/10 text-danger'
+                    : 'bg-gray-100 text-gray-500'
+                )}>
                 %{percentage.toFixed(0)} Dolu
               </span>
             ) : (
@@ -208,7 +221,14 @@ export const CustomerDetailView: React.FC = () => {
           {limit > 0 && (
             <div className="h-2 w-full overflow-hidden rounded-full bg-gray-100">
               <div
-                className={`h-full rounded-full transition-all duration-500 ${isExceeded ? 'bg-danger' : percentage > 80 ? 'bg-orange-500' : 'bg-success'}`}
+                className={clsx(
+                  'h-full rounded-full transition-all duration-500',
+                  isExceeded
+                    ? 'bg-danger'
+                    : percentage > 80
+                      ? 'bg-orange-500'
+                      : 'bg-success'
+                )}
                 style={{ width: `${percentage}%` }}
               />
             </div>
@@ -292,7 +312,10 @@ export const CustomerDetailView: React.FC = () => {
                 transactions.map(tx => (
                   <Fragment key={tx.id}>
                     <tr
-                      className={`border-b border-gray-50 transition-colors hover:bg-gray-50/30 ${tx.type === 'SALE' ? 'cursor-pointer' : ''}`}
+                      className={clsx(
+                        'border-b border-gray-50 transition-colors hover:bg-gray-50/30',
+                        tx.type === 'SALE' && 'cursor-pointer'
+                      )}
                       onClick={() => tx.type === 'SALE' && toggleExpand(tx.id)}>
                       <td className="px-6 py-4 text-sm text-gray-600">
                         {new Date(tx.date).toLocaleDateString('tr-TR', {
@@ -329,7 +352,12 @@ export const CustomerDetailView: React.FC = () => {
                         {tx.description}
                       </td>
                       <td
-                        className={`px-6 py-4 text-right text-sm font-bold ${tx.type === 'SALE' ? 'text-orange-600' : 'text-success'}`}>
+                        className={clsx(
+                          'px-6 py-4 text-right text-sm font-bold',
+                          tx.type === 'SALE'
+                            ? 'text-orange-600'
+                            : 'text-success'
+                        )}>
                         {tx.type === 'SALE' ? '-' : '+'}₺
                         {tx.amount.toLocaleString('tr-TR', {
                           minimumFractionDigits: 2

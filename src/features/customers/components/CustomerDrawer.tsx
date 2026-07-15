@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { clsx } from 'clsx';
 import { useCustomerStore } from '../store/useCustomerStore';
 import { useSalesStore } from '@/features/sales';
 import { Button, Input } from '@heroui/react';
@@ -126,11 +127,12 @@ export const CustomerDrawer: React.FC<Props> = ({ isOpen, onClose }) => {
                     <button
                       key={customer.id}
                       onClick={() => handleSelectCustomer(customer.id)}
-                      className={`flex w-full items-center justify-between rounded-xl border p-4 text-left transition-all ${
+                      className={clsx(
+                        'flex w-full items-center justify-between rounded-xl border p-4 text-left transition-all',
                         customerId === customer.id
                           ? 'border-primary bg-primary/5 shadow-sm'
                           : 'border-gray-100 hover:border-gray-200 hover:bg-gray-50'
-                      }`}>
+                      )}>
                       <div>
                         <h4 className="font-semibold text-gray-900">
                           {customer.name} {customer.surname || ''}

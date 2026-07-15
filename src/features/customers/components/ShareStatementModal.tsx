@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { clsx } from 'clsx';
 import {
   Button,
   Checkbox,
@@ -236,11 +237,12 @@ export const ShareStatementModal = ({
                       key={option.key}
                       type="button"
                       onClick={() => selectPreset(option.key)}
-                      className={`rounded-xl border px-3 py-2 text-sm font-medium transition-colors ${
+                      className={clsx(
+                        'rounded-xl border px-3 py-2 text-sm font-medium transition-colors',
                         preset === option.key
                           ? 'border-primary bg-primary/10 text-primary'
                           : 'border-gray-200 text-gray-600 hover:bg-gray-50'
-                      }`}>
+                      )}>
                       {preset === option.key && (
                         <Check className="mr-1 inline" size={14} />
                       )}
@@ -298,7 +300,7 @@ export const ShareStatementModal = ({
                     key={String(label)}
                     className="rounded-2xl border border-gray-100 bg-gray-50 p-3">
                     <p className="text-xs font-medium text-gray-500">{label}</p>
-                    <p className={`mt-1 text-base font-bold ${color}`}>
+                    <p className={clsx('mt-1 text-base font-bold', color)}>
                       {formatMinor(Number(value))}
                     </p>
                   </div>

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { clsx } from 'clsx';
 import { useSalesHistoryStore } from '../store/useSalesHistoryStore';
 import { useCustomerStore } from '@/features/customers';
 import {
@@ -93,7 +94,12 @@ export const SalesHistoryList: React.FC = () => {
             sales.map(sale => (
               <React.Fragment key={sale.id}>
                 <tr
-                  className={`cursor-pointer border-b border-gray-50 transition-colors ${sale.status === 'cancelled' ? 'bg-danger/5 hover:bg-danger/10 text-gray-400' : 'hover:bg-gray-50/30'}`}
+                  className={clsx(
+                    'cursor-pointer border-b border-gray-50 transition-colors',
+                    sale.status === 'cancelled'
+                      ? 'bg-danger/5 hover:bg-danger/10 text-gray-400'
+                      : 'hover:bg-gray-50/30'
+                  )}
                   onClick={() => toggleExpand(sale.id)}>
                   <td className="px-6 py-4 text-sm text-gray-600">
                     {new Date(sale.createdAt).toLocaleDateString('tr-TR', {
@@ -199,13 +205,16 @@ export const SalesHistoryList: React.FC = () => {
                                 {sale.cart.map((item: any, idx: number) => (
                                   <tr
                                     key={idx}
-                                    className={
-                                      sale.status === 'cancelled'
-                                        ? 'text-gray-400'
-                                        : ''
-                                    }>
+                                    className={clsx(
+                                      sale.status === 'cancelled' &&
+                                        'text-gray-400'
+                                    )}>
                                     <td
-                                      className={`px-4 py-2 ${sale.status === 'cancelled' ? '' : 'text-gray-900'}`}>
+                                      className={clsx(
+                                        'px-4 py-2',
+                                        sale.status !== 'cancelled' &&
+                                          'text-gray-900'
+                                      )}>
                                       <span
                                         className="hover:text-primary cursor-pointer transition-colors hover:underline"
                                         onClick={e => {
@@ -218,15 +227,27 @@ export const SalesHistoryList: React.FC = () => {
                                       </span>
                                     </td>
                                     <td
-                                      className={`px-4 py-2 text-center ${sale.status === 'cancelled' ? '' : 'text-gray-600'}`}>
+                                      className={clsx(
+                                        'px-4 py-2 text-center',
+                                        sale.status !== 'cancelled' &&
+                                          'text-gray-600'
+                                      )}>
                                       {item.quantity}
                                     </td>
                                     <td
-                                      className={`px-4 py-2 text-right ${sale.status === 'cancelled' ? '' : 'text-gray-600'}`}>
+                                      className={clsx(
+                                        'px-4 py-2 text-right',
+                                        sale.status !== 'cancelled' &&
+                                          'text-gray-600'
+                                      )}>
                                       ₺{item.price?.toFixed(2)}
                                     </td>
                                     <td
-                                      className={`px-4 py-2 text-right font-medium ${sale.status === 'cancelled' ? '' : 'text-gray-900'}`}>
+                                      className={clsx(
+                                        'px-4 py-2 text-right font-medium',
+                                        sale.status !== 'cancelled' &&
+                                          'text-gray-900'
+                                      )}>
                                       ₺{(item.price * item.quantity).toFixed(2)}
                                     </td>
                                   </tr>
@@ -274,11 +295,10 @@ export const SalesHistoryList: React.FC = () => {
                             <div className="flex justify-between border-t border-gray-100 pt-2 font-bold text-gray-900">
                               <span>Genel Toplam:</span>
                               <span
-                                className={
-                                  sale.status === 'cancelled'
-                                    ? 'text-gray-400 line-through'
-                                    : ''
-                                }>
+                                className={clsx(
+                                  sale.status === 'cancelled' &&
+                                    'text-gray-400 line-through'
+                                )}>
                                 ₺{sale.totalAmount.toFixed(2)}
                               </span>
                             </div>
