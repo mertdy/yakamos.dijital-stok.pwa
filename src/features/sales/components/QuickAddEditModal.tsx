@@ -12,6 +12,7 @@ import {
 import { Button, Input, Modal, toast } from '@heroui/react';
 import { useInventoryStore } from '@/features/inventory';
 import { usePreferencesStore } from '../store/usePreferencesStore';
+import { useAuthStore } from '@/features/auth';
 import { useDebounce } from '@/shared/hooks/useDebounce';
 import {
   DndContext,
@@ -108,9 +109,11 @@ export const QuickAddEditModal: React.FC<Props> = ({ isOpen, onClose }) => {
   const { items } = useInventoryStore();
   const {
     quickAddItems: savedItems,
+    quickAddCompanyId,
     saveQuickAddItems,
     isLoading
   } = usePreferencesStore();
+  const { activeCompany } = useAuthStore();
 
   // Local state for editing before saving
   const [localQuickAddItems, setLocalQuickAddItems] = useState<string[]>([]);
@@ -120,10 +123,12 @@ export const QuickAddEditModal: React.FC<Props> = ({ isOpen, onClose }) => {
   // Initialize local state when modal opens
   useEffect(() => {
     if (isOpen) {
-      setLocalQuickAddItems([...savedItems]);
+      setLocalQuickAddItems(
+        quickAddCompanyId === activeCompany?.id ? [...savedItems] : []
+      );
       setSearchQuery('');
     }
-  }, [isOpen, savedItems]);
+  }, [isOpen, savedItems, quickAddCompanyId, activeCompany?.id]);
 
   const searchResults = useMemo(() => {
     if (!debouncedSearch.trim()) return items.slice(0, 50); // Default show 50 items
