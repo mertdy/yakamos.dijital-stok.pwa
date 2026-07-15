@@ -9,7 +9,10 @@ import {
   signOut
 } from 'firebase/auth';
 import { getDocs, updateDoc, writeBatch } from 'firebase/firestore';
-import { getAuthErrorMessage } from './useAuthStore';
+import {
+  getAuthErrorMessage,
+  getAvailableActiveCompanyId
+} from './useAuthStore';
 
 // ─── Firebase mocks ───────────────────────────────────────────────────────────
 
@@ -132,6 +135,29 @@ describe('getAuthErrorMessage', () => {
     expect(getAuthErrorMessage('')).toBe(
       'Bir hata oluştu. Lütfen tekrar deneyin.'
     );
+  });
+});
+
+describe('getAvailableActiveCompanyId', () => {
+  const memberships = [
+    { companyId: 'company-a' },
+    { companyId: 'company-b' }
+  ] as never;
+
+  it('keeps the active company when the membership still exists', () => {
+    expect(getAvailableActiveCompanyId('company-b', memberships)).toBe(
+      'company-b'
+    );
+  });
+
+  it('falls back to another membership when the active company was removed', () => {
+    expect(getAvailableActiveCompanyId('removed-company', memberships)).toBe(
+      'company-a'
+    );
+  });
+
+  it('clears the active company when no memberships remain', () => {
+    expect(getAvailableActiveCompanyId('removed-company', [])).toBeNull();
   });
 });
 

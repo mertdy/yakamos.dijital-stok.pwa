@@ -676,6 +676,9 @@ export const CompanySettingsView = () => {
                       ))}
                       <option value="OTHER">Diğer</option>
                     </select>
+                    <p className="bg-warning/10 text-warning-700 mt-2 rounded-lg px-3 py-2 text-xs font-medium">
+                      Çalışanınız bu ünvanı profil rozetinde görecektir.
+                    </p>
                     {inviteJobTitleOption === 'OTHER' && (
                       <input
                         value={inviteCustomJobTitle}

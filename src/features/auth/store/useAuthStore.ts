@@ -64,6 +64,18 @@ export function getAuthErrorMessage(code: string): string {
   }
 }
 
+export const getAvailableActiveCompanyId = (
+  activeCompanyId: string | null,
+  memberships: Membership[]
+): string | null => {
+  if (
+    memberships.some(membership => membership.companyId === activeCompanyId)
+  ) {
+    return activeCompanyId;
+  }
+  return memberships[0]?.companyId ?? null;
+};
+
 interface AuthState {
   user: User | null;
   profile: UserProfile | null;
@@ -73,6 +85,7 @@ interface AuthState {
   isLoading: boolean;
   isInitialized: boolean;
   authError: string | null;
+  hasLoadedMemberships: boolean;
 
   setUser: (user: User | null) => Promise<void>;
   clearError: () => void;
@@ -213,6 +226,7 @@ export const useAuthStore = getSingletonStore('auth', () =>
     isLoading: false,
     isInitialized: false,
     authError: null,
+    hasLoadedMemberships: false,
 
     unsubscribeProfile: null,
     unsubscribeMemberships: null,
@@ -243,7 +257,8 @@ export const useAuthStore = getSingletonStore('auth', () =>
           memberships: [],
           activeCompany: null,
           isInitialized: true,
-          isLoading: false
+          isLoading: false,
+          hasLoadedMemberships: false
         });
         return;
       }
@@ -253,7 +268,7 @@ export const useAuthStore = getSingletonStore('auth', () =>
         name: user.displayName ?? undefined
       });
 
-      set({ isLoading: true });
+      set({ isLoading: true, hasLoadedMemberships: false });
 
       try {
         await checkAndMigrateLegacyUser(user);
@@ -265,24 +280,42 @@ export const useAuthStore = getSingletonStore('auth', () =>
             if (!userSnap.exists()) return;
             const profileData = userSnap.data() as UserProfile;
 
-            const memberships = get().memberships;
+            const { memberships, hasLoadedMemberships } = get();
+            const nextActiveCompanyId = hasLoadedMemberships
+              ? getAvailableActiveCompanyId(
+                  profileData.activeCompanyId,
+                  memberships
+                )
+              : profileData.activeCompanyId;
+            const normalizedProfile =
+              nextActiveCompanyId === profileData.activeCompanyId
+                ? profileData
+                : { ...profileData, activeCompanyId: nextActiveCompanyId };
             const activeMembership =
               memberships.find(
-                m => m.companyId === profileData.activeCompanyId
+                m => m.companyId === normalizedProfile.activeCompanyId
               ) || null;
 
+            if (normalizedProfile !== profileData) {
+              updateDoc(doc(db, 'users', user.uid), {
+                activeCompanyId: normalizedProfile.activeCompanyId
+              }).catch(error =>
+                console.error('Active company reconciliation failed:', error)
+              );
+            }
+
             set({
-              profile: profileData,
+              profile: normalizedProfile,
               activeMembership,
               activeCompany: null
             });
 
-            if (profileData.activeCompanyId) {
+            if (normalizedProfile.activeCompanyId) {
               const { unsubscribeActiveCompany: oldSubCompany } = get();
               if (oldSubCompany) oldSubCompany();
 
               const subCompany = onSnapshot(
-                doc(db, 'companies', profileData.activeCompanyId),
+                doc(db, 'companies', normalizedProfile.activeCompanyId),
                 companySnap => {
                   if (companySnap.exists()) {
                     set({ activeCompany: companySnap.data() as Company });
@@ -322,15 +355,38 @@ export const useAuthStore = getSingletonStore('auth', () =>
           }
 
           const profile = get().profile;
-          const activeCompanyId = profile?.activeCompanyId;
+          const activeCompanyId = profile?.activeCompanyId ?? null;
+          const nextActiveCompanyId = getAvailableActiveCompanyId(
+            activeCompanyId,
+            memberships
+          );
           const activeMembership =
-            memberships.find(m => m.companyId === activeCompanyId) || null;
+            memberships.find(
+              membership => membership.companyId === nextActiveCompanyId
+            ) || null;
+
+          if (profile && nextActiveCompanyId !== activeCompanyId) {
+            const { unsubscribeActiveCompany } = get();
+            if (unsubscribeActiveCompany) unsubscribeActiveCompany();
+
+            set({
+              profile: { ...profile, activeCompanyId: nextActiveCompanyId },
+              activeCompany: null,
+              unsubscribeActiveCompany: null
+            });
+            updateDoc(doc(db, 'users', user.uid), {
+              activeCompanyId: nextActiveCompanyId
+            }).catch(error =>
+              console.error('Active company reconciliation failed:', error)
+            );
+          }
 
           set({
             memberships,
             activeMembership,
             isInitialized: true,
-            isLoading: false
+            isLoading: false,
+            hasLoadedMemberships: true
           });
         });
 
