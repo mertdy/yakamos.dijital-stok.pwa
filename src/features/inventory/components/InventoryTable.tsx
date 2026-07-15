@@ -28,7 +28,7 @@ import {
   ArrowDown,
   Search,
   CheckSquare,
-  Barcode,
+  Printer,
   X
 } from 'lucide-react';
 import {
@@ -223,7 +223,7 @@ export const InventoryTable: React.FC<InventoryTableProps> = ({
                 isIconOnly
                 onPress={() => void openLabelPrint([props.row.original])}
                 aria-label="Etiket Bas">
-                <Barcode className="text-lg" />
+                <Printer className="text-lg" />
               </Button>
               <Button
                 variant="ghost"
@@ -321,16 +321,26 @@ export const InventoryTable: React.FC<InventoryTableProps> = ({
               {selectedIds.length} ürün seçildi
             </Description>
             <div className="flex items-center gap-1.5">
-              <Button
-                variant="secondary"
-                size="sm"
-                onPress={() =>
-                  void openLabelPrint(
-                    filteredItems.filter(item => selectedIds.includes(item.id))
-                  )
-                }>
-                <Barcode className="mr-1" size={16} /> Etiket Bas
-              </Button>
+              <Tooltip delay={0} closeDelay={0}>
+                <Button
+                  variant="tertiary"
+                  isIconOnly
+                  size="sm"
+                  onPress={() =>
+                    void openLabelPrint(
+                      filteredItems.filter(item =>
+                        selectedIds.includes(item.id)
+                      )
+                    )
+                  }
+                  aria-label="Seçili Ürünlere Etiket Bas">
+                  <Printer size={18} />
+                </Button>
+                <Tooltip.Content showArrow>
+                  <Tooltip.Arrow />
+                  Seçili ürünlere etiket bas
+                </Tooltip.Content>
+              </Tooltip>
               <Tooltip delay={0} closeDelay={0}>
                 <Button
                   variant="tertiary"

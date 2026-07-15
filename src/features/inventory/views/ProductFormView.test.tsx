@@ -11,7 +11,8 @@ vi.mock('lucide-react', () => ({
   ScanBarcode: () => <div data-testid="icon-scan" />,
   Search: () => <div data-testid="icon-search" />,
   Image: () => <div data-testid="icon-image" />,
-  Loader2: () => <div data-testid="icon-loader2" />
+  Loader2: () => <div data-testid="icon-loader2" />,
+  Printer: () => <div data-testid="icon-printer" />
 }));
 
 vi.mock('react-router-dom', () => ({

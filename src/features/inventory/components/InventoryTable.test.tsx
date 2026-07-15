@@ -12,7 +12,7 @@ vi.mock('lucide-react', () => ({
   ArrowUp: () => <div data-testid="icon-arrow-up" />,
   ArrowDown: () => <div data-testid="icon-arrow-down" />,
   Search: () => <div data-testid="icon-search" />,
-  Barcode: () => <div data-testid="icon-barcode" />,
+  Printer: () => <div data-testid="icon-printer" />,
   CheckSquare: () => <div data-testid="icon-check-square" />,
   X: () => <div data-testid="icon-x" />
 }));

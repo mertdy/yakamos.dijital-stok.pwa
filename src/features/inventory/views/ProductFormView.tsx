@@ -23,7 +23,8 @@ import {
   ScanBarcode,
   Search,
   Image,
-  Loader2
+  Loader2,
+  Printer
 } from 'lucide-react';
 import { toast } from '@heroui/react';
 import posthog from 'posthog-js';
@@ -382,6 +383,7 @@ export const ProductFormView: React.FC = () => {
                 variant="secondary"
                 type="button"
                 onPress={() => void openLabelPrint()}>
+                <Printer className="mr-2" size={18} />
                 Etiket Bas
               </Button>
             )}
