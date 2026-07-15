@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { clsx } from 'clsx';
 import { Button, Modal, toast } from '@heroui/react';
-import { FileUp, Loader2 } from 'lucide-react';
+import { CheckCircle2, FileUp, Loader2 } from 'lucide-react';
 import { useAuthStore } from '@/features/auth';
 import { useInventoryStore } from '@/features/inventory';
 import { useCustomerStore } from '@/features/customers';
@@ -12,6 +12,7 @@ import {
   parseImportFile,
   suggestMapping,
   type DuplicateMode,
+  type ImportResult,
   type ImportType,
   type StockMode
 } from '../utils/dataImport';
@@ -34,6 +35,7 @@ export const DataImportWizard = ({
   const [duplicateMode, setDuplicateMode] = useState<DuplicateMode>('update');
   const [stockMode, setStockMode] = useState<StockMode>('replace');
   const [busy, setBusy] = useState(false);
+  const [importResult, setImportResult] = useState<ImportResult | null>(null);
   const rows = useMemo(
     () => buildImportRows(rawRows, headers, mapping),
     [rawRows, headers, mapping]
@@ -61,6 +63,14 @@ export const DataImportWizard = ({
     setType(next);
     if (headers.length) setMapping(suggestMapping(headers, next));
   };
+  const closeWizard = () => {
+    setStep(1);
+    setHeaders([]);
+    setRawRows([]);
+    setMapping({});
+    setImportResult(null);
+    onClose();
+  };
   const runImport = async () => {
     if (!activeCompany || !user) return;
     setBusy(true);
@@ -75,10 +85,7 @@ export const DataImportWizard = ({
         duplicateMode,
         stockMode
       });
-      toast.success(
-        `${result.created} eklendi, ${result.updated} güncellendi, ${result.skipped} atlandı.`
-      );
-      onClose();
+      setImportResult(result);
     } catch {
       toast.danger('İçe aktarma sırasında hata oluştu.');
     } finally {
@@ -87,7 +94,7 @@ export const DataImportWizard = ({
   };
   const fields = IMPORT_FIELDS[type];
   return (
-    <Modal isOpen={isOpen} onOpenChange={open => !open && onClose()}>
+    <Modal isOpen={isOpen} onOpenChange={open => !open && closeWizard()}>
       <button style={{ display: 'none' }} aria-hidden="true" tabIndex={-1} />
       <Modal.Backdrop>
         <Modal.Container>
@@ -99,41 +106,86 @@ export const DataImportWizard = ({
                   Verileri İçe Aktar
                 </Modal.Heading>
                 <p className="mt-1 text-sm font-normal text-gray-500">
-                  Dosyanızı eşleştirin, sonuçları gözden geçirin ve onaylayın.
+                  {importResult
+                    ? 'İçe aktarma sonuçlarını gözden geçirin.'
+                    : 'Dosyanızı eşleştirin, sonuçları gözden geçirin ve onaylayın.'}
                 </p>
               </div>
             </Modal.Header>
             <Modal.Body className="space-y-5">
-              <div className="grid grid-cols-[minmax(0,1fr)_1fr_minmax(0,1fr)_1fr_minmax(0,1fr)] items-center gap-2 text-xs font-semibold">
-                {[
-                  ['Dosya', 1],
-                  ['Eşleştirme', 2],
-                  ['Onay', 3]
-                ].map(([label, index], itemIndex) => (
-                  <div key={label} className="contents">
-                    {itemIndex > 0 && (
-                      <span className="h-px flex-1 bg-gray-200" />
-                    )}
-                    <div
-                      className={clsx(
-                        'flex min-w-0 items-center gap-2',
-                        step >= Number(index) ? 'text-primary' : 'text-gray-400'
-                      )}>
-                      <span
+              {!importResult && (
+                <div className="grid grid-cols-[minmax(0,1fr)_1fr_minmax(0,1fr)_1fr_minmax(0,1fr)] items-center gap-2 text-xs font-semibold">
+                  {[
+                    ['Dosya', 1],
+                    ['Eşleştirme', 2],
+                    ['Onay', 3]
+                  ].map(([label, index], itemIndex) => (
+                    <div key={label} className="contents">
+                      {itemIndex > 0 && (
+                        <span className="h-px flex-1 bg-gray-200" />
+                      )}
+                      <div
                         className={clsx(
-                          'flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full',
+                          'flex min-w-0 items-center gap-2',
                           step >= Number(index)
-                            ? 'bg-primary text-white'
-                            : 'bg-gray-100 text-gray-400'
+                            ? 'text-primary'
+                            : 'text-gray-400'
                         )}>
-                        {index}
-                      </span>
-                      <span className="truncate">{label}</span>
+                        <span
+                          className={clsx(
+                            'flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full',
+                            step >= Number(index)
+                              ? 'bg-primary text-white'
+                              : 'bg-gray-100 text-gray-400'
+                          )}>
+                          {index}
+                        </span>
+                        <span className="truncate">{label}</span>
+                      </div>
                     </div>
+                  ))}
+                </div>
+              )}
+              {importResult ? (
+                <section className="space-y-5 py-3">
+                  <div className="flex flex-col items-center text-center">
+                    <span className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
+                      <CheckCircle2 size={26} />
+                    </span>
+                    <h3 className="text-lg font-bold text-gray-900">
+                      İçe aktarma tamamlandı
+                    </h3>
+                    <p className="mt-1 text-sm text-gray-500">
+                      {type === 'inventory' ? 'Envanter ' : 'Müşteri '}
+                      verileriniz işlendi.
+                    </p>
                   </div>
-                ))}
-              </div>
-              {step === 1 && (
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                    {[
+                      ['Eklenen', importResult.created, 'text-emerald-600'],
+                      ['Güncellenen', importResult.updated, 'text-primary'],
+                      ['Atlanan', importResult.skipped, 'text-amber-600'],
+                      ['Geçersiz', importResult.invalid, 'text-gray-500']
+                    ].map(([label, value, color]) => (
+                      <div
+                        key={String(label)}
+                        className="rounded-2xl border border-gray-100 bg-gray-50 p-3 text-center">
+                        <p className={clsx('text-2xl font-bold', color)}>
+                          {value}
+                        </p>
+                        <p className="mt-1 text-xs font-medium text-gray-500">
+                          {label}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="rounded-xl border border-gray-100 bg-gray-50 p-4 text-sm text-gray-600">
+                    Toplam {rows.length} satır değerlendirildi. Geçersiz
+                    satırlar zorunlu ad/ürün adı alanı boş olduğu için
+                    işlenmedi.
+                  </div>
+                </section>
+              ) : step === 1 ? (
                 <>
                   <div className="grid grid-cols-2 gap-3">
                     <button
@@ -167,8 +219,7 @@ export const DataImportWizard = ({
                     />
                   </label>
                 </>
-              )}
-              {step === 2 && (
+              ) : step === 2 ? (
                 <>
                   <p className="text-sm text-gray-600">
                     {rawRows.length} satır bulundu. Dosya sütunlarını alanlarla
@@ -243,8 +294,7 @@ export const DataImportWizard = ({
                     ))}
                   </div>
                 </>
-              )}
-              {step === 3 && (
+              ) : (
                 <>
                   <div className="rounded-xl bg-gray-50 p-4">
                     <b>İçe aktarma özeti</b>
@@ -286,25 +336,39 @@ export const DataImportWizard = ({
               )}
             </Modal.Body>
             <Modal.Footer>
-              <Button
-                variant="ghost"
-                onPress={() => (step === 1 ? onClose() : setStep(step - 1))}
-                isDisabled={busy}>
-                {step === 1 ? 'İptal' : 'Geri'}
-              </Button>
-              {step < 3 ? (
-                <Button
-                  variant="primary"
-                  onPress={() => setStep(step + 1)}
-                  isDisabled={step === 1 || (step === 2 && !mapping.name)}>
-                  Devam Et
+              {importResult ? (
+                <Button variant="primary" onPress={closeWizard}>
+                  Kapat
                 </Button>
               ) : (
-                <Button variant="primary" onPress={runImport} isDisabled={busy}>
-                  {busy && <Loader2 className="mr-2 animate-spin" size={16} />}
-                  İçe Aktarmayı Onayla
+                <Button
+                  variant="ghost"
+                  onPress={() =>
+                    step === 1 ? closeWizard() : setStep(step - 1)
+                  }
+                  isDisabled={busy}>
+                  {step === 1 ? 'İptal' : 'Geri'}
                 </Button>
               )}
+              {!importResult &&
+                (step < 3 ? (
+                  <Button
+                    variant="primary"
+                    onPress={() => setStep(step + 1)}
+                    isDisabled={step === 1 || (step === 2 && !mapping.name)}>
+                    Devam Et
+                  </Button>
+                ) : (
+                  <Button
+                    variant="primary"
+                    onPress={runImport}
+                    isDisabled={busy}>
+                    {busy && (
+                      <Loader2 className="mr-2 animate-spin" size={16} />
+                    )}
+                    İçe Aktarmayı Onayla
+                  </Button>
+                ))}
             </Modal.Footer>
           </Modal.Dialog>
         </Modal.Container>

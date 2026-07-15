@@ -7,6 +7,12 @@ export type ImportType = 'inventory' | 'customers';
 export type DuplicateMode = 'update' | 'skip' | 'create';
 export type StockMode = 'replace' | 'add';
 export type ImportRow = Record<string, unknown>;
+export interface ImportResult {
+  created: number;
+  updated: number;
+  skipped: number;
+  invalid: number;
+}
 
 export const IMPORT_FIELDS = {
   inventory: [
@@ -190,5 +196,10 @@ export const importRows = async ({
     });
     await batch.commit();
   }
-  return { created, updated, skipped, invalid: rows.length - validRows.length };
+  return {
+    created,
+    updated,
+    skipped,
+    invalid: rows.length - validRows.length
+  } satisfies ImportResult;
 };
