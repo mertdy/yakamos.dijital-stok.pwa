@@ -114,4 +114,13 @@ describe('ShareStatementModal', () => {
       expect(onClose).toHaveBeenCalled();
     });
   });
+
+  it('removes deselected summary fields from the message preview', () => {
+    renderModal();
+
+    fireEvent.click(screen.getByRole('button', { name: /Devir/i }));
+
+    expect(screen.queryByText(/Devir bakiyesi:/)).not.toBeInTheDocument();
+    expect(screen.getByText(/Veresiye alışlar:/)).toBeInTheDocument();
+  });
 });

@@ -27,8 +27,10 @@ import {
   getStatementDateRange,
   normalizeWhatsAppPhone,
   toIstanbulDateString,
+  STATEMENT_SUMMARY_FIELDS,
   type StatementDateRange,
-  type StatementRangePreset
+  type StatementRangePreset,
+  type StatementSummaryField
 } from '../domain/customerStatement';
 import {
   useCustomerStore,
@@ -56,6 +58,38 @@ const RANGE_OPTIONS: RangeOption[] = [
   { key: 'LAST_30_DAYS', label: 'Son 30 gün' },
   { key: 'LAST_3_MONTHS', label: 'Son 3 ay' },
   { key: 'ALL', label: 'Tümü' }
+];
+
+const SUMMARY_OPTIONS: {
+  key: StatementSummaryField;
+  label: string;
+  color: string;
+  getValue: (statement: ReturnType<typeof buildCustomerStatement>) => number;
+}[] = [
+  {
+    key: 'OPENING_BALANCE',
+    label: 'Devir',
+    color: 'text-gray-900',
+    getValue: statement => statement.openingBalanceMinor
+  },
+  {
+    key: 'SALES_TOTAL',
+    label: 'Veresiye',
+    color: 'text-orange-600',
+    getValue: statement => statement.salesTotalMinor
+  },
+  {
+    key: 'PAYMENTS_TOTAL',
+    label: 'Tahsilat',
+    color: 'text-emerald-600',
+    getValue: statement => statement.paymentsTotalMinor
+  },
+  {
+    key: 'CURRENT_BALANCE',
+    label: 'Güncel Borç',
+    color: 'text-blue-600',
+    getValue: statement => statement.closingBalanceMinor
+  }
 ];
 
 const statementShareSchema = z
@@ -88,6 +122,9 @@ export const ShareStatementModal = ({
   const { recordStatementShare } = useCustomerStore();
   const [preset, setPreset] = useState<StatementRangePreset>('THIS_MONTH');
   const [isOpening, setIsOpening] = useState(false);
+  const [selectedSummaryFields, setSelectedSummaryFields] = useState<
+    StatementSummaryField[]
+  >([...STATEMENT_SUMMARY_FIELDS]);
   const {
     control,
     handleSubmit,
@@ -131,6 +168,7 @@ export const ShareStatementModal = ({
       note: ''
     });
     setIsOpening(false);
+    setSelectedSummaryFields([...STATEMENT_SUMMARY_FIELDS]);
   }, [earliestDate, isOpen, reset]);
 
   const statement = useMemo(
@@ -143,6 +181,7 @@ export const ShareStatementModal = ({
     if (!activeCompany || !hasValidRange) return '';
     return formatStatementMessage(statement, activeCompany, customer, {
       includeTransactions,
+      includedSummaryFields: selectedSummaryFields,
       note,
       maxTransactions: 10
     });
@@ -152,8 +191,17 @@ export const ShareStatementModal = ({
     hasValidRange,
     includeTransactions,
     note,
+    selectedSummaryFields,
     statement
   ]);
+
+  const toggleSummaryField = (field: StatementSummaryField) => {
+    setSelectedSummaryFields(fields =>
+      fields.includes(field)
+        ? fields.filter(selectedField => selectedField !== field)
+        : [...fields, field]
+    );
+  };
 
   const selectPreset = (selectedPreset: RangeOption['key']) => {
     setPreset(selectedPreset);
@@ -279,32 +327,44 @@ export const ShareStatementModal = ({
                 </div>
               </section>
 
-              <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-                {[
-                  ['Devir', statement.openingBalanceMinor, 'text-gray-900'],
-                  ['Veresiye', statement.salesTotalMinor, 'text-orange-600'],
-                  [
-                    'Tahsilat',
-                    statement.paymentsTotalMinor,
-                    'text-emerald-600'
-                  ],
-                  [
-                    statement.closingBalanceMinor < 0 ? 'Alacak' : 'Kapanış',
-                    statement.closingBalanceMinor,
-                    statement.closingBalanceMinor > 0
-                      ? 'text-orange-600'
-                      : 'text-blue-600'
-                  ]
-                ].map(([label, value, color]) => (
-                  <div
-                    key={String(label)}
-                    className="rounded-2xl border border-gray-100 bg-gray-50 p-3">
-                    <p className="text-xs font-medium text-gray-500">{label}</p>
-                    <p className={clsx('mt-1 text-base font-bold', color)}>
-                      {formatMinor(Number(value))}
-                    </p>
-                  </div>
-                ))}
+              <section>
+                <p className="mb-2 text-xs font-medium text-gray-500">
+                  Mesaja eklenecek özet alanları
+                </p>
+                <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+                  {SUMMARY_OPTIONS.map(option => {
+                    const isSelected = selectedSummaryFields.includes(
+                      option.key
+                    );
+                    return (
+                      <button
+                        key={option.key}
+                        type="button"
+                        aria-pressed={isSelected}
+                        onClick={() => toggleSummaryField(option.key)}
+                        className={clsx(
+                          'rounded-2xl border p-3 text-left transition-colors',
+                          isSelected
+                            ? 'border-primary bg-primary/5 ring-primary/20 ring-1'
+                            : 'border-gray-100 bg-gray-50 opacity-60 hover:opacity-100'
+                        )}>
+                        <span className="flex items-center justify-between gap-2 text-xs font-medium text-gray-500">
+                          {option.label}
+                          {isSelected && (
+                            <Check size={14} className="text-primary" />
+                          )}
+                        </span>
+                        <span
+                          className={clsx(
+                            'mt-1 block text-base font-bold',
+                            option.color
+                          )}>
+                          {formatMinor(option.getValue(statement))}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
               </section>
 
               <section className="space-y-3">

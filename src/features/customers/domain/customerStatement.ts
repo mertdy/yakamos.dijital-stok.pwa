@@ -27,8 +27,18 @@ export interface CustomerStatement {
   entries: StatementEntry[];
 }
 
+export const STATEMENT_SUMMARY_FIELDS = [
+  'OPENING_BALANCE',
+  'SALES_TOTAL',
+  'PAYMENTS_TOTAL',
+  'CURRENT_BALANCE'
+] as const;
+
+export type StatementSummaryField = (typeof STATEMENT_SUMMARY_FIELDS)[number];
+
 export interface FormatStatementMessageOptions {
   includeTransactions: boolean;
+  includedSummaryFields?: StatementSummaryField[];
   note?: string;
   maxTransactions?: number;
 }
@@ -202,6 +212,15 @@ export const formatStatementMessage = (
     month: '2-digit'
   });
   const { startMs, endMs } = toIstanbulDayBounds(statement.range);
+  const includedSummaryFields = options.includedSummaryFields ?? [
+    ...STATEMENT_SUMMARY_FIELDS
+  ];
+  const summaryLines: Record<StatementSummaryField, string> = {
+    OPENING_BALANCE: `Devir bakiyesi: ${formatBalance(statement.openingBalanceMinor)}`,
+    SALES_TOTAL: `Veresiye alışlar: ${formatMinor(statement.salesTotalMinor)}`,
+    PAYMENTS_TOTAL: `Tahsilatlar: ${formatMinor(statement.paymentsTotalMinor)}`,
+    CURRENT_BALANCE: `*${statement.closingBalanceMinor < 0 ? 'Güncel alacak' : 'Güncel borç'}: ${formatMinor(statement.closingBalanceMinor)}*`
+  };
   const lines = [
     `*${companyName}*`,
     '*Hesap Ekstresi*',
@@ -210,10 +229,9 @@ export const formatStatementMessage = (
     '',
     `Dönem: ${dateFormatter.format(startMs)} – ${dateFormatter.format(endMs)}`,
     '',
-    `Devir bakiyesi: ${formatBalance(statement.openingBalanceMinor)}`,
-    `Veresiye alışlar: ${formatMinor(statement.salesTotalMinor)}`,
-    `Tahsilatlar: ${formatMinor(statement.paymentsTotalMinor)}`,
-    `*${statement.closingBalanceMinor < 0 ? 'Güncel alacak' : 'Güncel borç'}: ${formatMinor(statement.closingBalanceMinor)}*`
+    ...STATEMENT_SUMMARY_FIELDS.filter(field =>
+      includedSummaryFields.includes(field)
+    ).map(field => summaryLines[field])
   ];
 
   if (options.includeTransactions && statement.entries.length > 0) {
