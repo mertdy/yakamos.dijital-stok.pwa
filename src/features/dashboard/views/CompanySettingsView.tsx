@@ -40,6 +40,8 @@ import {
   CheckCircle2,
   UserPlus
 } from 'lucide-react';
+import { Download } from 'lucide-react';
+import { DataExportWizard } from '../components/DataExportWizard';
 import { useConfirm } from '@/shared/contexts/ConfirmDialogContext';
 import { FormInput } from '@/shared/components/FormInput';
 import { PhoneInput } from '@/shared/components/PhoneInput';
@@ -82,6 +84,7 @@ export const CompanySettingsView = () => {
   const [employees, setEmployees] = useState<Membership[]>([]);
   const [invitations, setInvitations] = useState<Invitation[]>([]);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [isExportWizardOpen, setIsExportWizardOpen] = useState(false);
 
   // Invite Modal State
   const [inviteModalOpen, setInviteModalOpen] = useState(false);
@@ -283,6 +286,9 @@ export const CompanySettingsView = () => {
             yönetin.
           </p>
         </div>
+        <Button variant="secondary" onPress={() => setIsExportWizardOpen(true)}>
+          <Download size={17} className="mr-2" /> Verileri Dışa Aktar
+        </Button>
       </div>
 
       <div className="space-y-6 pb-6">
@@ -475,6 +481,14 @@ export const CompanySettingsView = () => {
           </div>
         </Card>
       </div>
+
+      {activeCompany && (
+        <DataExportWizard
+          isOpen={isExportWizardOpen}
+          onClose={() => setIsExportWizardOpen(false)}
+          company={activeCompany}
+        />
+      )}
 
       {/* Invite Modal */}
       <Modal
