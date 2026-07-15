@@ -16,6 +16,7 @@ import {
   XCircle,
   Building2
 } from 'lucide-react';
+import { FormInput } from '@/shared/components/FormInput';
 
 const onboardingSchema = z.object({
   name: z
@@ -43,11 +44,7 @@ export const OnboardingView = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [actionInviteId, setActionInviteId] = useState<string | null>(null);
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors }
-  } = useForm<OnboardingFormData>({
+  const { control, handleSubmit } = useForm<OnboardingFormData>({
     resolver: zodResolver(onboardingSchema)
   });
 
@@ -218,72 +215,39 @@ export const OnboardingView = () => {
           <form
             onSubmit={handleSubmit(handleCreateCompany)}
             className="space-y-5">
-            <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">
-                İşletme Adı <span className="text-danger">*</span>
-              </label>
-              <input
-                type="text"
-                {...register('name')}
-                placeholder="Örn: Yakamos Süpermarket"
-                className={`focus:ring-primary block w-full rounded-xl border px-4 py-3 text-sm transition-all outline-none focus:ring-2 ${
-                  errors.name
-                    ? 'border-danger focus:ring-danger'
-                    : 'border-gray-200'
-                }`}
-              />
-              {errors.name && (
-                <p className="text-danger mt-1.5 text-xs">
-                  {errors.name.message}
-                </p>
-              )}
-            </div>
+            <FormInput
+              control={control}
+              name="name"
+              label="İşletme Adı"
+              isRequired
+              type="text"
+              placeholder="Örn: Yakamos Süpermarket"
+            />
 
-            <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">
-                Fiş Başlığı (Opsiyonel)
-              </label>
-              <input
-                type="text"
-                {...register('receiptHeader')}
-                placeholder="Örn: YAKAMOS GIDA LTD. ŞTİ."
-                className="focus:ring-primary block w-full rounded-xl border border-gray-200 px-4 py-3 text-sm transition-all outline-none focus:ring-2"
-              />
-            </div>
+            <FormInput
+              control={control}
+              name="receiptHeader"
+              label="Fiş Başlığı (Opsiyonel)"
+              type="text"
+              placeholder="Örn: YAKAMOS GIDA LTD. ŞTİ."
+            />
 
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-              <div>
-                <label className="mb-1 block text-sm font-medium text-gray-700">
-                  Telefon (Opsiyonel)
-                </label>
-                <input
-                  type="text"
-                  {...register('phone')}
-                  placeholder="Örn: 05551234567"
-                  className={`focus:ring-primary block w-full rounded-xl border px-4 py-3 text-sm transition-all outline-none focus:ring-2 ${
-                    errors.phone
-                      ? 'border-danger focus:ring-danger'
-                      : 'border-gray-200'
-                  }`}
-                />
-                {errors.phone && (
-                  <p className="text-danger mt-1.5 text-xs">
-                    {errors.phone.message}
-                  </p>
-                )}
-              </div>
+              <FormInput
+                control={control}
+                name="phone"
+                label="Telefon (Opsiyonel)"
+                type="tel"
+                placeholder="Örn: 05551234567"
+              />
 
-              <div>
-                <label className="mb-1 block text-sm font-medium text-gray-700">
-                  Adres (Opsiyonel)
-                </label>
-                <input
-                  type="text"
-                  {...register('address')}
-                  placeholder="Örn: Kadıköy, İstanbul"
-                  className="focus:ring-primary block w-full rounded-xl border border-gray-200 px-4 py-3 text-sm transition-all outline-none focus:ring-2"
-                />
-              </div>
+              <FormInput
+                control={control}
+                name="address"
+                label="Adres (Opsiyonel)"
+                type="text"
+                placeholder="Örn: Kadıköy, İstanbul"
+              />
             </div>
 
             <div className="pt-4">

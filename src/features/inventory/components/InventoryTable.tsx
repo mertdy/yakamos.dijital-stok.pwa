@@ -21,7 +21,14 @@ import {
   CheckSquare,
   X
 } from 'lucide-react';
-import { Button, Checkbox, Description, Tooltip, toast } from '@heroui/react';
+import {
+  Button,
+  Checkbox,
+  Description,
+  Input,
+  Tooltip,
+  toast
+} from '@heroui/react';
 import { useNavigate } from 'react-router-dom';
 import { useGlobalBarcodeScanner } from '@/shared/hooks/useGlobalBarcodeScanner';
 import { useConfirm } from '@/shared/contexts/ConfirmDialogContext';
@@ -223,12 +230,13 @@ export const InventoryTable: React.FC = () => {
             className="absolute top-1/2 left-3 -translate-y-1/2 text-gray-400"
             size={20}
           />
-          <input
+          <Input
             type="text"
+            fullWidth
             placeholder="Ürün adı veya barkod ile ara..."
             value={globalFilter}
             onChange={e => setGlobalFilter(e.target.value)}
-            className="focus:ring-primary w-full rounded-xl border border-gray-200 bg-white py-2.5 pr-4 pl-10 outline-none focus:ring-2"
+            className="pl-10"
           />
         </div>
 

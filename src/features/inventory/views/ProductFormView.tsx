@@ -6,6 +6,7 @@ import * as z from 'zod';
 import { useInventoryStore } from '../store/useInventoryStore';
 import { ScannerModal } from '@/features/sales';
 import { Button } from '@heroui/react';
+import { FormInput } from '@/shared/components/FormInput';
 import {
   ArrowLeft,
   Save,
@@ -49,12 +50,12 @@ export const ProductFormView: React.FC = () => {
   const [isSaving, setIsSaving] = useState(false);
 
   const {
-    register,
+    control,
     handleSubmit,
     reset,
     setValue,
     getValues,
-    formState: { errors, isValid }
+    formState: { isValid }
   } = useForm<ProductFormData>({
     resolver: zodResolver(productSchema),
     mode: 'onChange',
@@ -221,66 +222,45 @@ export const ProductFormView: React.FC = () => {
         <form
           onSubmit={handleSubmit(onSubmit)}
           className="space-y-6 p-6 md:p-8">
-          <div>
-            <label
-              htmlFor="name"
-              className="mb-1.5 ml-1 block text-sm font-semibold text-gray-700">
-              Ürün Adı <span className="text-danger">*</span>
-            </label>
-            <input
-              id="name"
-              {...register('name')}
-              className={`focus:ring-primary w-full rounded-2xl border bg-gray-50 px-4 py-3.5 transition-all outline-none focus:bg-white focus:ring-2 ${errors.name ? 'border-danger focus:ring-danger' : 'border-gray-200'}`}
-              placeholder="Örn: Coca Cola 330ml"
-            />
-            {errors.name && (
-              <span className="text-danger mt-1 ml-1 block text-xs">
-                {errors.name.message}
-              </span>
-            )}
-          </div>
+          <FormInput
+            control={control}
+            name="name"
+            label="Ürün Adı"
+            isRequired
+            placeholder="Örn: Coca Cola 330ml"
+          />
 
-          <div>
-            <label
-              htmlFor="barcode"
-              className="mb-1.5 ml-1 block text-sm font-semibold text-gray-700">
-              Barkod (Opsiyonel)
-            </label>
-            <div className="flex gap-2">
-              <input
-                id="barcode"
-                {...register('barcode')}
-                className={`focus:ring-primary w-full rounded-2xl border bg-gray-50 px-4 py-3.5 transition-all outline-none focus:bg-white focus:ring-2 ${errors.barcode ? 'border-danger focus:ring-danger' : 'border-gray-200'}`}
-                placeholder="Barkod okutun veya girin"
-              />
-              <Button
-                type="button"
-                variant="secondary"
-                onPress={() => setIsScannerOpen(true)}
-                aria-label="Kamera ile barkod okut">
-                <ScanBarcode className="text-xl" />
-              </Button>
-              <Button
-                type="button"
-                variant="tertiary"
-                onPress={() =>
-                  searchProductByBarcode(getValues('barcode') || '')
-                }
-                isDisabled={isSearching}
-                aria-label="Barkod ile otomatik doldur">
-                {isSearching ? (
-                  <Loader2 className="animate-spin text-xl" />
-                ) : (
-                  <Search className="text-xl" />
-                )}
-              </Button>
-            </div>
-            {errors.barcode && (
-              <span className="text-danger mt-1 ml-1 block text-xs">
-                {errors.barcode.message}
-              </span>
-            )}
-          </div>
+          <FormInput
+            control={control}
+            name="barcode"
+            label="Barkod (Opsiyonel)"
+            placeholder="Barkod okutun veya girin"
+            endContent={
+              <>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onPress={() => setIsScannerOpen(true)}
+                  aria-label="Kamera ile barkod okut">
+                  <ScanBarcode className="text-xl" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="tertiary"
+                  onPress={() =>
+                    searchProductByBarcode(getValues('barcode') || '')
+                  }
+                  isDisabled={isSearching}
+                  aria-label="Barkod ile otomatik doldur">
+                  {isSearching ? (
+                    <Loader2 className="animate-spin text-xl" />
+                  ) : (
+                    <Search className="text-xl" />
+                  )}
+                </Button>
+              </>
+            }
+          />
 
           {apiProductData && (
             <div className="animate-appearance-in flex items-start gap-4 rounded-xl border border-blue-100 bg-blue-50 p-4">
@@ -322,43 +302,22 @@ export const ProductFormView: React.FC = () => {
           )}
 
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-            <div className="space-y-1.5">
-              <label
-                htmlFor="stock"
-                className="ml-1 block text-sm font-semibold text-gray-700">
-                Stok Miktarı
-              </label>
-              <input
-                id="stock"
-                type="number"
-                {...register('stock', { valueAsNumber: true })}
-                className={`focus:ring-primary w-full rounded-2xl border bg-gray-50 px-4 py-3.5 transition-all outline-none focus:bg-white focus:ring-2 ${errors.stock ? 'border-danger focus:ring-danger' : 'border-gray-200'}`}
-              />
-              {errors.stock && (
-                <span className="text-danger mt-1 ml-1 block text-xs">
-                  {errors.stock.message}
-                </span>
-              )}
-            </div>
-            <div className="space-y-1.5">
-              <label
-                htmlFor="price"
-                className="ml-1 block text-sm font-semibold text-gray-700">
-                Birim Fiyatı (₺) <span className="text-danger">*</span>
-              </label>
-              <input
-                id="price"
-                type="number"
-                step="0.01"
-                {...register('price', { valueAsNumber: true })}
-                className={`focus:ring-primary w-full rounded-2xl border bg-gray-50 px-4 py-3.5 transition-all outline-none focus:bg-white focus:ring-2 ${errors.price ? 'border-danger focus:ring-danger' : 'border-gray-200'}`}
-              />
-              {errors.price && (
-                <span className="text-danger mt-1 ml-1 block text-xs">
-                  {errors.price.message}
-                </span>
-              )}
-            </div>
+            <FormInput
+              control={control}
+              name="stock"
+              label="Stok Miktarı"
+              type="number"
+              valueAsNumber
+            />
+            <FormInput
+              control={control}
+              name="price"
+              label="Birim Fiyatı (₺)"
+              isRequired
+              type="number"
+              step="0.01"
+              valueAsNumber
+            />
           </div>
 
           <div className="flex justify-end gap-3 border-t border-gray-100 pt-4">

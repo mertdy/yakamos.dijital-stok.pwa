@@ -8,7 +8,7 @@ import {
   Minus,
   Plus
 } from 'lucide-react';
-import { Button, Modal, toast } from '@heroui/react';
+import { Button, Input, Modal, toast } from '@heroui/react';
 import { useInventoryStore } from '@/features/inventory';
 import { usePreferencesStore } from '../store/usePreferencesStore';
 import { useDebounce } from '@/shared/hooks/useDebounce';
@@ -201,12 +201,13 @@ export const QuickAddEditModal: React.FC<Props> = ({ isOpen, onClose }) => {
                         className="absolute top-1/2 left-3 -translate-y-1/2 text-gray-400"
                         size={18}
                       />
-                      <input
+                      <Input
                         type="text"
+                        fullWidth
                         placeholder="Envanterde ara..."
                         value={searchQuery}
                         onChange={e => setSearchQuery(e.target.value)}
-                        className="focus:ring-primary w-full rounded-xl border border-gray-200 bg-gray-50 py-2.5 pr-4 pl-10 text-sm transition-all outline-none focus:ring-2"
+                        className="pl-10"
                       />
                     </div>
                   </div>

@@ -5,7 +5,7 @@ import { useSalesStore } from '../store/useSalesStore';
 import { useDebounce } from '@/shared/hooks/useDebounce';
 import { useGlobalBarcodeScanner } from '@/shared/hooks/useGlobalBarcodeScanner';
 import { useNavigate } from 'react-router-dom';
-import { toast } from '@heroui/react';
+import { Input, toast } from '@heroui/react';
 import posthog from 'posthog-js';
 
 interface Props {
@@ -119,13 +119,14 @@ export const GlobalProductSearch: React.FC<Props> = ({ onOpenScanner }) => {
         className="absolute top-1/2 left-4 -translate-y-1/2 text-gray-400"
         size={18}
       />
-      <input
+      <Input
         type="text"
+        fullWidth
         placeholder="Ürün veya barkod ara..."
         value={query}
         onChange={e => setQuery(e.target.value)}
         onFocus={() => setIsFocused(true)}
-        className="focus:ring-primary w-full rounded-2xl border border-gray-100 bg-white py-3.5 pr-14 pl-11 text-sm shadow-sm transition-all outline-none focus:ring-2"
+        className="pr-14 pl-11"
       />
       <button
         onClick={onOpenScanner}

@@ -2,7 +2,15 @@ import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { Button, Card, toast, Modal } from '@heroui/react';
+import {
+  Button,
+  Card,
+  Checkbox,
+  Description,
+  Label,
+  Modal,
+  toast
+} from '@heroui/react';
 import { useAuthStore } from '@/features/auth';
 import { db } from '@/core/firebase/config';
 import {
@@ -33,6 +41,7 @@ import {
   UserPlus
 } from 'lucide-react';
 import { useConfirm } from '@/shared/contexts/ConfirmDialogContext';
+import { FormInput } from '@/shared/components/FormInput';
 
 // Company Profile Schema
 const companyProfileSchema = z.object({
@@ -92,19 +101,17 @@ export const CompanySettingsView = () => {
   const [isSavingPerms, setIsSavingPerms] = useState(false);
 
   const {
-    register: registerProfile,
+    control: controlProfile,
     handleSubmit: handleSubmitProfile,
-    setValue: setProfileValue,
-    formState: { errors: profileErrors }
+    setValue: setProfileValue
   } = useForm<CompanyProfileFormData>({
     resolver: zodResolver(companyProfileSchema)
   });
 
   const {
-    register: registerInvite,
+    control: controlInvite,
     handleSubmit: handleSubmitInvite,
-    reset: resetInvite,
-    formState: { errors: inviteErrors }
+    reset: resetInvite
   } = useForm<InviteFormData>({
     resolver: zodResolver(inviteSchema)
   });
@@ -286,75 +293,40 @@ export const CompanySettingsView = () => {
           <form
             onSubmit={handleSubmitProfile(handleUpdateProfile)}
             className="space-y-5">
-            <div>
-              <label className="mb-1 block text-sm font-semibold text-gray-700">
-                İşletme Adı <span className="text-danger">*</span>
-              </label>
-              <input
-                type="text"
-                {...registerProfile('name')}
-                placeholder="Örn: Yakamos Süpermarket"
-                className={`focus:ring-primary block w-full rounded-xl border px-4 py-2.5 text-sm transition-all outline-none focus:ring-2 ${
-                  profileErrors.name
-                    ? 'border-danger focus:ring-danger'
-                    : 'border-gray-200'
-                }`}
-              />
-              {profileErrors.name && (
-                <p className="text-danger mt-1.5 text-xs">
-                  {profileErrors.name.message}
-                </p>
-              )}
-            </div>
+            <FormInput
+              control={controlProfile}
+              name="name"
+              label="İşletme Adı"
+              isRequired
+              type="text"
+              placeholder="Örn: Yakamos Süpermarket"
+            />
 
-            <div>
-              <label className="mb-1 block text-sm font-semibold text-gray-700">
-                Fiş Başlığı (Receipt Header)
-              </label>
-              <input
-                type="text"
-                {...registerProfile('receiptHeader')}
-                placeholder="Örn: YAKAMOS GIDA VE GEREÇLERİ PAZ. SAN. LTD. ŞTİ."
-                className="focus:ring-primary block w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm transition-all outline-none focus:ring-2"
-              />
-              <p className="mt-1 text-xs text-gray-400">
-                Fiş yazdırırken en üst satırda görünecek şirket ibaresi.
-              </p>
-            </div>
+            <FormInput
+              control={controlProfile}
+              name="receiptHeader"
+              label="Fiş Başlığı (Receipt Header)"
+              type="text"
+              placeholder="Örn: YAKAMOS GIDA VE GEREÇLERİ PAZ. SAN. LTD. ŞTİ."
+              hint="Fiş yazdırırken en üst satırda görünecek şirket ibaresi."
+            />
 
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-              <div>
-                <label className="mb-1 block text-sm font-semibold text-gray-700">
-                  Telefon Numarası
-                </label>
-                <input
-                  type="text"
-                  {...registerProfile('phone')}
-                  placeholder="Örn: 05551234567"
-                  className={`focus:ring-primary block w-full rounded-xl border px-4 py-2.5 text-sm transition-all outline-none focus:ring-2 ${
-                    profileErrors.phone
-                      ? 'border-danger focus:ring-danger'
-                      : 'border-gray-200'
-                  }`}
-                />
-                {profileErrors.phone && (
-                  <p className="text-danger mt-1.5 text-xs">
-                    {profileErrors.phone.message}
-                  </p>
-                )}
-              </div>
+              <FormInput
+                control={controlProfile}
+                name="phone"
+                label="Telefon Numarası"
+                type="tel"
+                placeholder="Örn: 05551234567"
+              />
 
-              <div>
-                <label className="mb-1 block text-sm font-semibold text-gray-700">
-                  Adres Bilgisi
-                </label>
-                <input
-                  type="text"
-                  {...registerProfile('address')}
-                  placeholder="Örn: Kadıköy, İstanbul"
-                  className="focus:ring-primary block w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm transition-all outline-none focus:ring-2"
-                />
-              </div>
+              <FormInput
+                control={controlProfile}
+                name="address"
+                label="Adres Bilgisi"
+                type="text"
+                placeholder="Örn: Kadıköy, İstanbul"
+              />
             </div>
 
             <div className="flex justify-end pt-4">
@@ -528,26 +500,14 @@ export const CompanySettingsView = () => {
                 </Modal.Header>
 
                 <Modal.Body className="space-y-4">
-                  <div>
-                    <label className="mb-1 block text-sm font-medium text-gray-700">
-                      E-posta Adresi <span className="text-danger">*</span>
-                    </label>
-                    <input
-                      type="email"
-                      {...registerInvite('email')}
-                      placeholder="calisan@firma.com"
-                      className={`focus:ring-primary block w-full rounded-xl border px-4 py-2.5 text-sm transition-all outline-none focus:ring-2 ${
-                        inviteErrors.email
-                          ? 'border-danger focus:ring-danger'
-                          : 'border-gray-200'
-                      }`}
-                    />
-                    {inviteErrors.email && (
-                      <p className="text-danger mt-1.5 text-xs">
-                        {inviteErrors.email.message}
-                      </p>
-                    )}
-                  </div>
+                  <FormInput
+                    control={controlInvite}
+                    name="email"
+                    label="E-posta Adresi"
+                    isRequired
+                    type="email"
+                    placeholder="calisan@firma.com"
+                  />
 
                   {/* Permissions Selection Checklist */}
                   <div className="space-y-2.5">
@@ -556,29 +516,18 @@ export const CompanySettingsView = () => {
                     </label>
                     <div className="max-h-60 space-y-2 overflow-y-auto pr-1">
                       {AVAILABLE_PERMISSIONS.map(perm => (
-                        <div
+                        <Checkbox
                           key={perm.key}
-                          onClick={() => handleToggleInvitePerm(perm.key)}
-                          className={`flex cursor-pointer items-start gap-3 rounded-xl border p-2.5 transition-colors hover:bg-gray-50/50 ${
-                            selectedInvitePerms.includes(perm.key)
-                              ? 'border-primary bg-primary/5'
-                              : 'border-gray-100'
-                          }`}>
-                          <input
-                            type="checkbox"
-                            checked={selectedInvitePerms.includes(perm.key)}
-                            onChange={() => {}} // Controlled by outer container click
-                            className="text-primary focus:ring-primary mt-0.5 h-4.5 w-4.5 rounded border-gray-300"
-                          />
-                          <div className="min-w-0 text-left">
-                            <p className="text-xs font-bold text-gray-800">
-                              {perm.label}
-                            </p>
-                            <p className="mt-0.5 text-[10px] leading-relaxed text-gray-500">
-                              {perm.description}
-                            </p>
-                          </div>
-                        </div>
+                          isSelected={selectedInvitePerms.includes(perm.key)}
+                          onChange={() => handleToggleInvitePerm(perm.key)}>
+                          <Checkbox.Content>
+                            <Checkbox.Control>
+                              <Checkbox.Indicator />
+                            </Checkbox.Control>
+                            <Label>{perm.label}</Label>
+                          </Checkbox.Content>
+                          <Description>{perm.description}</Description>
+                        </Checkbox>
                       ))}
                     </div>
                   </div>
@@ -660,29 +609,18 @@ export const CompanySettingsView = () => {
                     </label>
                     <div className="max-h-60 space-y-2 overflow-y-auto pr-1">
                       {AVAILABLE_PERMISSIONS.map(perm => (
-                        <div
+                        <Checkbox
                           key={perm.key}
-                          onClick={() => handleToggleEditPerm(perm.key)}
-                          className={`flex cursor-pointer items-start gap-3 rounded-xl border p-2.5 transition-colors hover:bg-gray-50/50 ${
-                            selectedEditPerms.includes(perm.key)
-                              ? 'border-primary bg-primary/5'
-                              : 'border-gray-100'
-                          }`}>
-                          <input
-                            type="checkbox"
-                            checked={selectedEditPerms.includes(perm.key)}
-                            onChange={() => {}} // Controlled by outer container click
-                            className="text-primary focus:ring-primary mt-0.5 h-4.5 w-4.5 rounded border-gray-300"
-                          />
-                          <div className="min-w-0 text-left">
-                            <p className="text-xs font-bold text-gray-800">
-                              {perm.label}
-                            </p>
-                            <p className="mt-0.5 text-[10px] leading-relaxed text-gray-500">
-                              {perm.description}
-                            </p>
-                          </div>
-                        </div>
+                          isSelected={selectedEditPerms.includes(perm.key)}
+                          onChange={() => handleToggleEditPerm(perm.key)}>
+                          <Checkbox.Content>
+                            <Checkbox.Control>
+                              <Checkbox.Indicator />
+                            </Checkbox.Control>
+                            <Label>{perm.label}</Label>
+                          </Checkbox.Content>
+                          <Description>{perm.description}</Description>
+                        </Checkbox>
                       ))}
                     </div>
                   </div>

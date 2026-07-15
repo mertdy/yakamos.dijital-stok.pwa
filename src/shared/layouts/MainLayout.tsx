@@ -25,6 +25,7 @@ import { Button, Dropdown, Header, Label, Modal, toast } from '@heroui/react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
+import { FormInput } from '@/shared/components/FormInput';
 
 const newCompanySchema = z.object({
   name: z
@@ -61,12 +62,7 @@ export const MainLayout: React.FC = () => {
   const [isCreatingCompany, setIsCreatingCompany] = useState(false);
   const [isSwitching, setIsSwitching] = useState(false);
 
-  const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors }
-  } = useForm<NewCompanyFormData>({
+  const { control, handleSubmit, reset } = useForm<NewCompanyFormData>({
     resolver: zodResolver(newCompanySchema)
   });
 
@@ -413,71 +409,38 @@ export const MainLayout: React.FC = () => {
                 </Modal.Header>
 
                 <Modal.Body className="space-y-4">
-                  <div>
-                    <label className="mb-1 block text-sm font-medium text-gray-700">
-                      İşletme Adı <span className="text-danger">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      {...register('name')}
-                      placeholder="Örn: Yakamos Süpermarket"
-                      className={`focus:ring-primary block w-full rounded-xl border px-4 py-2.5 text-sm transition-all outline-none focus:ring-2 ${
-                        errors.name
-                          ? 'border-danger focus:ring-danger'
-                          : 'border-gray-200'
-                      }`}
-                    />
-                    {errors.name && (
-                      <p className="text-danger mt-1.5 text-xs">
-                        {errors.name.message}
-                      </p>
-                    )}
-                  </div>
+                  <FormInput
+                    control={control}
+                    name="name"
+                    label="İşletme Adı"
+                    isRequired
+                    type="text"
+                    placeholder="Örn: Yakamos Süpermarket"
+                  />
 
-                  <div>
-                    <label className="mb-1 block text-sm font-medium text-gray-700">
-                      Fiş Başlığı (Opsiyonel)
-                    </label>
-                    <input
-                      type="text"
-                      {...register('receiptHeader')}
-                      placeholder="Örn: YAKAMOS GIDA LTD. ŞTİ."
-                      className="focus:ring-primary block w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm transition-all outline-none focus:ring-2"
-                    />
-                  </div>
+                  <FormInput
+                    control={control}
+                    name="receiptHeader"
+                    label="Fiş Başlığı (Opsiyonel)"
+                    type="text"
+                    placeholder="Örn: YAKAMOS GIDA LTD. ŞTİ."
+                  />
 
-                  <div>
-                    <label className="mb-1 block text-sm font-medium text-gray-700">
-                      Telefon (Opsiyonel)
-                    </label>
-                    <input
-                      type="text"
-                      {...register('phone')}
-                      placeholder="Örn: 05551234567"
-                      className={`focus:ring-primary block w-full rounded-xl border px-4 py-2.5 text-sm transition-all outline-none focus:ring-2 ${
-                        errors.phone
-                          ? 'border-danger focus:ring-danger'
-                          : 'border-gray-200'
-                      }`}
-                    />
-                    {errors.phone && (
-                      <p className="text-danger mt-1.5 text-xs">
-                        {errors.phone.message}
-                      </p>
-                    )}
-                  </div>
+                  <FormInput
+                    control={control}
+                    name="phone"
+                    label="Telefon (Opsiyonel)"
+                    type="tel"
+                    placeholder="Örn: 05551234567"
+                  />
 
-                  <div>
-                    <label className="mb-1 block text-sm font-medium text-gray-700">
-                      Adres (Opsiyonel)
-                    </label>
-                    <input
-                      type="text"
-                      {...register('address')}
-                      placeholder="Örn: Kadıköy, İstanbul"
-                      className="focus:ring-primary block w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm transition-all outline-none focus:ring-2"
-                    />
-                  </div>
+                  <FormInput
+                    control={control}
+                    name="address"
+                    label="Adres (Opsiyonel)"
+                    type="text"
+                    placeholder="Örn: Kadıköy, İstanbul"
+                  />
                 </Modal.Body>
 
                 <Modal.Footer className="flex gap-3 pt-6">

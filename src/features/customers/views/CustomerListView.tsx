@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCustomerStore } from '../store/useCustomerStore';
 import { Plus, Search, User, Phone, Edit2, Eye } from 'lucide-react';
-import { Button } from '@heroui/react';
+import { Button, Input } from '@heroui/react';
 import posthog from 'posthog-js';
 
 import { useAuthStore } from '@/features/auth/store/useAuthStore';
@@ -56,12 +56,13 @@ export const CustomerListView: React.FC = () => {
                 className="absolute top-1/2 left-3 -translate-y-1/2 text-gray-400"
                 size={20}
               />
-              <input
+              <Input
                 type="text"
+                fullWidth
                 placeholder="İsim, soyisim veya telefon ile ara..."
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                className="focus:ring-primary w-full rounded-xl border border-gray-200 bg-white py-2.5 pr-4 pl-10 outline-none focus:ring-2"
+                className="pl-10"
               />
             </div>
           </div>

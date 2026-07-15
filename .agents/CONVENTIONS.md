@@ -190,6 +190,28 @@ Extract repeated styles.
 
 ---
 
+# Form Controls
+
+Use HeroUI form controls throughout the application. Do not add native
+`input`, `textarea` or checkbox elements to product code.
+
+- Use HeroUI `Input` for single-line inputs, `TextArea` for multi-line inputs
+  and the compound `Checkbox` API for checkboxes.
+- Preserve user-facing labels, placeholders, descriptions/hints and validation
+  messages when replacing a control.
+- Forms must use React Hook Form with a Zod resolver. Keep validation rules in
+  the Zod schema instead of duplicating them in event handlers.
+- In React Hook Form screens, use the shared `FormInput` component for standard
+  fields. It connects HeroUI's controlled `TextField` composition to React Hook
+  Form with `useController` and renders `Label`, `Description` and `FieldError`.
+- Do not spread React Hook Form's `register()` result directly onto an `Input`
+  nested inside HeroUI `TextField`; the field context controls its value. Use
+  `FormInput` or `Controller`/`useController` instead.
+- Keep standalone controlled search/filter inputs as HeroUI `Input` when they
+  are not forms and do not require schema validation.
+
+---
+
 # Error Handling
 
 Never ignore exceptions.

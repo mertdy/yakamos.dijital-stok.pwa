@@ -1,5 +1,16 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Button, Modal, toast } from '@heroui/react';
+import {
+  Button,
+  Checkbox,
+  Description,
+  FieldError,
+  Input,
+  Label,
+  Modal,
+  TextArea,
+  TextField,
+  toast
+} from '@heroui/react';
 import {
   CalendarDays,
   Check,
@@ -23,6 +34,9 @@ import {
   type Customer,
   type CustomerTransaction
 } from '../store/useCustomerStore';
+import { useForm, useWatch } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
 
 interface ShareStatementModalProps {
   isOpen: boolean;
@@ -43,6 +57,20 @@ const RANGE_OPTIONS: RangeOption[] = [
   { key: 'ALL', label: 'Tümü' }
 ];
 
+const statementShareSchema = z
+  .object({
+    startDate: z.string().min(1, 'Başlangıç tarihi gereklidir.'),
+    endDate: z.string().min(1, 'Bitiş tarihi gereklidir.'),
+    includeTransactions: z.boolean(),
+    note: z.string().max(200, 'Ek not en fazla 200 karakter olabilir.')
+  })
+  .refine(data => data.startDate <= data.endDate, {
+    path: ['endDate'],
+    message: 'Başlangıç tarihi bitiş tarihinden sonra olamaz.'
+  });
+
+type StatementShareFormData = z.infer<typeof statementShareSchema>;
+
 const formatMinor = (amountMinor: number): string =>
   `${(Math.abs(amountMinor) / 100).toLocaleString('tr-TR', {
     minimumFractionDigits: 2,
@@ -58,13 +86,31 @@ export const ShareStatementModal = ({
   const { activeCompany } = useAuthStore();
   const { recordStatementShare } = useCustomerStore();
   const [preset, setPreset] = useState<StatementRangePreset>('THIS_MONTH');
-  const [range, setRange] = useState<StatementDateRange>({
-    startDate: '',
-    endDate: ''
-  });
-  const [includeTransactions, setIncludeTransactions] = useState(true);
-  const [note, setNote] = useState('');
   const [isOpening, setIsOpening] = useState(false);
+  const {
+    control,
+    handleSubmit,
+    reset,
+    setValue,
+    formState: { errors }
+  } = useForm<StatementShareFormData>({
+    resolver: zodResolver(statementShareSchema),
+    mode: 'onChange',
+    defaultValues: {
+      startDate: '',
+      endDate: '',
+      includeTransactions: true,
+      note: ''
+    }
+  });
+  const [startDate, endDate, includeTransactions, note] = useWatch({
+    control,
+    name: ['startDate', 'endDate', 'includeTransactions', 'note']
+  });
+  const range: StatementDateRange = useMemo(
+    () => ({ startDate, endDate }),
+    [endDate, startDate]
+  );
 
   const earliestDate = useMemo(() => {
     const validDates = transactions
@@ -78,22 +124,22 @@ export const ShareStatementModal = ({
   useEffect(() => {
     if (!isOpen) return;
     setPreset('THIS_MONTH');
-    setRange(getStatementDateRange('THIS_MONTH', earliestDate));
-    setIncludeTransactions(true);
-    setNote('');
+    reset({
+      ...getStatementDateRange('THIS_MONTH', earliestDate),
+      includeTransactions: true,
+      note: ''
+    });
     setIsOpening(false);
-  }, [earliestDate, isOpen]);
+  }, [earliestDate, isOpen, reset]);
 
   const statement = useMemo(
     () => buildCustomerStatement(transactions, range),
     [range, transactions]
   );
   const normalizedPhone = normalizeWhatsAppPhone(customer.phone);
-  const isRangeValid =
-    Boolean(range.startDate && range.endDate) &&
-    range.startDate <= range.endDate;
+  const hasValidRange = Boolean(startDate && endDate && startDate <= endDate);
   const message = useMemo(() => {
-    if (!activeCompany || !isRangeValid) return '';
+    if (!activeCompany || !hasValidRange) return '';
     return formatStatementMessage(statement, activeCompany, customer, {
       includeTransactions,
       note,
@@ -102,15 +148,17 @@ export const ShareStatementModal = ({
   }, [
     activeCompany,
     customer,
+    hasValidRange,
     includeTransactions,
-    isRangeValid,
     note,
     statement
   ]);
 
   const selectPreset = (selectedPreset: RangeOption['key']) => {
     setPreset(selectedPreset);
-    setRange(getStatementDateRange(selectedPreset, earliestDate));
+    const nextRange = getStatementDateRange(selectedPreset, earliestDate);
+    setValue('startDate', nextRange.startDate, { shouldValidate: true });
+    setValue('endDate', nextRange.endDate, { shouldValidate: true });
   };
 
   const updateCustomRange = (
@@ -118,11 +166,11 @@ export const ShareStatementModal = ({
     value: string
   ) => {
     setPreset('CUSTOM');
-    setRange(current => ({ ...current, [field]: value }));
+    setValue(field, value, { shouldDirty: true, shouldValidate: true });
   };
 
-  const handleOpenWhatsApp = async () => {
-    if (!normalizedPhone || !activeCompany || !isRangeValid) return;
+  const handleOpenWhatsApp = async (data: StatementShareFormData) => {
+    if (!normalizedPhone || !activeCompany) return;
 
     setIsOpening(true);
     try {
@@ -134,12 +182,12 @@ export const ShareStatementModal = ({
 
       await recordStatementShare({
         customerId: customer.id,
-        periodStart: range.startDate,
-        periodEnd: range.endDate,
+        periodStart: data.startDate,
+        periodEnd: data.endDate,
         openingBalanceMinor: statement.openingBalanceMinor,
         closingBalanceMinor: statement.closingBalanceMinor,
         transactionCount: statement.entries.length,
-        includedTransactions: includeTransactions,
+        includedTransactions: data.includeTransactions,
         messageCharacterCount: message.length
       });
       toast.success('WhatsApp açıldı');
@@ -160,8 +208,8 @@ export const ShareStatementModal = ({
       }}>
       <button className="hidden" aria-hidden="true" tabIndex={-1} />
       <Modal.Backdrop>
-        <Modal.Container>
-          <Modal.Dialog className="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-3xl bg-white shadow-xl outline-none">
+        <Modal.Container scroll="inside">
+          <Modal.Dialog className="max-h-[92vh] w-full max-w-2xl rounded-3xl bg-white shadow-xl outline-none">
             <Modal.CloseTrigger />
             <Modal.Header>
               <Modal.Icon className="bg-[#25D366]/10 text-[#128C7E]">
@@ -201,37 +249,32 @@ export const ShareStatementModal = ({
                   ))}
                 </div>
                 <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <label className="text-xs font-medium text-gray-600">
-                    Başlangıç
-                    <input
+                  <TextField
+                    fullWidth
+                    name="startDate"
+                    value={range.startDate}
+                    onChange={value => updateCustomRange('startDate', value)}
+                    isInvalid={Boolean(errors.startDate)}>
+                    <Label>Başlangıç</Label>
+                    <Input type="date" fullWidth max={range.endDate} />
+                    <FieldError>{errors.startDate?.message}</FieldError>
+                  </TextField>
+                  <TextField
+                    fullWidth
+                    name="endDate"
+                    value={range.endDate}
+                    onChange={value => updateCustomRange('endDate', value)}
+                    isInvalid={Boolean(errors.endDate)}>
+                    <Label>Bitiş</Label>
+                    <Input
                       type="date"
-                      value={range.startDate}
-                      max={range.endDate}
-                      onChange={event =>
-                        updateCustomRange('startDate', event.target.value)
-                      }
-                      className="focus:ring-primary mt-1 block w-full rounded-xl border border-gray-200 px-3 py-2 text-sm outline-none focus:ring-2"
-                    />
-                  </label>
-                  <label className="text-xs font-medium text-gray-600">
-                    Bitiş
-                    <input
-                      type="date"
-                      value={range.endDate}
+                      fullWidth
                       min={range.startDate}
                       max={toIstanbulDateString(new Date())}
-                      onChange={event =>
-                        updateCustomRange('endDate', event.target.value)
-                      }
-                      className="focus:ring-primary mt-1 block w-full rounded-xl border border-gray-200 px-3 py-2 text-sm outline-none focus:ring-2"
                     />
-                  </label>
+                    <FieldError>{errors.endDate?.message}</FieldError>
+                  </TextField>
                 </div>
-                {!isRangeValid && (
-                  <p className="text-danger mt-2 text-xs">
-                    Başlangıç tarihi bitiş tarihinden sonra olamaz.
-                  </p>
-                )}
               </section>
 
               <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -263,41 +306,44 @@ export const ShareStatementModal = ({
               </section>
 
               <section className="space-y-3">
-                <label className="flex cursor-pointer items-center justify-between rounded-xl border border-gray-200 p-3">
-                  <span>
-                    <span className="block text-sm font-semibold text-gray-800">
-                      Hareketleri mesaja ekle
-                    </span>
-                    <span className="text-xs text-gray-500">
-                      En son 10 hareket gösterilir
-                    </span>
-                  </span>
-                  <input
-                    type="checkbox"
-                    checked={includeTransactions}
-                    onChange={event =>
-                      setIncludeTransactions(event.target.checked)
-                    }
-                    className="text-primary focus:ring-primary h-5 w-5 rounded border-gray-300"
-                  />
-                </label>
+                <Checkbox
+                  isSelected={includeTransactions}
+                  onChange={isSelected =>
+                    setValue('includeTransactions', isSelected, {
+                      shouldDirty: true,
+                      shouldValidate: true
+                    })
+                  }>
+                  <Checkbox.Content>
+                    <Checkbox.Control>
+                      <Checkbox.Indicator />
+                    </Checkbox.Control>
+                    <Label>Hareketleri mesaja ekle</Label>
+                  </Checkbox.Content>
+                  <Description>En son 10 hareket gösterilir</Description>
+                </Checkbox>
 
-                <label className="block text-xs font-medium text-gray-600">
-                  Ek not (isteğe bağlı)
-                  <textarea
-                    value={note}
-                    onChange={event =>
-                      setNote(event.target.value.slice(0, 200))
-                    }
+                <TextField
+                  fullWidth
+                  name="note"
+                  value={note}
+                  onChange={value =>
+                    setValue('note', value, {
+                      shouldDirty: true,
+                      shouldValidate: true
+                    })
+                  }
+                  isInvalid={Boolean(errors.note)}>
+                  <Label>Ek not (isteğe bağlı)</Label>
+                  <TextArea
+                    fullWidth
                     rows={2}
                     maxLength={200}
                     placeholder="Örn: Sorunuz olursa bizi arayabilirsiniz."
-                    className="focus:ring-primary mt-1 block w-full resize-none rounded-xl border border-gray-200 px-3 py-2 text-sm outline-none focus:ring-2"
                   />
-                  <span className="mt-1 block text-right text-[10px] text-gray-400">
-                    {note.length}/200
-                  </span>
-                </label>
+                  <Description>{note.length}/200</Description>
+                  <FieldError>{errors.note?.message}</FieldError>
+                </TextField>
               </section>
 
               <section>
@@ -326,12 +372,13 @@ export const ShareStatementModal = ({
               <Button
                 type="button"
                 className="flex-1 border-none bg-[#25D366] font-bold text-white hover:bg-[#1DB954]"
-                onPress={handleOpenWhatsApp}
+                onPress={() => void handleSubmit(handleOpenWhatsApp)()}
                 isDisabled={
                   isOpening ||
                   !normalizedPhone ||
                   !activeCompany ||
-                  !isRangeValid
+                  !hasValidRange ||
+                  Boolean(errors.note)
                 }>
                 {isOpening ? (
                   <Loader2 className="mr-2 animate-spin" size={18} />
