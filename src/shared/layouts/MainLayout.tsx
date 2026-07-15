@@ -19,7 +19,12 @@ import {
   Building2,
   Plus,
   Loader2,
-  CheckCircle2
+  CheckCircle2,
+  ChevronRight,
+  CreditCard,
+  CircleUserRound,
+  LifeBuoy,
+  ExternalLink
 } from 'lucide-react';
 import { useAuthStore } from '@/features/auth';
 import {
@@ -157,6 +162,24 @@ export const MainLayout: React.FC = () => {
       } else {
         handleSwitchCompany(selectedKey);
       }
+    }
+  };
+
+  const handleProfileMenuAction = (key: React.Key) => {
+    if (key === 'account-settings') {
+      navigate('/account-settings');
+    }
+
+    if (key === 'plans') {
+      navigate('/planlar-ve-fiyatlandirma');
+    }
+
+    if (key === 'support') {
+      window.open(
+        'https://example.com/destek',
+        '_blank',
+        'noopener,noreferrer'
+      );
     }
   };
 
@@ -448,35 +471,72 @@ export const MainLayout: React.FC = () => {
             />
           </div>
           {user && (
-            <div
-              className={clsx(
-                'flex items-center gap-3 rounded-2xl border border-gray-100 bg-gray-50/50',
-                isCollapsed ? 'justify-center p-1.5' : 'w-full p-3'
-              )}>
-              <img
-                src={
-                  user.photoURL ||
-                  `https://ui-avatars.com/api/?name=${user.displayName || 'User'}&background=random`
-                }
-                alt="User avatar"
+            <Dropdown>
+              <Dropdown.Trigger
+                aria-label="Kullanıcı menüsünü aç"
                 className={clsx(
-                  isCollapsed ? 'h-8 w-8' : 'h-10 w-10',
-                  'flex-shrink-0 rounded-full object-cover shadow-sm transition-all'
+                  'group focus-visible:border-primary/40 flex w-full items-center gap-3 rounded-xl border border-transparent text-left transition-all duration-200 outline-none hover:border-gray-200 hover:bg-gray-100/70 focus-visible:bg-gray-100/70',
+                  isCollapsed ? 'justify-center p-1.5' : 'p-2.5'
+                )}>
+                <img
+                  src={
+                    user.photoURL ||
+                    `https://ui-avatars.com/api/?name=${user.displayName || 'User'}&background=random`
+                  }
+                  alt="User avatar"
+                  className={clsx(
+                    isCollapsed ? 'h-8 w-8' : 'h-10 w-10',
+                    'flex-shrink-0 rounded-full object-cover shadow-sm ring-2 ring-white transition-transform duration-200 group-hover:scale-[1.03]'
+                  )}
+                />
+                {!isCollapsed && (
+                  <>
+                    <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+                      <span className="truncate text-sm leading-tight font-semibold tracking-tight text-gray-900">
+                        {user.displayName || 'İsimsiz Kullanıcı'}
+                      </span>
+                      <span className="mt-0.5 truncate text-xs leading-normal text-gray-500">
+                        {activeMembership?.role === 'OWNER'
+                          ? 'Şirket Sahibi'
+                          : 'Çalışan'}
+                      </span>
+                    </div>
+                    <ChevronRight className="h-4 w-4 flex-shrink-0 text-gray-300 transition-colors duration-200 group-hover:text-gray-500" />
+                  </>
                 )}
-              />
-              {!isCollapsed && (
-                <div className="flex min-w-0 flex-col overflow-hidden">
-                  <span className="truncate text-sm leading-tight font-semibold text-gray-900">
-                    {user.displayName || 'İsimsiz Kullanıcı'}
-                  </span>
-                  <span className="mt-0.5 truncate text-xs leading-normal text-gray-500">
-                    {activeMembership?.role === 'OWNER'
-                      ? 'Şirket Sahibi'
-                      : 'Çalışan'}
-                  </span>
-                </div>
-              )}
-            </div>
+              </Dropdown.Trigger>
+              <Dropdown.Popover
+                placement={isCollapsed ? 'right' : 'top start'}
+                className="min-w-60">
+                <Dropdown.Menu
+                  aria-label="Kullanıcı menüsü"
+                  onAction={handleProfileMenuAction}>
+                  <Dropdown.Item
+                    id="account-settings"
+                    textValue="Hesap Ayarları">
+                    <span className="flex items-center gap-2.5">
+                      <CircleUserRound size={17} className="text-gray-500" />
+                      <span>Hesap Ayarları</span>
+                    </span>
+                  </Dropdown.Item>
+                  <Dropdown.Item
+                    id="plans"
+                    textValue="Planlar ve Fiyatlandırma">
+                    <span className="flex items-center gap-2.5">
+                      <CreditCard size={17} className="text-gray-500" />
+                      <span>Planlar ve Fiyatlandırma</span>
+                    </span>
+                  </Dropdown.Item>
+                  <Dropdown.Item id="support" textValue="Destek">
+                    <span className="flex w-full items-center gap-2.5">
+                      <LifeBuoy size={17} className="text-gray-500" />
+                      <span className="flex-1">Destek</span>
+                      <ExternalLink size={14} className="text-gray-400" />
+                    </span>
+                  </Dropdown.Item>
+                </Dropdown.Menu>
+              </Dropdown.Popover>
+            </Dropdown>
           )}
           {isCollapsed ? (
             <SidebarTooltip label="Çıkış yap">{logoutButton}</SidebarTooltip>

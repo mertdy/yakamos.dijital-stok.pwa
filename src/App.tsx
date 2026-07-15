@@ -15,7 +15,11 @@ import {
   CustomerDetailView
 } from '@/features/customers';
 import { SalesHistoryView } from '@/features/sales-history';
-import { DashboardView, CompanySettingsView } from '@/features/dashboard';
+import {
+  DashboardView,
+  CompanySettingsView,
+  PricingPlansView
+} from '@/features/dashboard';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from './core/firebase/config';
 import { Loader2 } from 'lucide-react';
@@ -112,6 +116,10 @@ function App() {
           }
         />
         <Route path="/account-settings" element={<AccountSettingsView />} />
+        <Route
+          path="/planlar-ve-fiyatlandirma"
+          element={<PricingPlansView />}
+        />
         <Route path="/customers" element={<CustomerListView />} />
         <Route
           path="/customers/new"
