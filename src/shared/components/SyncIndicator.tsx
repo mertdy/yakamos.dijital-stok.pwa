@@ -31,113 +31,60 @@ export const SyncIndicator: React.FC<SyncIndicatorProps> = ({
     };
   }, []);
 
-  if (iconOnly) {
-    const tooltipLabel = isPreparing
-      ? 'İşletme çevrim dışı kullanım için hazırlanıyor'
-      : isOnline
-        ? 'Bulut ile Senkronize'
-        : 'Çevrimdışı Mod (İnternet Bağlantısı Yok)';
-
-    return (
-      <Tooltip delay={0} closeDelay={0}>
-        <Button
-          variant="ghost"
-          isIconOnly
-          aria-label={tooltipLabel}
-          className={clsx(
-            'h-8 !w-8 !min-w-8 flex-shrink-0 cursor-help rounded-lg border p-1.5 transition-colors',
-            isPreparing
-              ? 'border-primary/20 bg-primary/5 text-primary'
-              : isOnline
-                ? 'border-emerald-200 bg-emerald-50 text-emerald-600'
-                : 'border-amber-200 bg-amber-50 text-amber-600'
-          )}>
-          {isPreparing ? (
-            <Spinner size="sm" color="current" className="size-3.5" />
-          ) : isOnline ? (
-            <Cloud size={14} />
-          ) : (
-            <WifiOff size={14} />
-          )}
-        </Button>
-        <Tooltip.Content showArrow placement={tooltipPlacement}>
-          <Tooltip.Arrow />
-          <span className="px-1 py-0.5 text-xs font-medium">
-            {tooltipLabel}
-          </span>
-        </Tooltip.Content>
-      </Tooltip>
-    );
-  }
-
-  if (!isOnline) {
-    return (
-      <Tooltip delay={0} closeDelay={0}>
-        <Tooltip.Trigger
-          aria-label="Çevrim dışı durum bilgisi"
-          className={clsx(fullWidth && 'block w-full')}>
-          <div
-            className={clsx(
-              'flex cursor-help items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-600',
-              fullWidth && 'w-full'
-            )}>
-            <WifiOff size={14} />
-            <span className="hidden sm:inline">Çevrimdışı Mod</span>
-          </div>
-        </Tooltip.Trigger>
-        <Tooltip.Content showArrow placement={tooltipPlacement}>
-          <Tooltip.Arrow />
-          <span className="px-1 py-0.5 text-xs font-medium">
-            Veriler çevrimdışı kaydediliyor
-          </span>
-        </Tooltip.Content>
-      </Tooltip>
-    );
-  }
-
-  if (isPreparing) {
-    return (
-      <Tooltip delay={0} closeDelay={0}>
-        <Tooltip.Trigger
-          aria-label="Çevrim dışı hazırlık durumu"
-          className={clsx(fullWidth && 'block w-full')}>
-          <div
-            className={clsx(
-              'bg-primary/5 text-primary border-primary/20 flex cursor-help items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium',
-              fullWidth && 'w-full'
-            )}>
-            <Spinner size="sm" color="current" className="size-3.5" />
-            <span className="hidden sm:inline">Çevrim dışına hazırlanıyor</span>
-          </div>
-        </Tooltip.Trigger>
-        <Tooltip.Content showArrow placement={tooltipPlacement}>
-          <Tooltip.Arrow />
-          <span className="px-1 py-0.5 text-xs font-medium">
-            İşletme verileri çevrim dışı kullanım için hazırlanıyor
-          </span>
-        </Tooltip.Content>
-      </Tooltip>
-    );
-  }
+  const status = !isOnline
+    ? {
+        label: 'Çevrimdışı Mod',
+        description: 'Veriler çevrimdışı kaydediliyor',
+        className: 'border-amber-200 bg-amber-50 text-amber-600',
+        icon: <WifiOff size={14} />
+      }
+    : isPreparing
+      ? {
+          label: 'Çevrim dışına hazırlanıyor',
+          description:
+            'İşletme verileri çevrim dışı kullanım için hazırlanıyor',
+          className: 'border-primary/20 bg-primary/5 text-primary',
+          icon: <Spinner size="sm" color="current" className="size-3.5" />
+        }
+      : {
+          label: 'Buluta Bağlı',
+          description: 'Bulut ile senkronize',
+          className: 'border-emerald-200 bg-emerald-50 text-emerald-600',
+          icon: <Cloud size={14} />
+        };
 
   return (
     <Tooltip delay={0} closeDelay={0}>
-      <Tooltip.Trigger
-        aria-label="Bulut bağlantı durumu"
-        className={clsx(fullWidth && 'block w-full')}>
-        <div
+      {iconOnly ? (
+        <Button
+          variant="ghost"
+          isIconOnly
+          aria-label={status.description}
           className={clsx(
-            'flex cursor-help items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-600',
-            fullWidth && 'w-full'
+            'h-8 !w-8 !min-w-8 flex-shrink-0 cursor-help rounded-lg border p-1.5 transition-colors',
+            status.className
           )}>
-          <Cloud size={14} />
-          <span className="hidden sm:inline">Buluta Bağlı</span>
-        </div>
-      </Tooltip.Trigger>
+          {status.icon}
+        </Button>
+      ) : (
+        <Tooltip.Trigger
+          aria-label={status.description}
+          className={clsx(fullWidth && 'block w-full')}>
+          <div
+            className={clsx(
+              'flex cursor-help items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium',
+              status.className,
+              fullWidth && 'w-full'
+            )}>
+            {status.icon}
+            <span className="hidden sm:inline">{status.label}</span>
+          </div>
+        </Tooltip.Trigger>
+      )}
       <Tooltip.Content showArrow placement={tooltipPlacement}>
         <Tooltip.Arrow />
         <span className="px-1 py-0.5 text-xs font-medium">
-          Bulut ile senkronize
+          {status.description}
         </span>
       </Tooltip.Content>
     </Tooltip>
