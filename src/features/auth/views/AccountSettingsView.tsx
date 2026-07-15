@@ -280,7 +280,8 @@ export const AccountSettingsView = () => {
               <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
                 {(Object.keys(PERMISSION_META) as PermissionKey[]).map(perm => (
                   <Tooltip key={perm} delay={0} closeDelay={0}>
-                    <Tooltip.Trigger>
+                    <Tooltip.Trigger
+                      aria-label={`${PERMISSION_META[perm].label} açıklaması`}>
                       <div className="flex cursor-help items-center gap-2 rounded-xl border border-gray-100 bg-gray-50 px-3 py-2">
                         <CheckCircle2
                           size={16}
@@ -310,7 +311,8 @@ export const AccountSettingsView = () => {
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                 {activeMembership.permissions.map(perm => (
                   <Tooltip key={perm} delay={0} closeDelay={0}>
-                    <Tooltip.Trigger>
+                    <Tooltip.Trigger
+                      aria-label={`${PERMISSION_META[perm].label} açıklaması`}>
                       <div className="bg-primary/5 border-primary/10 flex cursor-help items-center gap-2 rounded-xl border px-3 py-2">
                         <CheckCircle2
                           size={16}

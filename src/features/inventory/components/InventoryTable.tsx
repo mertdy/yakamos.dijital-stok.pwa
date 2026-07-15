@@ -253,22 +253,20 @@ export const InventoryTable: React.FC = () => {
             </Description>
             <div className="flex items-center gap-1.5">
               <Tooltip delay={0} closeDelay={0}>
-                <Tooltip.Trigger>
-                  <Button
-                    variant="tertiary"
-                    isIconOnly
-                    size="sm"
-                    onPress={() => {
-                      const newSelection: Record<string, boolean> = {};
-                      filteredItems.forEach(item => {
-                        newSelection[item.id] = true;
-                      });
-                      setRowSelection(newSelection);
-                    }}
-                    aria-label="Tümünü Seç">
-                    <CheckSquare size={18} />
-                  </Button>
-                </Tooltip.Trigger>
+                <Button
+                  variant="tertiary"
+                  isIconOnly
+                  size="sm"
+                  onPress={() => {
+                    const newSelection: Record<string, boolean> = {};
+                    filteredItems.forEach(item => {
+                      newSelection[item.id] = true;
+                    });
+                    setRowSelection(newSelection);
+                  }}
+                  aria-label="Tümünü Seç">
+                  <CheckSquare size={18} />
+                </Button>
                 <Tooltip.Content showArrow>
                   <Tooltip.Arrow />
                   Tümünü Seç ({filteredItems.length})
@@ -276,16 +274,14 @@ export const InventoryTable: React.FC = () => {
               </Tooltip>
 
               <Tooltip delay={0} closeDelay={0}>
-                <Tooltip.Trigger>
-                  <Button
-                    variant="ghost"
-                    isIconOnly
-                    size="sm"
-                    onPress={() => setRowSelection({})}
-                    aria-label="Seçimi Temizle">
-                    <X size={18} />
-                  </Button>
-                </Tooltip.Trigger>
+                <Button
+                  variant="ghost"
+                  isIconOnly
+                  size="sm"
+                  onPress={() => setRowSelection({})}
+                  aria-label="Seçimi Temizle">
+                  <X size={18} />
+                </Button>
                 <Tooltip.Content showArrow>
                   <Tooltip.Arrow />
                   Seçimi Temizle
@@ -293,31 +289,29 @@ export const InventoryTable: React.FC = () => {
               </Tooltip>
 
               <Tooltip delay={0} closeDelay={0}>
-                <Tooltip.Trigger>
-                  <Button
-                    variant="ghost"
-                    isIconOnly
-                    size="sm"
-                    className="text-danger"
-                    onPress={async () => {
-                      const confirmed = await confirm({
-                        title: 'Seçili Ürünleri Sil',
-                        description: `Seçilen ${selectedIds.length} ürünü silmek istediğinize emin misiniz? Bu işlem geri alınamaz.`,
-                        confirmText: 'Sil',
-                        variant: 'danger'
-                      });
-                      if (confirmed) {
-                        await deleteItems(selectedIds);
-                        setRowSelection({});
-                        toast.success(
-                          `${selectedIds.length} ürün başarıyla silindi.`
-                        );
-                      }
-                    }}
-                    aria-label="Seçimleri Sil">
-                    <Trash2 size={18} />
-                  </Button>
-                </Tooltip.Trigger>
+                <Button
+                  variant="ghost"
+                  isIconOnly
+                  size="sm"
+                  className="text-danger"
+                  onPress={async () => {
+                    const confirmed = await confirm({
+                      title: 'Seçili Ürünleri Sil',
+                      description: `Seçilen ${selectedIds.length} ürünü silmek istediğinize emin misiniz? Bu işlem geri alınamaz.`,
+                      confirmText: 'Sil',
+                      variant: 'danger'
+                    });
+                    if (confirmed) {
+                      await deleteItems(selectedIds);
+                      setRowSelection({});
+                      toast.success(
+                        `${selectedIds.length} ürün başarıyla silindi.`
+                      );
+                    }
+                  }}
+                  aria-label="Seçimleri Sil">
+                  <Trash2 size={18} />
+                </Button>
                 <Tooltip.Content showArrow>
                   <Tooltip.Arrow />
                   Seçimleri Sil

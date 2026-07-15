@@ -293,7 +293,7 @@ export const InvoicePanel: React.FC<Props> = ({
 
                 return (
                   <Tooltip key={method.id} delay={0} closeDelay={0}>
-                    <Tooltip.Trigger>
+                    <Tooltip.Trigger aria-label={tooltipMsg}>
                       <div className="flex h-full w-full cursor-not-allowed">
                         {btn}
                       </div>

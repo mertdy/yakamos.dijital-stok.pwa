@@ -28,8 +28,8 @@ import {
   Header,
   Label,
   Modal,
-  toast,
-  Tooltip
+  Tooltip,
+  toast
 } from '@heroui/react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -52,6 +52,23 @@ const newCompanySchema = z.object({
 });
 
 type NewCompanyFormData = z.infer<typeof newCompanySchema>;
+
+interface SidebarTooltipProps {
+  label: string;
+  children: React.ReactElement;
+}
+
+const SidebarTooltip: React.FC<SidebarTooltipProps> = ({ label, children }) => (
+  <Tooltip delay={0} closeDelay={0}>
+    {children}
+    <Tooltip.Content showArrow placement="right">
+      <Tooltip.Arrow />
+      <span className="px-1 py-0.5 text-xs font-medium whitespace-nowrap">
+        {label}
+      </span>
+    </Tooltip.Content>
+  </Tooltip>
+);
 
 export const MainLayout: React.FC = () => {
   useAppHotkeys();
@@ -184,6 +201,70 @@ export const MainLayout: React.FC = () => {
     { name: 'Hesap Ayarları', path: '/account-settings', icon: User }
   ];
 
+  const sidebarToggleButton = (
+    <Button
+      variant="ghost"
+      isIconOnly
+      aria-label={
+        isCollapsed ? 'Kenar çubuğunu genişlet' : 'Kenar çubuğunu daralt'
+      }
+      onPress={() => setIsCollapsed(!isCollapsed)}
+      className={clsx(
+        'h-9 !w-9 !min-w-9 rounded-lg text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900',
+        isCollapsed ? 'cursor-e-resize' : 'cursor-w-resize'
+      )}>
+      {isCollapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
+    </Button>
+  );
+
+  const companySwitcherButton = (
+    <Button
+      variant="ghost"
+      aria-label="İşletme Seç"
+      className={clsx(
+        'flex w-full items-center justify-between rounded-2xl font-medium text-gray-600 transition-all duration-200 hover:bg-gray-100/80',
+        isCollapsed
+          ? 'mx-auto h-12 !w-12 !min-w-12 justify-center rounded-2xl p-3'
+          : 'h-11 gap-3 px-4 py-2.5'
+      )}
+      isDisabled={isSwitching}>
+      <div
+        className={clsx(
+          'flex min-w-0 items-center gap-3',
+          isCollapsed && 'w-full justify-center'
+        )}>
+        <Building2 className="flex-shrink-0 text-lg text-gray-500" />
+        {!isCollapsed && (
+          <span className="truncate text-sm font-medium text-gray-700">
+            {activeCompany?.name || 'Yükleniyor...'}
+          </span>
+        )}
+      </div>
+      {!isCollapsed && (
+        <ChevronDown
+          size={16}
+          className="ml-auto flex-shrink-0 text-gray-400"
+        />
+      )}
+    </Button>
+  );
+
+  const logoutButton = (
+    <Button
+      variant="ghost"
+      aria-label="Çıkış Yap"
+      className={clsx(
+        'text-danger hover:bg-danger/10 w-full font-semibold',
+        isCollapsed
+          ? 'h-12 !w-12 !min-w-12 justify-center rounded-2xl p-3'
+          : 'h-11 justify-start gap-3 rounded-2xl px-4 py-2.5'
+      )}
+      onPress={logout}>
+      <LogOut size={18} className="text-danger flex-shrink-0" />
+      {!isCollapsed && <span className="text-sm">Çıkış Yap</span>}
+    </Button>
+  );
+
   return (
     <div className="bg-background flex h-screen w-full flex-col overflow-hidden md:flex-row">
       {/* Desktop Sidebar */}
@@ -198,7 +279,7 @@ export const MainLayout: React.FC = () => {
         {/* Top Section: Header & Company Switcher */}
         <div
           className={clsx(
-            'flex w-full flex-col gap-3 border-b border-gray-100 p-4',
+            'flex w-full flex-col gap-3 border-b border-gray-100 p-3',
             isCollapsed && 'items-center px-2'
           )}>
           <div
@@ -217,68 +298,25 @@ export const MainLayout: React.FC = () => {
               <div className="text-primary flex h-9 w-9 items-center justify-center">
                 <Store size={22} />
               </div>
+            ) : isCollapsed ? (
+              <SidebarTooltip label="Kenar çubuğunu genişlet">
+                {sidebarToggleButton}
+              </SidebarTooltip>
             ) : (
-              <Tooltip delay={0} closeDelay={0}>
-                <Tooltip.Trigger>
-                  <button
-                    type="button"
-                    aria-label={
-                      isCollapsed
-                        ? 'Kenar çubuğunu genişlet'
-                        : 'Kenar çubuğunu daralt'
-                    }
-                    onClick={() => setIsCollapsed(!isCollapsed)}
-                    className={clsx(
-                      'flex h-9 w-9 items-center justify-center rounded-lg text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900',
-                      isCollapsed ? 'cursor-e-resize' : 'cursor-w-resize'
-                    )}>
-                    {isCollapsed ? (
-                      <PanelLeftOpen size={18} />
-                    ) : (
-                      <PanelLeftClose size={18} />
-                    )}
-                  </button>
-                </Tooltip.Trigger>
-                <Tooltip.Content showArrow>
-                  <Tooltip.Arrow />
-                  <span className="px-1 py-0.5 text-xs font-medium">
-                    {isCollapsed
-                      ? 'Kenar çubuğunu genişlet'
-                      : 'Kenar çubuğunu daralt'}
-                  </span>
-                </Tooltip.Content>
-              </Tooltip>
+              sidebarToggleButton
             )}
           </div>
 
           {/* Company Switcher Dropdown */}
           <div className="w-full">
             <Dropdown>
-              <Button
-                variant="ghost"
-                aria-label="İşletme Seç"
-                className={clsx(
-                  'flex w-full items-center justify-between rounded-2xl font-medium text-gray-600 transition-all duration-200 hover:bg-gray-100/80',
-                  isCollapsed
-                    ? 'h-11 min-w-0 justify-center p-3'
-                    : 'h-11 gap-3 px-4 py-2.5'
-                )}
-                isDisabled={isSwitching}>
-                <div className="flex min-w-0 items-center gap-3">
-                  <Building2 className="flex-shrink-0 text-lg text-gray-500" />
-                  {!isCollapsed && (
-                    <span className="truncate text-sm font-medium text-gray-700">
-                      {activeCompany?.name || 'Yükleniyor...'}
-                    </span>
-                  )}
-                </div>
-                {!isCollapsed && (
-                  <ChevronDown
-                    size={16}
-                    className="ml-auto flex-shrink-0 text-gray-400"
-                  />
-                )}
-              </Button>
+              {isCollapsed ? (
+                <SidebarTooltip label={activeCompany?.name || 'İşletme seç'}>
+                  {companySwitcherButton}
+                </SidebarTooltip>
+              ) : (
+                companySwitcherButton
+              )}
               <Dropdown.Popover className="min-w-[240px]">
                 <Dropdown.Menu
                   aria-label="İşletme Geçişleri"
@@ -326,41 +364,73 @@ export const MainLayout: React.FC = () => {
         {/* Middle Section: Scrollable Navigation */}
         <nav
           className={clsx(
-            'w-full flex-1 space-y-1.5 overflow-y-auto px-4 py-4',
-            isCollapsed && 'px-2'
+            'w-full flex-1 overflow-x-hidden overflow-y-auto p-3',
+            isCollapsed
+              ? 'flex flex-col items-center gap-1.5 px-2'
+              : 'space-y-1.5'
           )}>
-          {filteredNavItems.map(item => (
-            <NavLink
-              key={item.path}
-              to={item.path}
-              aria-label={isCollapsed ? item.name : undefined}
-              className={({ isActive }) =>
-                clsx(
-                  'flex items-center rounded-2xl transition-all duration-200',
-                  isCollapsed ? 'justify-center p-3' : 'gap-3 px-4 py-2.5',
+          {filteredNavItems.map(item => {
+            const Icon = item.icon;
+            const isActive = location.pathname === item.path;
+            const collapsedNavItem = (
+              <Button
+                variant="ghost"
+                isIconOnly
+                aria-label={item.name}
+                className={clsx(
+                  'flex h-12 !w-12 !min-w-12 items-center justify-center rounded-2xl p-3 transition-all duration-200',
                   isActive
                     ? 'bg-primary/10 text-primary font-semibold'
                     : 'font-medium text-gray-600 hover:bg-gray-100/80'
-                )
-              }>
-              <item.icon className="flex-shrink-0 text-lg" />
-              {!isCollapsed && (
+                )}
+                onPress={() => navigate(item.path)}>
+                <Icon className="!h-5 !w-5 flex-shrink-0" />
+              </Button>
+            );
+            const expandedNavItem = (
+              <NavLink
+                to={item.path}
+                className={({ isActive }) =>
+                  clsx(
+                    'flex items-center rounded-2xl transition-all duration-200',
+                    'gap-3 px-4 py-2.5',
+                    isActive
+                      ? 'bg-primary/10 text-primary font-semibold'
+                      : 'font-medium text-gray-600 hover:bg-gray-100/80'
+                  )
+                }>
+                <Icon className="flex-shrink-0 text-lg" />
                 <span className="text-sm font-medium whitespace-nowrap">
                   {item.name}
                 </span>
-              )}
-            </NavLink>
-          ))}
+              </NavLink>
+            );
+
+            return (
+              <React.Fragment key={item.path}>
+                {isCollapsed ? (
+                  <SidebarTooltip label={item.name}>
+                    {collapsedNavItem}
+                  </SidebarTooltip>
+                ) : (
+                  expandedNavItem
+                )}
+              </React.Fragment>
+            );
+          })}
         </nav>
 
         {/* Bottom Section: User Profile & Logout */}
         <div
           className={clsx(
-            'flex w-full flex-col gap-3 border-t border-gray-100 p-4',
+            'flex w-full flex-col gap-3 border-t border-gray-100 p-3',
             isCollapsed && 'items-center px-2'
           )}>
           <div className={clsx(isCollapsed && 'flex justify-center')}>
-            <SyncIndicator iconOnly={isCollapsed} />
+            <SyncIndicator
+              iconOnly={isCollapsed}
+              tooltipPlacement={isCollapsed ? 'right' : undefined}
+            />
           </div>
           {user && (
             <div
@@ -393,19 +463,11 @@ export const MainLayout: React.FC = () => {
               )}
             </div>
           )}
-          <Button
-            variant="ghost"
-            aria-label="Çıkış Yap"
-            className={clsx(
-              'text-danger hover:bg-danger/10 w-full font-semibold',
-              isCollapsed
-                ? 'h-10 justify-center px-0'
-                : 'h-11 justify-start gap-3 rounded-2xl px-4 py-2.5'
-            )}
-            onPress={logout}>
-            <LogOut size={18} className="text-danger flex-shrink-0" />
-            {!isCollapsed && <span className="text-sm">Çıkış Yap</span>}
-          </Button>
+          {isCollapsed ? (
+            <SidebarTooltip label="Çıkış yap">{logoutButton}</SidebarTooltip>
+          ) : (
+            logoutButton
+          )}
         </div>
       </aside>
 

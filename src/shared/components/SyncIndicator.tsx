@@ -1,14 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import { clsx } from 'clsx';
 import { WifiOff, Cloud } from 'lucide-react';
-import { Tooltip } from '@heroui/react';
+import { Button, Tooltip } from '@heroui/react';
 
 interface SyncIndicatorProps {
   iconOnly?: boolean;
+  tooltipPlacement?: 'top' | 'right' | 'bottom' | 'left';
 }
 
 export const SyncIndicator: React.FC<SyncIndicatorProps> = ({
-  iconOnly = false
+  iconOnly = false,
+  tooltipPlacement = 'top'
 }) => {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
 
@@ -26,25 +28,28 @@ export const SyncIndicator: React.FC<SyncIndicatorProps> = ({
   }, []);
 
   if (iconOnly) {
+    const tooltipLabel = isOnline
+      ? 'Bulut ile Senkronize'
+      : 'Çevrimdışı Mod (İnternet Bağlantısı Yok)';
+
     return (
       <Tooltip delay={0} closeDelay={0}>
-        <Tooltip.Trigger>
-          <div
-            className={clsx(
-              'flex-shrink-0 cursor-help rounded-lg border p-1.5 transition-colors',
-              isOnline
-                ? 'border-emerald-200 bg-emerald-50 text-emerald-600'
-                : 'border-amber-200 bg-amber-50 text-amber-600'
-            )}>
-            {isOnline ? <Cloud size={14} /> : <WifiOff size={14} />}
-          </div>
-        </Tooltip.Trigger>
-        <Tooltip.Content showArrow>
+        <Button
+          variant="ghost"
+          isIconOnly
+          aria-label={tooltipLabel}
+          className={clsx(
+            'h-8 !w-8 !min-w-8 flex-shrink-0 cursor-help rounded-lg border p-1.5 transition-colors',
+            isOnline
+              ? 'border-emerald-200 bg-emerald-50 text-emerald-600'
+              : 'border-amber-200 bg-amber-50 text-amber-600'
+          )}>
+          {isOnline ? <Cloud size={14} /> : <WifiOff size={14} />}
+        </Button>
+        <Tooltip.Content showArrow placement={tooltipPlacement}>
           <Tooltip.Arrow />
-          <span className="px-1 py-0.5 text-xs font-semibold">
-            {isOnline
-              ? 'Bulut ile Senkronize'
-              : 'Çevrimdışı Mod (İnternet Bağlantısı Yok)'}
+          <span className="px-1 py-0.5 text-xs font-medium">
+            {tooltipLabel}
           </span>
         </Tooltip.Content>
       </Tooltip>
