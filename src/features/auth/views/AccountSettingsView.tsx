@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button, Card, Input, Label, toast, Tooltip } from '@heroui/react';
 import { useAuthStore } from '../store/useAuthStore';
+import { SettingsCard } from '@/shared/components/SettingsCard';
 import { db } from '@/core/firebase/config';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import type { Invitation, PermissionKey } from '@/core/types/tenant';
@@ -142,131 +143,131 @@ export const AccountSettingsView = () => {
 
       <div className="space-y-6 pb-6">
         {/* User Profile Card */}
-        <Card className="space-y-4 rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
-          <h2 className="flex items-center gap-2 border-b border-gray-100 pb-3 text-lg font-bold text-gray-900">
-            <User size={20} className="text-primary" /> Profil Bilgileri
-          </h2>
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <div className="flex items-center gap-3">
-              <div className="rounded-xl bg-gray-50 p-2.5 text-gray-400">
-                <User size={18} />
-              </div>
-              <div>
-                <p className="text-xs font-medium text-gray-500">
-                  İsim Soyisim
-                </p>
-                <p className="text-sm font-semibold text-gray-800">
-                  {user?.displayName || 'İsimsiz Kullanıcı'}
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <div className="rounded-xl bg-gray-50 p-2.5 text-gray-400">
-                <Mail size={18} />
-              </div>
-              <div>
-                <p className="text-xs font-medium text-gray-500">
-                  E-posta Adresi
-                </p>
-                <p className="text-sm font-semibold text-gray-800">
-                  {user?.email || '-'}
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <div className="rounded-xl bg-gray-50 p-2.5 text-gray-400">
-                <Building2 size={18} />
-              </div>
-              <div>
-                <p className="text-xs font-medium text-gray-500">
-                  Aktif İşletme
-                </p>
-                <p className="text-sm font-semibold text-gray-800">
-                  {activeCompany?.name || 'Seçili değil'}
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <div className="rounded-xl bg-gray-50 p-2.5 text-gray-400">
-                <Shield size={18} />
-              </div>
-              <div>
-                <p className="text-xs font-medium text-gray-500">Rolünüz</p>
-                <p className="text-sm font-semibold text-gray-800">
-                  {activeMembership?.role === 'OWNER'
-                    ? 'Şirket Sahibi'
-                    : 'Çalışan'}
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <div className="rounded-xl bg-gray-50 p-2.5 text-gray-400">
-                <CalendarDays size={18} />
-              </div>
-              <div>
-                <p className="text-xs font-medium text-gray-500">
-                  Üyelik Tarihi
-                </p>
-                <p className="text-sm font-semibold text-gray-800">
-                  {formatAuthDate(user?.metadata?.creationTime)}
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <div className="rounded-xl bg-gray-50 p-2.5 text-gray-400">
-                <Clock3 size={18} />
-              </div>
-              <div>
-                <p className="text-xs font-medium text-gray-500">
-                  Son Giriş Zamanı
-                </p>
-                <p className="text-sm font-semibold text-gray-800">
-                  {formatAuthDate(user?.metadata?.lastSignInTime)}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {usesEmailPassword && (
-            <form
-              onSubmit={handleDisplayNameSubmit}
-              className="border-t border-gray-100 pt-4">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-                <div className="flex flex-1 flex-col gap-1.5">
-                  <Label htmlFor="display-name">İsim Soyisim</Label>
-                  <Input
-                    id="display-name"
-                    value={displayName}
-                    onChange={event => setDisplayName(event.target.value)}
-                    placeholder="Adınız ve soyadınız"
-                  />
+        <SettingsCard
+          title="Profil Bilgileri"
+          icon={<User size={20} className="text-primary" />}>
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div className="flex items-center gap-3">
+                <div className="rounded-xl bg-gray-50 p-2.5 text-gray-400">
+                  <User size={18} />
                 </div>
-                <Button
-                  type="submit"
-                  variant="primary"
-                  isDisabled={isSavingName || !displayName.trim()}>
-                  {isSavingName ? (
-                    <Loader2 size={16} className="animate-spin" />
-                  ) : (
-                    <Save size={16} className="mr-1.5" />
-                  )}
-                  Kaydet
-                </Button>
+                <div>
+                  <p className="text-xs font-medium text-gray-500">
+                    İsim Soyisim
+                  </p>
+                  <p className="text-sm font-semibold text-gray-800">
+                    {user?.displayName || 'İsimsiz Kullanıcı'}
+                  </p>
+                </div>
               </div>
-            </form>
-          )}
-        </Card>
+
+              <div className="flex items-center gap-3">
+                <div className="rounded-xl bg-gray-50 p-2.5 text-gray-400">
+                  <Mail size={18} />
+                </div>
+                <div>
+                  <p className="text-xs font-medium text-gray-500">
+                    E-posta Adresi
+                  </p>
+                  <p className="text-sm font-semibold text-gray-800">
+                    {user?.email || '-'}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <div className="rounded-xl bg-gray-50 p-2.5 text-gray-400">
+                  <Building2 size={18} />
+                </div>
+                <div>
+                  <p className="text-xs font-medium text-gray-500">
+                    Aktif İşletme
+                  </p>
+                  <p className="text-sm font-semibold text-gray-800">
+                    {activeCompany?.name || 'Seçili değil'}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <div className="rounded-xl bg-gray-50 p-2.5 text-gray-400">
+                  <Shield size={18} />
+                </div>
+                <div>
+                  <p className="text-xs font-medium text-gray-500">Rolünüz</p>
+                  <p className="text-sm font-semibold text-gray-800">
+                    {activeMembership?.role === 'OWNER'
+                      ? 'Şirket Sahibi'
+                      : 'Çalışan'}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <div className="rounded-xl bg-gray-50 p-2.5 text-gray-400">
+                  <CalendarDays size={18} />
+                </div>
+                <div>
+                  <p className="text-xs font-medium text-gray-500">
+                    Üyelik Tarihi
+                  </p>
+                  <p className="text-sm font-semibold text-gray-800">
+                    {formatAuthDate(user?.metadata?.creationTime)}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <div className="rounded-xl bg-gray-50 p-2.5 text-gray-400">
+                  <Clock3 size={18} />
+                </div>
+                <div>
+                  <p className="text-xs font-medium text-gray-500">
+                    Son Giriş Zamanı
+                  </p>
+                  <p className="text-sm font-semibold text-gray-800">
+                    {formatAuthDate(user?.metadata?.lastSignInTime)}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {usesEmailPassword && (
+              <form
+                onSubmit={handleDisplayNameSubmit}
+                className="border-t border-gray-100 pt-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+                  <div className="flex flex-1 flex-col gap-1.5">
+                    <Label htmlFor="display-name">İsim Soyisim</Label>
+                    <Input
+                      id="display-name"
+                      value={displayName}
+                      onChange={event => setDisplayName(event.target.value)}
+                      placeholder="Adınız ve soyadınız"
+                    />
+                  </div>
+                  <Button
+                    type="submit"
+                    variant="primary"
+                    isDisabled={isSavingName || !displayName.trim()}>
+                    {isSavingName ? (
+                      <Loader2 size={16} className="animate-spin" />
+                    ) : (
+                      <Save size={16} className="mr-1.5" />
+                    )}
+                    Kaydet
+                  </Button>
+                </div>
+              </form>
+            )}
+          </div>
+        </SettingsCard>
 
         {/* Permissions Card */}
-        <Card className="space-y-4 rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
-          <h2 className="flex items-center gap-2 border-b border-gray-100 pb-3 text-lg font-bold text-gray-900">
-            <ShieldCheck size={20} className="text-primary" /> İşletme Yetkileri
-          </h2>
+        <SettingsCard
+          title="İşletme Yetkileri"
+          icon={<ShieldCheck size={20} className="text-primary" />}>
           {activeMembership?.role === 'OWNER' ? (
             <div className="space-y-3">
               <p className="flex items-center gap-2 rounded-xl bg-green-50 p-3 text-sm font-semibold text-green-700">
@@ -342,15 +343,12 @@ export const AccountSettingsView = () => {
               </p>
             </div>
           )}
-        </Card>
+        </SettingsCard>
 
         {/* Invitations Card */}
-        <Card className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
-          <h2 className="mb-4 flex items-center gap-2 border-b border-gray-100 pb-3 text-lg font-bold text-gray-900">
-            <Building2 size={20} className="text-primary" /> Gelen İşletme
-            Davetiyeleri
-          </h2>
-
+        <SettingsCard
+          title="Gelen İşletme Davetiyeleri"
+          icon={<Building2 size={20} className="text-primary" />}>
           {isCheckingInvites ? (
             <div className="flex justify-center p-8">
               <Loader2 className="text-primary animate-spin" size={32} />
@@ -417,7 +415,7 @@ export const AccountSettingsView = () => {
               </p>
             </div>
           )}
-        </Card>
+        </SettingsCard>
       </div>
     </div>
   );

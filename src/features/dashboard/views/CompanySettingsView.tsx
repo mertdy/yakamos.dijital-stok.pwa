@@ -46,6 +46,7 @@ import { DataImportWizard } from '../components/DataImportWizard';
 import { useConfirm } from '@/shared/contexts/ConfirmDialogContext';
 import { FormInput } from '@/shared/components/FormInput';
 import { PhoneInput } from '@/shared/components/PhoneInput';
+import { SettingsCard } from '@/shared/components/SettingsCard';
 import {
   normalizePhoneNumber,
   optionalPhoneNumberSchema
@@ -292,10 +293,9 @@ export const CompanySettingsView = () => {
 
       <div className="space-y-6 pb-6">
         {/* Company Profile Card */}
-        <Card className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
-          <h2 className="mb-5 flex items-center gap-2 border-b border-gray-100 pb-3 text-lg font-bold text-gray-900">
-            <Building2 size={20} className="text-primary" /> İşletme Profili
-          </h2>
+        <SettingsCard
+          title="İşletme Profili"
+          icon={<Building2 size={20} className="text-primary" />}>
           <form
             onSubmit={handleSubmitProfile(handleUpdateProfile)}
             className="space-y-5">
@@ -348,15 +348,12 @@ export const CompanySettingsView = () => {
               </Button>
             </div>
           </form>
-        </Card>
+        </SettingsCard>
 
         {/* Employees Card */}
-        <Card className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
-          <div className="border-b border-gray-100 pb-3">
-            <h2 className="flex items-center gap-2 text-lg font-bold text-gray-900">
-              <Users size={20} className="text-primary" /> Çalışan Yönetimi
-            </h2>
-          </div>
+        <SettingsCard
+          title="Çalışan Yönetimi"
+          icon={<Users size={20} className="text-primary" />}>
           <p className="mt-3 mb-5 text-sm text-gray-500">
             Çalışanlarınızı, yetkilerini ve bekleyen davetleri buradan yönetin.
           </p>
@@ -480,11 +477,10 @@ export const CompanySettingsView = () => {
               <UserPlus size={16} className="mr-1.5" /> Personel Davet Et
             </Button>
           </div>
-        </Card>
-        <Card className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
-          <h2 className="mb-5 flex items-center gap-2 border-b border-gray-100 pb-3 text-lg font-bold text-gray-900">
-            <Download size={20} className="text-primary" /> Veri Yönetimi
-          </h2>
+        </SettingsCard>
+        <SettingsCard
+          title="Veri Yönetimi"
+          icon={<Download size={20} className="text-primary" />}>
           <p className="mb-5 text-sm text-gray-500">
             İşletmenizin envanter ve müşteri verilerini güvenle içe veya dışa
             aktarın.
@@ -515,7 +511,7 @@ export const CompanySettingsView = () => {
               </Button>
             </div>
           </div>
-        </Card>
+        </SettingsCard>
       </div>
 
       {activeCompany && (
