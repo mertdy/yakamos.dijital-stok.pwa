@@ -30,6 +30,9 @@ export interface UserProfile {
 export interface Membership {
   id: string; // "userId_companyId"
   userId: string;
+  email?: string;
+  employeeName?: string;
+  jobTitle?: string;
   companyId: string;
   companyName: string;
   role: UserRole;
@@ -42,6 +45,8 @@ export interface Invitation {
   companyId: string;
   companyName: string;
   email: string;
+  employeeName: string;
+  jobTitle: string;
   permissions: PermissionKey[];
   status: 'PENDING' | 'ACCEPTED' | 'DECLINED';
   createdAt: string;

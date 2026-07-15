@@ -28,6 +28,11 @@ companies
 
 Stores business information.
 
+memberships
+
+Stores a user's company role, permissions, denormalized email address, owner
+managed employee name and job title for company-scoped personnel management.
+
 products
 
 Inventory.

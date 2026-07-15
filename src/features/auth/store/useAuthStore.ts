@@ -93,11 +93,17 @@ interface AuthState {
   ) => Promise<void>;
   inviteEmployee: (
     email: string,
-    permissions: PermissionKey[]
+    permissions: PermissionKey[],
+    employeeName: string,
+    jobTitle: string
   ) => Promise<void>;
   updateEmployeePermissions: (
     userId: string,
     permissions: PermissionKey[]
+  ) => Promise<void>;
+  updateEmployeeDetails: (
+    userId: string,
+    details: Pick<Membership, 'employeeName' | 'jobTitle'>
   ) => Promise<void>;
   removeEmployee: (userId: string) => Promise<void>;
   acceptInvitation: (invitationId: string) => Promise<void>;
@@ -154,6 +160,7 @@ const checkAndMigrateLegacyUser = async (user: User): Promise<UserProfile> => {
     const membershipData: Membership = {
       id: membershipId,
       userId: user.uid,
+      email: user.email || '',
       companyId,
       companyName,
       role: 'OWNER',
@@ -301,6 +308,18 @@ export const useAuthStore = getSingletonStore('auth', () =>
           snap.forEach(doc => {
             memberships.push(doc.data() as Membership);
           });
+
+          if (user.email) {
+            memberships
+              .filter(membership => !membership.email)
+              .forEach(membership => {
+                updateDoc(doc(db, 'memberships', membership.id), {
+                  email: user.email
+                }).catch(error =>
+                  console.error('Membership email backfill failed:', error)
+                );
+              });
+          }
 
           const profile = get().profile;
           const activeCompanyId = profile?.activeCompanyId;
@@ -498,6 +517,7 @@ export const useAuthStore = getSingletonStore('auth', () =>
       const membershipData: Membership = {
         id: membershipId,
         userId: user.uid,
+        email: user.email || '',
         companyId,
         companyName: name,
         role: 'OWNER',
@@ -593,7 +613,7 @@ export const useAuthStore = getSingletonStore('auth', () =>
       await updateDoc(companyRef, details);
     },
 
-    inviteEmployee: async (email, permissions) => {
+    inviteEmployee: async (email, permissions, employeeName, jobTitle) => {
       const activeCompany = get().activeCompany;
       const user = get().user;
       if (!activeCompany || !user)
@@ -605,6 +625,8 @@ export const useAuthStore = getSingletonStore('auth', () =>
         companyId: activeCompany.id,
         companyName: activeCompany.name,
         email: email.toLowerCase().trim(),
+        employeeName: employeeName.trim(),
+        jobTitle: jobTitle.trim(),
         permissions,
         status: 'PENDING',
         createdAt: new Date().toISOString(),
@@ -621,6 +643,14 @@ export const useAuthStore = getSingletonStore('auth', () =>
       const membershipId = `${userId}_${activeCompany.id}`;
       const membershipRef = doc(db, 'memberships', membershipId);
       await updateDoc(membershipRef, { permissions });
+    },
+
+    updateEmployeeDetails: async (userId, details) => {
+      const activeCompany = get().activeCompany;
+      if (!activeCompany) throw new Error('No active company');
+
+      const membershipId = `${userId}_${activeCompany.id}`;
+      await updateDoc(doc(db, 'memberships', membershipId), details);
     },
 
     removeEmployee: async userId => {
@@ -647,6 +677,9 @@ export const useAuthStore = getSingletonStore('auth', () =>
       const membershipData: Membership = {
         id: membershipId,
         userId: user.uid,
+        email: user.email || invite.email,
+        employeeName: invite.employeeName,
+        jobTitle: invite.jobTitle,
         companyId: invite.companyId,
         companyName: invite.companyName,
         role: 'EMPLOYEE',

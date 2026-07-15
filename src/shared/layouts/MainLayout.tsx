@@ -635,7 +635,7 @@ export const MainLayout: React.FC = () => {
                       <span className="mt-0.5 truncate text-xs leading-normal text-gray-500">
                         {activeMembership?.role === 'OWNER'
                           ? 'Şirket Sahibi'
-                          : 'Çalışan'}
+                          : activeMembership?.jobTitle || 'Çalışan'}
                       </span>
                     </div>
                     <ChevronRight className="h-4 w-4 flex-shrink-0 text-gray-300 transition-colors duration-200 group-hover:text-gray-500" />

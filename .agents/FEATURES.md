@@ -41,6 +41,9 @@ Current company context.
 
 All subsequent operations use this company.
 
+Company owners can invite employees with an owner-only display name and a job
+title. Employee titles are shown in the employee's navigation profile badge.
+
 ---
 
 # Inventory

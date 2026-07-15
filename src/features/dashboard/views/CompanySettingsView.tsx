@@ -35,10 +35,10 @@ import {
   Users,
   Mail,
   Trash2,
-  Shield,
   Loader2,
   CheckCircle2,
-  UserPlus
+  UserPlus,
+  Pencil
 } from 'lucide-react';
 import { Download } from 'lucide-react';
 import { DataExportWizard } from '../components/DataExportWizard';
@@ -67,10 +67,31 @@ type CompanyProfileFormData = z.infer<typeof companyProfileSchema>;
 
 // Invitation Schema
 const inviteSchema = z.object({
-  email: z.string().email('Geçersiz e-posta adresi')
+  email: z.string().email('Geçersiz e-posta adresi'),
+  employeeName: z
+    .string()
+    .trim()
+    .min(2, 'Çalışanın adı en az 2 karakter olmalıdır')
+    .max(80, 'Çalışanın adı en fazla 80 karakter olabilir')
 });
 
 type InviteFormData = z.infer<typeof inviteSchema>;
+type EmployeeMembership = Membership & { email: string };
+type JobTitleOption = 'EMPLOYEE' | 'CASHIER' | 'MANAGER' | 'OTHER';
+
+const JOB_TITLE_OPTIONS: {
+  id: Exclude<JobTitleOption, 'OTHER'>;
+  label: string;
+}[] = [
+  { id: 'EMPLOYEE', label: 'Çalışan' },
+  { id: 'CASHIER', label: 'Kasiyer' },
+  { id: 'MANAGER', label: 'Müdür' }
+];
+
+const getJobTitle = (option: JobTitleOption, customTitle: string): string =>
+  option === 'OTHER'
+    ? customTitle.trim()
+    : JOB_TITLE_OPTIONS.find(item => item.id === option)?.label || '';
 
 export const CompanySettingsView = () => {
   const {
@@ -78,12 +99,13 @@ export const CompanySettingsView = () => {
     updateCompanyProfile,
     inviteEmployee,
     updateEmployeePermissions,
+    updateEmployeeDetails,
     removeEmployee,
     user
   } = useAuthStore();
 
   const { confirm } = useConfirm();
-  const [employees, setEmployees] = useState<Membership[]>([]);
+  const [employees, setEmployees] = useState<EmployeeMembership[]>([]);
   const [invitations, setInvitations] = useState<Invitation[]>([]);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [isExportWizardOpen, setIsExportWizardOpen] = useState(false);
@@ -95,16 +117,22 @@ export const CompanySettingsView = () => {
     PermissionKey[]
   >([]);
   const [isSendingInvite, setIsSendingInvite] = useState(false);
+  const [inviteJobTitleOption, setInviteJobTitleOption] =
+    useState<JobTitleOption>('EMPLOYEE');
+  const [inviteCustomJobTitle, setInviteCustomJobTitle] = useState('');
 
   // Edit Permissions Modal State
   const [editPermsModalOpen, setEditPermsModalOpen] = useState(false);
-  const [editingEmployee, setEditingEmployee] = useState<Membership | null>(
-    null
-  );
+  const [editingEmployee, setEditingEmployee] =
+    useState<EmployeeMembership | null>(null);
   const [selectedEditPerms, setSelectedEditPerms] = useState<PermissionKey[]>(
     []
   );
   const [isSavingPerms, setIsSavingPerms] = useState(false);
+  const [editingEmployeeName, setEditingEmployeeName] = useState('');
+  const [editingJobTitleOption, setEditingJobTitleOption] =
+    useState<JobTitleOption>('CASHIER');
+  const [editingCustomJobTitle, setEditingCustomJobTitle] = useState('');
 
   const {
     control: controlProfile,
@@ -148,7 +176,11 @@ export const CompanySettingsView = () => {
           list.push(mem);
         }
       });
-      setEmployees(list);
+      const employeesWithEmail: EmployeeMembership[] = list.map(membership => ({
+        ...membership,
+        email: membership.email || 'E-posta bilgisi bulunamadı'
+      }));
+      setEmployees(employeesWithEmail);
     });
     return () => unsubscribe();
   }, [activeCompany?.id, user?.uid]);
@@ -190,13 +222,26 @@ export const CompanySettingsView = () => {
   };
 
   const handleInviteSubmit = async (data: InviteFormData) => {
+    const jobTitle = getJobTitle(inviteJobTitleOption, inviteCustomJobTitle);
+    if (!jobTitle) {
+      toast.danger('Lütfen çalışanın ünvanını girin');
+      return;
+    }
+
     setIsSendingInvite(true);
     try {
-      await inviteEmployee(data.email, selectedInvitePerms);
+      await inviteEmployee(
+        data.email,
+        selectedInvitePerms,
+        data.employeeName,
+        jobTitle
+      );
       toast.success(`${data.email} adresine davet gönderildi!`);
       setInviteModalOpen(false);
       resetInvite();
       setSelectedInvitePerms([]);
+      setInviteJobTitleOption('EMPLOYEE');
+      setInviteCustomJobTitle('');
     } catch (err) {
       console.error(err);
       toast.danger('Davet gönderilirken bir hata oluştu');
@@ -253,21 +298,37 @@ export const CompanySettingsView = () => {
     }
   };
 
-  const handleOpenEditPerms = (emp: Membership) => {
+  const handleOpenEditPerms = (emp: EmployeeMembership) => {
     setEditingEmployee(emp);
     setSelectedEditPerms(emp.permissions);
+    setEditingEmployeeName(emp.employeeName || '');
+    const titleOption = JOB_TITLE_OPTIONS.find(
+      item => item.label === emp.jobTitle
+    );
+    setEditingJobTitleOption(titleOption?.id || 'OTHER');
+    setEditingCustomJobTitle(titleOption ? '' : emp.jobTitle || '');
     setEditPermsModalOpen(true);
   };
 
   const handleSavePermsSubmit = async () => {
     if (!editingEmployee) return;
+    const jobTitle = getJobTitle(editingJobTitleOption, editingCustomJobTitle);
+    const employeeName = editingEmployeeName.trim();
+    if (employeeName.length < 2 || !jobTitle) {
+      toast.danger('Çalışan adı ve ünvanı gereklidir');
+      return;
+    }
+
     setIsSavingPerms(true);
     try {
-      await updateEmployeePermissions(
-        editingEmployee.userId,
-        selectedEditPerms
-      );
-      toast.success('Çalışan yetkileri güncellendi!');
+      await Promise.all([
+        updateEmployeePermissions(editingEmployee.userId, selectedEditPerms),
+        updateEmployeeDetails(editingEmployee.userId, {
+          employeeName,
+          jobTitle
+        })
+      ]);
+      toast.success('Çalışan bilgileri ve yetkileri güncellendi!');
       setEditPermsModalOpen(false);
     } catch (err) {
       console.error(err);
@@ -368,24 +429,50 @@ export const CompanySettingsView = () => {
                 {invitations.map(invite => (
                   <Card
                     key={invite.id}
-                    className="flex items-center justify-between rounded-2xl border border-orange-200/50 bg-orange-50/30 p-4">
-                    <div className="min-w-0">
-                      <p className="flex items-center gap-1.5 truncate text-sm font-semibold text-gray-800">
-                        <Mail size={14} className="text-orange-500" />{' '}
-                        {invite.email}
-                      </p>
-                      <span className="mt-1.5 inline-block rounded-full bg-orange-100/60 px-2 py-0.5 text-[10px] font-bold text-orange-700">
-                        Davet Edildi
-                      </span>
+                    className="relative flex flex-col items-start rounded-2xl border border-orange-200/50 bg-orange-50/30 p-4 text-left">
+                    <div className="min-w-0 space-y-2 pr-8">
+                      <div>
+                        <p className="truncate text-sm font-bold text-gray-800">
+                          {invite.employeeName || 'Çalışan adı belirtilmedi'}
+                        </p>
+                        <p className="mt-0.5 flex items-center gap-1.5 truncate text-xs text-gray-600">
+                          <Mail size={14} className="text-orange-500" />
+                          {invite.email}
+                        </p>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <span className="bg-primary/10 text-primary rounded-full px-2 py-0.5 text-[10px] font-bold">
+                          {invite.jobTitle || 'Çalışan'}
+                        </span>
+                        <span className="rounded-full bg-orange-100/60 px-2 py-0.5 text-[10px] font-bold text-orange-700">
+                          Davet Edildi
+                        </span>
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {invite.permissions.length === 0 ? (
+                          <span className="text-xs text-gray-400 italic">
+                            Yetki seçilmedi
+                          </span>
+                        ) : (
+                          invite.permissions.map(permission => (
+                            <span
+                              key={permission}
+                              className="rounded border border-orange-200/70 bg-white/70 px-2 py-0.5 text-[10px] font-bold text-gray-600">
+                              {PERMISSION_META[permission].shortLabel}
+                            </span>
+                          ))
+                        )}
+                      </div>
                     </div>
                     <Button
                       isIconOnly
                       variant="ghost"
                       size="sm"
-                      className="text-danger hover:bg-danger/10"
+                      className="text-danger hover:bg-danger/10 absolute top-3 right-3"
                       onPress={() =>
                         handleCancelInvite(invite.id, invite.email)
-                      }>
+                      }
+                      aria-label="Davetiye Sil">
                       <Trash2 size={16} />
                     </Button>
                   </Card>
@@ -420,14 +507,14 @@ export const CompanySettingsView = () => {
                       <div className="flex items-start justify-between">
                         <div>
                           <p className="text-sm font-bold text-gray-800">
-                            {emp.companyName}
+                            {emp.employeeName || emp.email}
                           </p>
                           <span className="text-xs text-gray-500">
-                            {emp.userId}
+                            {emp.email}
                           </span>
                         </div>
                         <span className="bg-primary/10 text-primary rounded-md px-2 py-0.5 text-xs font-semibold">
-                          Çalışan
+                          {emp.jobTitle || 'Çalışan'}
                         </span>
                       </div>
 
@@ -455,7 +542,7 @@ export const CompanySettingsView = () => {
                         variant="ghost"
                         className="text-danger hover:bg-danger/10"
                         onPress={() =>
-                          handleRemoveEmployee(emp.userId, emp.companyName)
+                          handleRemoveEmployee(emp.userId, emp.email)
                         }>
                         <Trash2 size={15} className="mr-1" /> Çıkar
                       </Button>
@@ -464,7 +551,7 @@ export const CompanySettingsView = () => {
                         variant="primary"
                         className="font-bold"
                         onPress={() => handleOpenEditPerms(emp)}>
-                        <Shield size={15} className="mr-1" /> Yetkiler
+                        <Pencil size={15} className="mr-1" /> Düzenle
                       </Button>
                     </div>
                   </Card>
@@ -534,6 +621,8 @@ export const CompanySettingsView = () => {
             setInviteModalOpen(false);
             resetInvite();
             setSelectedInvitePerms([]);
+            setInviteJobTitleOption('EMPLOYEE');
+            setInviteCustomJobTitle('');
           }
         }}>
         <button style={{ display: 'none' }} aria-hidden="true" tabIndex={-1} />
@@ -557,6 +646,48 @@ export const CompanySettingsView = () => {
                     type="email"
                     placeholder="calisan@firma.com"
                   />
+                  <FormInput
+                    control={controlInvite}
+                    name="employeeName"
+                    label="Çalışanın Adı"
+                    isRequired
+                    placeholder="Örn: Ayşe Yılmaz"
+                  />
+
+                  <div>
+                    <label
+                      className="mb-1 block text-sm font-medium text-gray-700"
+                      htmlFor="invite-job-title">
+                      Ünvan
+                    </label>
+                    <select
+                      id="invite-job-title"
+                      value={inviteJobTitleOption}
+                      onChange={event =>
+                        setInviteJobTitleOption(
+                          event.target.value as JobTitleOption
+                        )
+                      }
+                      className="focus:border-primary focus:ring-primary/20 h-10 w-full rounded-xl border border-gray-200 bg-white px-3 text-sm text-gray-800 outline-none focus:ring-2">
+                      {JOB_TITLE_OPTIONS.map(option => (
+                        <option key={option.id} value={option.id}>
+                          {option.label}
+                        </option>
+                      ))}
+                      <option value="OTHER">Diğer</option>
+                    </select>
+                    {inviteJobTitleOption === 'OTHER' && (
+                      <input
+                        value={inviteCustomJobTitle}
+                        onChange={event =>
+                          setInviteCustomJobTitle(event.target.value)
+                        }
+                        aria-label="Özel ünvan"
+                        placeholder="Ünvanı yazın"
+                        className="focus:border-primary focus:ring-primary/20 mt-2 h-10 w-full rounded-xl border border-gray-200 bg-white px-3 text-sm text-gray-800 outline-none focus:ring-2"
+                      />
+                    )}
+                  </div>
 
                   {/* Permissions Selection Checklist */}
                   <div className="space-y-2.5">
@@ -591,6 +722,8 @@ export const CompanySettingsView = () => {
                       setInviteModalOpen(false);
                       resetInvite();
                       setSelectedInvitePerms([]);
+                      setInviteJobTitleOption('EMPLOYEE');
+                      setInviteCustomJobTitle('');
                     }}
                     isDisabled={isSendingInvite}>
                     İptal
@@ -622,6 +755,9 @@ export const CompanySettingsView = () => {
             setEditPermsModalOpen(false);
             setEditingEmployee(null);
             setSelectedEditPerms([]);
+            setEditingEmployeeName('');
+            setEditingJobTitleOption('CASHIER');
+            setEditingCustomJobTitle('');
           }
         }}>
         <button style={{ display: 'none' }} aria-hidden="true" tabIndex={-1} />
@@ -632,7 +768,7 @@ export const CompanySettingsView = () => {
               <div>
                 <Modal.Header>
                   <Modal.Heading className="text-xl">
-                    Çalışan Yetkilerini Düzenle
+                    Çalışanı Düzenle
                   </Modal.Heading>
                 </Modal.Header>
 
@@ -643,11 +779,70 @@ export const CompanySettingsView = () => {
                         Çalışan Bilgisi
                       </p>
                       <p className="mt-1 text-sm font-bold text-gray-800">
-                        {editingEmployee.companyName}
+                        {editingEmployee.employeeName || editingEmployee.email}
                       </p>
                       <p className="mt-0.5 text-xs text-gray-500">
-                        {editingEmployee.userId}
+                        {editingEmployee.email}
                       </p>
+                    </div>
+                  )}
+
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div>
+                      <label
+                        className="mb-1 block text-sm font-medium text-gray-700"
+                        htmlFor="edit-employee-name">
+                        Çalışanın Adı
+                      </label>
+                      <input
+                        id="edit-employee-name"
+                        value={editingEmployeeName}
+                        onChange={event =>
+                          setEditingEmployeeName(event.target.value)
+                        }
+                        className="focus:border-primary focus:ring-primary/20 h-10 w-full rounded-xl border border-gray-200 bg-white px-3 text-sm text-gray-800 outline-none focus:ring-2"
+                      />
+                    </div>
+                    <div>
+                      <label
+                        className="mb-1 block text-sm font-medium text-gray-700"
+                        htmlFor="edit-job-title">
+                        Ünvan
+                      </label>
+                      <select
+                        id="edit-job-title"
+                        value={editingJobTitleOption}
+                        onChange={event =>
+                          setEditingJobTitleOption(
+                            event.target.value as JobTitleOption
+                          )
+                        }
+                        className="focus:border-primary focus:ring-primary/20 h-10 w-full rounded-xl border border-gray-200 bg-white px-3 text-sm text-gray-800 outline-none focus:ring-2">
+                        {JOB_TITLE_OPTIONS.map(option => (
+                          <option key={option.id} value={option.id}>
+                            {option.label}
+                          </option>
+                        ))}
+                        <option value="OTHER">Diğer</option>
+                      </select>
+                    </div>
+                  </div>
+                  {editingJobTitleOption === 'OTHER' && (
+                    <div>
+                      <label
+                        className="mb-1 block text-sm font-medium text-gray-700"
+                        htmlFor="edit-custom-job-title">
+                        Özel Ünvan
+                      </label>
+                      <input
+                        id="edit-custom-job-title"
+                        value={editingCustomJobTitle}
+                        onChange={event =>
+                          setEditingCustomJobTitle(event.target.value)
+                        }
+                        placeholder="Ünvanı yazın"
+                        className="focus:border-primary focus:ring-primary/20 h-10 w-full rounded-xl border border-gray-200 bg-white px-3 text-sm text-gray-800 outline-none focus:ring-2"
+                      />
                     </div>
                   )}
 
@@ -684,6 +879,9 @@ export const CompanySettingsView = () => {
                       setEditPermsModalOpen(false);
                       setEditingEmployee(null);
                       setSelectedEditPerms([]);
+                      setEditingEmployeeName('');
+                      setEditingJobTitleOption('CASHIER');
+                      setEditingCustomJobTitle('');
                     }}
                     isDisabled={isSavingPerms}>
                     İptal
