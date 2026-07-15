@@ -15,6 +15,11 @@ export interface ConfirmOptions {
   cancelText?: string;
   variant?: 'primary' | 'secondary' | 'danger' | 'ghost' | 'outline';
   status?: 'default' | 'accent' | 'success' | 'warning' | 'danger';
+  secondaryAction?: {
+    text: string;
+    onPress: () => void;
+    variant?: 'primary' | 'secondary' | 'danger' | 'ghost' | 'outline';
+  };
 }
 
 interface ConfirmContextType {
@@ -63,6 +68,11 @@ export const ConfirmDialogProvider: React.FC<ConfirmDialogProviderProps> = ({
     setIsOpen(false);
   };
 
+  const handleSecondaryAction = () => {
+    handleCancel();
+    options?.secondaryAction?.onPress();
+  };
+
   const handleOpenChange = (open: boolean) => {
     setIsOpen(open);
     if (!open && resolver) {
@@ -100,6 +110,13 @@ export const ConfirmDialogProvider: React.FC<ConfirmDialogProviderProps> = ({
                   <Button variant="ghost" onPress={handleCancel}>
                     {options.cancelText || 'İptal'}
                   </Button>
+                  {options.secondaryAction && (
+                    <Button
+                      variant={options.secondaryAction.variant || 'secondary'}
+                      onPress={handleSecondaryAction}>
+                      {options.secondaryAction.text}
+                    </Button>
+                  )}
                   {/* Notice: Button expects variant="danger"|'primary' etc, not color. ConfirmOptions uses 'variant' now! */}
                   <Button
                     variant={options.variant || 'primary'}

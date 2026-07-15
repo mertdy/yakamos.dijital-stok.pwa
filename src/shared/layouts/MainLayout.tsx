@@ -3,6 +3,8 @@ import { clsx } from 'clsx';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { SyncIndicator } from '@/shared/components/SyncIndicator';
 import { useAppHotkeys } from '@/shared/hooks/useAppHotkeys';
+import { useSalesStore } from '@/features/sales';
+import { useConfirm } from '@/shared/contexts/ConfirmDialogContext';
 import {
   Store,
   MonitorCheck,
@@ -96,6 +98,8 @@ export const MainLayout: React.FC = () => {
   } = useAuthStore();
   const location = useLocation();
   const navigate = useNavigate();
+  const { cart, clearCart } = useSalesStore();
+  const { confirm } = useConfirm();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isSidebarHovered, setIsSidebarHovered] = useState(false);
   const [newCompanyModalOpen, setNewCompanyModalOpen] = useState(false);
@@ -146,22 +150,51 @@ export const MainLayout: React.FC = () => {
     try {
       await switchCompany(companyId);
       toast.success('İşletme değiştirildi');
+      return true;
     } catch (err) {
       console.error(err);
       toast.danger('İşletme değiştirilirken bir hata oluştu');
+      return false;
     } finally {
       setIsSwitching(false);
     }
   };
 
-  const handleSelectionChange = (keys: any) => {
+  const handleSelectionChange = async (keys: any) => {
     const selectedKey = Array.from(keys)[0]?.toString();
-    if (selectedKey) {
-      if (selectedKey === 'new-company') {
-        setNewCompanyModalOpen(true);
-      } else {
-        handleSwitchCompany(selectedKey);
-      }
+    if (!selectedKey) return;
+
+    if (selectedKey === 'new-company') {
+      setNewCompanyModalOpen(true);
+      return;
+    }
+
+    if (selectedKey === activeCompany?.id) return;
+
+    if (cart.length > 0) {
+      const productCount = cart.reduce((sum, item) => sum + item.quantity, 0);
+      const confirmed = await confirm({
+        title: 'Sepet temizlenecek',
+        description: `Sepetinizde ${productCount} ürün bulunuyor. İşletme değiştirildiğinde bu sepetteki ürünler temizlenecek.`,
+        confirmText: 'Sepeti Temizle ve Değiştir',
+        cancelText: 'Vazgeç',
+        variant: 'danger',
+        status: 'warning',
+        secondaryAction:
+          location.pathname !== '/sales'
+            ? {
+                text: 'Sepete Git',
+                onPress: () => navigate('/sales')
+              }
+            : undefined
+      });
+
+      if (!confirmed) return;
+    }
+
+    const didSwitch = await handleSwitchCompany(selectedKey);
+    if (didSwitch && cart.length > 0) {
+      clearCart();
     }
   };
 

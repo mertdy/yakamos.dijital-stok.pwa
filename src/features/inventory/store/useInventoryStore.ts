@@ -30,6 +30,7 @@ export interface InventoryItem {
 interface InventoryState {
   items: InventoryItem[];
   isLoading: boolean;
+  hasLoadedItems: boolean;
   unsubscribeSnapshot: (() => void) | null;
   loadItems: () => void;
   addItem: (
@@ -45,6 +46,7 @@ export const useInventoryStore = getSingletonStore('inventory', () =>
   create<InventoryState>((set, get) => ({
     items: [],
     isLoading: false,
+    hasLoadedItems: false,
     unsubscribeSnapshot: null,
 
     loadItems: () => {
@@ -56,7 +58,7 @@ export const useInventoryStore = getSingletonStore('inventory', () =>
         unsubscribeSnapshot();
       }
 
-      set({ isLoading: true });
+      set({ isLoading: true, hasLoadedItems: false });
 
       const q = query(
         collection(db, 'inventory'),
@@ -70,11 +72,11 @@ export const useInventoryStore = getSingletonStore('inventory', () =>
           snapshot.forEach(doc => {
             items.push({ id: doc.id, ...doc.data() } as InventoryItem);
           });
-          set({ items, isLoading: false });
+          set({ items, isLoading: false, hasLoadedItems: true });
         },
         error => {
           console.error('Firestore snapshot error:', error);
-          set({ isLoading: false });
+          set({ isLoading: false, hasLoadedItems: true });
         }
       );
 
@@ -188,7 +190,7 @@ export const useInventoryStore = getSingletonStore('inventory', () =>
       if (unsubscribeSnapshot) {
         unsubscribeSnapshot();
       }
-      set({ items: [], unsubscribeSnapshot: null });
+      set({ items: [], hasLoadedItems: false, unsubscribeSnapshot: null });
     }
   }))
 );

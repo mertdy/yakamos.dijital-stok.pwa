@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -39,8 +39,10 @@ export const ProductFormView: React.FC = () => {
   const [searchParams] = useSearchParams();
   const initialBarcode = searchParams.get('barcode');
 
-  const { items, loadItems, addItem, updateItem } = useInventoryStore();
+  const { items, hasLoadedItems, loadItems, addItem, updateItem } =
+    useInventoryStore();
   const navigate = useNavigate();
+  const hasRedirectedForMissingItem = useRef(false);
 
   const [isSearching, setIsSearching] = useState(false);
   const [isScannerOpen, setIsScannerOpen] = useState(false);
@@ -68,10 +70,10 @@ export const ProductFormView: React.FC = () => {
   });
 
   useEffect(() => {
-    if (items.length === 0) {
+    if (!hasLoadedItems) {
       loadItems();
     }
-  }, [items.length, loadItems]);
+  }, [hasLoadedItems, loadItems]);
 
   const searchProductByBarcode = useCallback(
     async (barcodeToSearch: string) => {
@@ -117,20 +119,26 @@ export const ProductFormView: React.FC = () => {
   );
 
   useEffect(() => {
-    if (isEditMode && items.length > 0) {
-      const editingItem = items.find(item => item.id === id);
-      if (editingItem) {
-        reset({
-          name: editingItem.name,
-          barcode: editingItem.barcode || '',
-          stock: editingItem.stock,
-          price: editingItem.price
-        });
+    if (!isEditMode || !hasLoadedItems) return;
 
-        setApiProductData(null);
+    const editingItem = items.find(item => item.id === id);
+    if (!editingItem) {
+      if (!hasRedirectedForMissingItem.current) {
+        hasRedirectedForMissingItem.current = true;
+        toast.danger('Ürün bulunamadı veya bu ürünü düzenleme yetkiniz yok.');
+        navigate(-1);
       }
+      return;
     }
-  }, [isEditMode, id, items, reset]);
+
+    reset({
+      name: editingItem.name,
+      barcode: editingItem.barcode || '',
+      stock: editingItem.stock,
+      price: editingItem.price
+    });
+    setApiProductData(null);
+  }, [isEditMode, id, items, hasLoadedItems, navigate, reset]);
 
   useEffect(() => {
     if (!isEditMode) {

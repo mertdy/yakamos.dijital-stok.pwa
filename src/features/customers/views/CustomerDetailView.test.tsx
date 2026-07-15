@@ -95,6 +95,28 @@ describe('CustomerDetailView', () => {
     });
   });
 
+  it('shows the user who recorded a payment in the statement', async () => {
+    mockGetTransactions.mockResolvedValueOnce([
+      {
+        id: 'payment-1',
+        type: 'PAYMENT',
+        amount: 200,
+        date: '2024-01-02T10:00:00Z',
+        description: 'Tahsilat',
+        collectedBy: {
+          userId: 'user-2',
+          displayName: 'Ayşe Demir',
+          email: 'ayse@example.com'
+        }
+      }
+    ]);
+
+    renderComponent();
+
+    expect(await screen.findByText('Ayşe Demir')).toBeInTheDocument();
+    expect(screen.getByText('ayse@example.com')).toBeInTheDocument();
+  });
+
   it('opens payment modal when Tahsilat Al is clicked', async () => {
     renderComponent();
 

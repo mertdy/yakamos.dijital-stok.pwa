@@ -37,6 +37,13 @@ export interface Payment {
   companyId: string;
   amount: number;
   createdAt: string;
+  collectedBy: PaymentCollector;
+}
+
+export interface PaymentCollector {
+  userId: string;
+  displayName: string;
+  email: string | null;
 }
 
 export interface CustomerTransaction {
@@ -51,6 +58,7 @@ export interface CustomerTransaction {
   subtotal?: number;
   invoiceNumber?: string;
   status?: 'completed' | 'cancelled';
+  collectedBy?: PaymentCollector;
 }
 
 export interface StatementShareInput {
@@ -233,8 +241,16 @@ export const useCustomerStore = getSingletonStore('customers', () =>
 
     addPayment: async (customerId, amount) => {
       const profile = useAuthStore.getState().profile;
+      const membership = useAuthStore.getState().activeMembership;
       if (!profile?.activeCompanyId)
         throw new Error('No active company selected');
+
+      const canTakePayment =
+        membership?.role === 'OWNER' ||
+        membership?.permissions.includes('TAKE_PAYMENT');
+      if (!canTakePayment) {
+        throw new Error('Missing payment permission');
+      }
 
       const user = auth.currentUser;
       if (!user) {
@@ -246,6 +262,12 @@ export const useCustomerStore = getSingletonStore('customers', () =>
       try {
         const paymentId = crypto.randomUUID();
         const createdAt = new Date().toISOString();
+        const collectedBy: PaymentCollector = {
+          userId: user.uid,
+          displayName:
+            user.displayName?.trim() || user.email || 'Bilinmeyen Kullanıcı',
+          email: user.email ?? null
+        };
         const batch = writeBatch(db);
 
         const paymentRef = doc(collection(db, 'payments'), paymentId);
@@ -255,7 +277,8 @@ export const useCustomerStore = getSingletonStore('customers', () =>
           userId: user.uid,
           companyId: profile.activeCompanyId,
           amount,
-          createdAt
+          createdAt,
+          collectedBy
         });
 
         const customerRef = doc(db, 'customers', customerId);
@@ -341,7 +364,15 @@ export const useCustomerStore = getSingletonStore('customers', () =>
               type: 'PAYMENT',
               amount: data.amount || 0,
               date: data.createdAt,
-              description: 'Tahsilat'
+              description: 'Tahsilat',
+              collectedBy: data.collectedBy
+                ? {
+                    userId: data.collectedBy.userId || data.userId || '',
+                    displayName:
+                      data.collectedBy.displayName || 'Kullanıcı bilgisi yok',
+                    email: data.collectedBy.email || null
+                  }
+                : undefined
             };
           });
 

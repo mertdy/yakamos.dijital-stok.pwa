@@ -48,6 +48,7 @@ describe('useInventoryStore', () => {
     const state = store.getState();
     expect(state.items).toEqual([]);
     expect(state.isLoading).toBe(false);
+    expect(state.hasLoadedItems).toBe(false);
     expect(state.unsubscribeSnapshot).toBeNull();
   });
 

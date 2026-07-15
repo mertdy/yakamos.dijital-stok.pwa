@@ -8,6 +8,7 @@ export { CustomerListView } from './views/CustomerListView';
 export type {
   Customer,
   Payment,
+  PaymentCollector,
   CustomerTransaction,
   StatementShare,
   StatementShareInput

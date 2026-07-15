@@ -1,16 +1,25 @@
 import React from 'react';
 import { useSalesStore } from '../store/useSalesStore';
+import { useNavigate } from 'react-router-dom';
+import { useAuthStore } from '@/features/auth';
 import {
   Trash2,
   ShoppingBasket,
   Minus,
   Plus,
   Package,
-  ShoppingCart
+  ShoppingCart,
+  Pencil
 } from 'lucide-react';
+import { Button } from '@heroui/react';
 
 export const OrderDetailsPanel: React.FC = () => {
   const { cart, removeFromCart, updateQuantity, clearCart } = useSalesStore();
+  const { activeMembership } = useAuthStore();
+  const navigate = useNavigate();
+  const hasInventoryPermission =
+    activeMembership?.role === 'OWNER' ||
+    activeMembership?.permissions.includes('MANAGE_INVENTORY');
 
   return (
     <div className="flex h-full flex-col overflow-hidden rounded-[28px] border border-gray-100 bg-white shadow-sm">
@@ -78,6 +87,16 @@ export const OrderDetailsPanel: React.FC = () => {
                         <span className="truncate text-[11px] text-gray-500">
                           SKU: {item.barcode}
                         </span>
+                      )}
+                      {hasInventoryPermission && (
+                        <Button
+                          variant="ghost"
+                          className="text-primary hover:bg-primary/5 mt-0.5 -ml-1 h-6 w-fit gap-1 rounded-md px-2 text-xs font-medium"
+                          onPress={() =>
+                            navigate(`/inventory/edit/${item.inventoryId}`)
+                          }>
+                          <Pencil size={13} /> Ürünü düzenle
+                        </Button>
                       )}
                     </div>
                   </div>

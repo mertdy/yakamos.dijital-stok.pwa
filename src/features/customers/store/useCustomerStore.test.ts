@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { setDoc, updateDoc, getDocs } from 'firebase/firestore';
+import { setDoc, updateDoc, getDocs, writeBatch } from 'firebase/firestore';
 
 vi.mock('firebase/firestore', () => {
   const batchMock = {
@@ -24,7 +24,11 @@ vi.mock('firebase/firestore', () => {
 vi.mock('@/core/firebase/config', () => ({
   db: {},
   auth: {
-    currentUser: { uid: 'test-user-id' }
+    currentUser: {
+      uid: 'test-user-id',
+      displayName: 'Test Kullanıcısı',
+      email: 'test@example.com'
+    }
   }
 }));
 
@@ -93,6 +97,18 @@ describe('useCustomerStore', () => {
     const paymentId = await store.getState().addPayment('c1', 100);
 
     expect(paymentId).toBeDefined();
+    const batch = vi.mocked(writeBatch).mock.results[0]?.value;
+    expect(batch.set).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        userId: 'test-user-id',
+        collectedBy: {
+          userId: 'test-user-id',
+          displayName: 'Test Kullanıcısı',
+          email: 'test@example.com'
+        }
+      })
+    );
   });
 
   it('getCustomerTransactions fetches sales and payments and merges them', async () => {
@@ -125,7 +141,12 @@ describe('useCustomerStore', () => {
         id: 'p1',
         data: () => ({
           amount: 50,
-          createdAt: new Date().toISOString()
+          createdAt: new Date().toISOString(),
+          collectedBy: {
+            userId: 'collector-1',
+            displayName: 'Ayşe Demir',
+            email: 'ayse@example.com'
+          }
         })
       }
     ];
@@ -139,6 +160,11 @@ describe('useCustomerStore', () => {
 
     expect(txs.length).toBe(2);
     expect(txs[0].type).toBeDefined();
+    expect(txs.find(tx => tx.type === 'PAYMENT')?.collectedBy).toEqual({
+      userId: 'collector-1',
+      displayName: 'Ayşe Demir',
+      email: 'ayse@example.com'
+    });
     expect(getDocs).toHaveBeenCalledTimes(2);
   });
 

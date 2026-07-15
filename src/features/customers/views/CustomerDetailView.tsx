@@ -278,12 +278,13 @@ export const CustomerDetailView: React.FC = () => {
         </div>
 
         <div className="flex-1 overflow-x-auto p-2">
-          <table className="w-full min-w-[600px] border-collapse text-left">
+          <table className="w-full min-w-[720px] border-collapse text-left">
             <thead>
               <tr className="text-xs tracking-wider text-gray-400 uppercase">
                 <th className="px-6 py-4 font-semibold">Tarih</th>
                 <th className="px-6 py-4 font-semibold">İşlem Tipi</th>
                 <th className="px-6 py-4 font-semibold">Açıklama</th>
+                <th className="px-6 py-4 font-semibold">Tahsilatı Alan</th>
                 <th className="px-6 py-4 text-right font-semibold">Tutar</th>
               </tr>
             </thead>
@@ -291,7 +292,7 @@ export const CustomerDetailView: React.FC = () => {
               {isLoadingTx ? (
                 <tr>
                   <td
-                    colSpan={4}
+                    colSpan={5}
                     className="px-6 py-8 text-center text-gray-500">
                     <div className="flex animate-pulse flex-col items-center">
                       <div className="mb-4 h-8 w-8 rounded-full bg-gray-200"></div>
@@ -302,7 +303,7 @@ export const CustomerDetailView: React.FC = () => {
               ) : transactions.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={4}
+                    colSpan={5}
                     className="px-6 py-16 text-center text-gray-500">
                     <ReceiptText className="mx-auto mb-3 text-4xl opacity-20" />
                     <p>Henüz hesap hareketi bulunmuyor.</p>
@@ -351,6 +352,33 @@ export const CustomerDetailView: React.FC = () => {
                       <td className="px-6 py-4 text-sm text-gray-700">
                         {tx.description}
                       </td>
+                      <td className="px-6 py-4 text-sm">
+                        {tx.type === 'PAYMENT' ? (
+                          tx.collectedBy ? (
+                            <div className="flex min-w-[150px] items-center gap-2">
+                              <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-gray-100 text-gray-500">
+                                <User size={14} />
+                              </span>
+                              <span className="min-w-0">
+                                <span className="block truncate font-medium text-gray-700">
+                                  {tx.collectedBy.displayName}
+                                </span>
+                                {tx.collectedBy.email && (
+                                  <span className="block truncate text-xs text-gray-400">
+                                    {tx.collectedBy.email}
+                                  </span>
+                                )}
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="text-xs text-gray-400">
+                              Kullanıcı bilgisi yok
+                            </span>
+                          )
+                        ) : (
+                          <span className="text-gray-300">—</span>
+                        )}
+                      </td>
                       <td
                         className={clsx(
                           'px-6 py-4 text-right text-sm font-bold',
@@ -368,7 +396,7 @@ export const CustomerDetailView: React.FC = () => {
                     {/* Expanded Sale Details */}
                     {tx.type === 'SALE' && expandedTxId === tx.id && (
                       <tr className="border-b border-gray-100 bg-gray-50/50">
-                        <td colSpan={4} className="px-6 py-4">
+                        <td colSpan={5} className="px-6 py-4">
                           <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
                             <h4 className="mb-3 flex items-center gap-2 text-sm font-semibold text-gray-900">
                               <Package size={16} className="text-primary" />
