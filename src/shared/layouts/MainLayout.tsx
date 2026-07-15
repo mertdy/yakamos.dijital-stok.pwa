@@ -10,8 +10,8 @@ import {
   Users,
   User,
   LogOut,
-  ChevronLeft,
-  ChevronRight,
+  PanelLeftClose,
+  PanelLeftOpen,
   History,
   LayoutDashboard,
   Settings,
@@ -22,7 +22,15 @@ import {
   CheckCircle2
 } from 'lucide-react';
 import { useAuthStore } from '@/features/auth';
-import { Button, Dropdown, Header, Label, Modal, toast } from '@heroui/react';
+import {
+  Button,
+  Dropdown,
+  Header,
+  Label,
+  Modal,
+  toast,
+  Tooltip
+} from '@heroui/react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -59,9 +67,23 @@ export const MainLayout: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isSidebarHovered, setIsSidebarHovered] = useState(false);
   const [newCompanyModalOpen, setNewCompanyModalOpen] = useState(false);
   const [isCreatingCompany, setIsCreatingCompany] = useState(false);
   const [isSwitching, setIsSwitching] = useState(false);
+
+  const handleCollapsedSidebarClick = (
+    event: React.MouseEvent<HTMLElement>
+  ) => {
+    if (!isCollapsed) return;
+
+    const target = event.target as HTMLElement;
+    if (target.closest('button, a, input, select, textarea, [role="button"]')) {
+      return;
+    }
+
+    setIsCollapsed(false);
+  };
 
   const { control, handleSubmit, reset } = useForm<NewCompanyFormData>({
     resolver: zodResolver(newCompanySchema)
@@ -166,17 +188,13 @@ export const MainLayout: React.FC = () => {
     <div className="bg-background flex h-screen w-full flex-col overflow-hidden md:flex-row">
       {/* Desktop Sidebar */}
       <aside
+        onMouseEnter={() => setIsSidebarHovered(true)}
+        onMouseLeave={() => setIsSidebarHovered(false)}
+        onClick={handleCollapsedSidebarClick}
         className={clsx(
           'bg-background relative hidden flex-col border-r border-gray-200/50 transition-all duration-300 ease-in-out md:flex',
-          isCollapsed ? 'w-20 items-center' : 'w-64'
+          isCollapsed ? 'w-20 cursor-e-resize items-center' : 'w-64'
         )}>
-        {/* Toggle Button */}
-        <button
-          onClick={() => setIsCollapsed(!isCollapsed)}
-          className="hover:text-primary hover:border-primary absolute top-6 -right-3 z-50 rounded-full border border-gray-200 bg-white p-1 text-gray-500 shadow-sm transition-colors">
-          {isCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
-        </button>
-
         {/* Top Section: Header & Company Switcher */}
         <div
           className={clsx(
@@ -188,13 +206,47 @@ export const MainLayout: React.FC = () => {
               'flex w-full items-center justify-between gap-2',
               isCollapsed && 'flex-col justify-center'
             )}>
-            <h1 className="text-primary flex items-center gap-2 text-lg font-bold">
-              <Store className="flex-shrink-0 text-xl" />
-              {!isCollapsed && (
+            {!isCollapsed && (
+              <h1 className="text-primary flex items-center gap-2 text-lg font-bold">
+                <Store className="flex-shrink-0 text-xl" />
                 <span className="whitespace-nowrap">Dijital Stok</span>
-              )}
-            </h1>
-            <SyncIndicator iconOnly />
+              </h1>
+            )}
+
+            {isCollapsed && !isSidebarHovered ? (
+              <Store className="text-primary flex-shrink-0 text-xl" />
+            ) : (
+              <Tooltip delay={0} closeDelay={0}>
+                <Tooltip.Trigger>
+                  <button
+                    type="button"
+                    aria-label={
+                      isCollapsed
+                        ? 'Kenar çubuğunu genişlet'
+                        : 'Kenar çubuğunu daralt'
+                    }
+                    onClick={() => setIsCollapsed(!isCollapsed)}
+                    className={clsx(
+                      'flex h-9 w-9 items-center justify-center rounded-lg text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900',
+                      isCollapsed ? 'cursor-e-resize' : 'cursor-w-resize'
+                    )}>
+                    {isCollapsed ? (
+                      <PanelLeftOpen size={18} />
+                    ) : (
+                      <PanelLeftClose size={18} />
+                    )}
+                  </button>
+                </Tooltip.Trigger>
+                <Tooltip.Content showArrow>
+                  <Tooltip.Arrow />
+                  <span className="px-1 py-0.5 text-xs font-medium">
+                    {isCollapsed
+                      ? 'Kenar çubuğunu genişlet'
+                      : 'Kenar çubuğunu daralt'}
+                  </span>
+                </Tooltip.Content>
+              </Tooltip>
+            )}
           </div>
 
           {/* Company Switcher Dropdown */}
@@ -305,6 +357,9 @@ export const MainLayout: React.FC = () => {
             'flex w-full flex-col gap-3 border-t border-gray-100 p-4',
             isCollapsed && 'items-center px-2'
           )}>
+          <div className={clsx(isCollapsed && 'flex justify-center')}>
+            <SyncIndicator iconOnly={isCollapsed} />
+          </div>
           {user && (
             <div
               className={clsx(
