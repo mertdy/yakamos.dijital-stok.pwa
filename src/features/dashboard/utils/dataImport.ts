@@ -31,17 +31,167 @@ export const IMPORT_FIELDS = {
   ]
 } as const;
 
-const aliases: Record<string, string[]> = {
-  name: ['ürün adı', 'urun adi', 'ürün', 'urun', 'ad', 'isim', 'name'],
-  barcode: ['barkod', 'barcode'],
-  sku: ['sku', 'stok kodu', 'ürün kodu'],
-  stock: ['stok', 'adet', 'miktar', 'quantity'],
-  price: ['fiyat', 'birim fiyat', 'satış fiyatı', 'price'],
-  surname: ['soyad', 'soyisim', 'surname'],
-  phone: ['telefon', 'tel', 'phone'],
-  email: ['e-posta', 'eposta', 'email'],
-  creditLimit: ['kredi limiti', 'limit', 'credit limit']
+type ImportField = (typeof IMPORT_FIELDS)[ImportType][number][0];
+
+const fieldAliases: Record<ImportField, string[]> = {
+  name: [
+    'ürün adı',
+    'urun adi',
+    'ürün ismi',
+    'urun ismi',
+    'ürün',
+    'urun',
+    'ad',
+    'isim',
+    'name'
+  ],
+  barcode: [
+    'barkod',
+    'barkod no',
+    'barkod numarası',
+    'barkod numarasi',
+    'barkod kodu',
+    'ürün barkodu',
+    'urun barkodu',
+    'barcode',
+    'ean',
+    'gtin',
+    'upc'
+  ],
+  sku: [
+    'sku',
+    'stok kodu',
+    'ürün kodu',
+    'urun kodu',
+    'ürün no',
+    'urun no',
+    'ürün numarası',
+    'urun numarasi'
+  ],
+  stock: ['stok', 'stok adedi', 'mevcut stok', 'adet', 'miktar', 'quantity'],
+  price: [
+    'fiyat',
+    'birim fiyat',
+    'satış fiyatı',
+    'satis fiyati',
+    'liste fiyatı',
+    'liste fiyati',
+    'price'
+  ],
+  surname: ['soyad', 'soy isim', 'soyisim', 'surname', 'last name'],
+  phone: ['telefon', 'telefon no', 'telefon numarası', 'tel', 'phone'],
+  email: ['e-posta', 'eposta', 'email', 'e mail'],
+  creditLimit: ['kredi limiti', 'kredi limit', 'limit', 'credit limit']
 };
+
+const importFieldsByType: Record<ImportType, readonly ImportField[]> = {
+  inventory: ['name', 'barcode', 'sku', 'stock', 'price'],
+  customers: ['name', 'surname', 'phone', 'email', 'creditLimit']
+};
+
+const TURKISH_CHARACTER_MAP: Record<string, string> = {
+  ç: 'c',
+  ğ: 'g',
+  ı: 'i',
+  ö: 'o',
+  ş: 's',
+  ü: 'u'
+};
+
+const MATCH_SCORE_THRESHOLD = 78;
+
+/** Makes exported spreadsheet headers comparable across common Turkish formats. */
+export const normalizeImportHeader = (value: unknown) =>
+  String(value ?? '')
+    .trim()
+    .toLocaleLowerCase('tr-TR')
+    .replace(/[çğıöşü]/g, character => TURKISH_CHARACTER_MAP[character])
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim()
+    .replace(/\s+/g, ' ');
+
+const headerTokens = (header: string) =>
+  normalizeImportHeader(header).split(' ').filter(Boolean);
+
+const editDistance = (first: string, second: string) => {
+  const previous = Array.from(
+    { length: second.length + 1 },
+    (_, index) => index
+  );
+
+  for (let firstIndex = 1; firstIndex <= first.length; firstIndex++) {
+    let diagonal = previous[0];
+    previous[0] = firstIndex;
+
+    for (let secondIndex = 1; secondIndex <= second.length; secondIndex++) {
+      const above = previous[secondIndex];
+      previous[secondIndex] = Math.min(
+        previous[secondIndex] + 1,
+        previous[secondIndex - 1] + 1,
+        diagonal + (first[firstIndex - 1] === second[secondIndex - 1] ? 0 : 1)
+      );
+      diagonal = above;
+    }
+  }
+
+  return previous[second.length];
+};
+
+const similarityScore = (first: string, second: string) => {
+  const longestLength = Math.max(first.length, second.length);
+  if (longestLength < 5) return 0;
+
+  const similarity = 1 - editDistance(first, second) / longestLength;
+  if (similarity >= 0.92) return 86;
+  if (similarity >= 0.83) return 78;
+  return 0;
+};
+
+const getPriceTaxMatchScore = (headerTokens: Set<string>) => {
+  const isPriceHeader = headerTokens.has('fiyat') || headerTokens.has('price');
+  if (!isPriceHeader) return null;
+
+  const mentionsVat = headerTokens.has('kdv');
+  if (mentionsVat && headerTokens.has('dahil')) return 100;
+  if (mentionsVat && headerTokens.has('haric')) return 0;
+
+  return null;
+};
+
+const getHeaderMatchScore = (header: string, field: ImportField) => {
+  const normalizedHeader = normalizeImportHeader(header);
+  if (!normalizedHeader) return 0;
+
+  const normalizedHeaderTokens = new Set(headerTokens(header));
+  if (field === 'price') {
+    const priceTaxMatchScore = getPriceTaxMatchScore(normalizedHeaderTokens);
+    if (priceTaxMatchScore !== null) return priceTaxMatchScore;
+  }
+
+  return fieldAliases[field].reduce((highestScore, alias) => {
+    const normalizedAlias = normalizeImportHeader(alias);
+    if (normalizedHeader === normalizedAlias) return 100;
+
+    const aliasTokens = headerTokens(alias);
+    const containsAlias = aliasTokens.every(token =>
+      normalizedHeaderTokens.has(token)
+    );
+    if (containsAlias) {
+      const extraTokens = normalizedHeaderTokens.size - aliasTokens.length;
+      const tokenScore =
+        aliasTokens.length > 1
+          ? 92 - Math.min(extraTokens * 4, 12)
+          : 82 - Math.min(extraTokens * 4, 8);
+      return Math.max(highestScore, tokenScore);
+    }
+
+    return Math.max(
+      highestScore,
+      similarityScore(normalizedHeader, normalizedAlias)
+    );
+  }, 0);
+};
+
 const key = (value: unknown) =>
   String(value ?? '')
     .trim()
@@ -49,13 +199,40 @@ const key = (value: unknown) =>
 const numberValue = (value: unknown) =>
   Number(String(value ?? 0).replace(',', '.')) || 0;
 
-export const suggestMapping = (headers: string[], type: ImportType) =>
-  Object.fromEntries(
-    IMPORT_FIELDS[type].map(([field]) => [
-      field,
-      headers.find(header => aliases[field]?.includes(key(header))) || ''
-    ])
-  );
+export const suggestMapping = (headers: string[], type: ImportType) => {
+  const mapping = Object.fromEntries(
+    importFieldsByType[type].map(field => [field, ''])
+  ) as Record<string, string>;
+  const candidates = importFieldsByType[type]
+    .flatMap(field =>
+      headers.map((header, headerIndex) => ({
+        field,
+        header,
+        headerIndex,
+        score: getHeaderMatchScore(header, field)
+      }))
+    )
+    .filter(candidate => candidate.score >= MATCH_SCORE_THRESHOLD)
+    .sort(
+      (first, second) =>
+        second.score - first.score || first.headerIndex - second.headerIndex
+    );
+  const assignedHeaders = new Set<number>();
+
+  for (const candidate of candidates) {
+    if (
+      mapping[candidate.field] ||
+      assignedHeaders.has(candidate.headerIndex)
+    ) {
+      continue;
+    }
+
+    mapping[candidate.field] = candidate.header;
+    assignedHeaders.add(candidate.headerIndex);
+  }
+
+  return mapping;
+};
 
 export const parseImportFile = async (file: File) => {
   const XLSX = await import('xlsx');
