@@ -430,14 +430,32 @@ export const MainLayout: React.FC = () => {
               </h1>
             )}
 
-            {isCollapsed && !isSidebarHovered ? (
-              <div aria-label="Dijital Stok" role="img">
-                <BrandMark />
+            {isCollapsed ? (
+              <div className="relative h-9 w-9">
+                <div
+                  aria-hidden={isSidebarHovered}
+                  className={clsx(
+                    'absolute inset-0 transition-all duration-200 ease-out motion-reduce:transition-none',
+                    isSidebarHovered
+                      ? 'pointer-events-none -translate-y-1 scale-90 opacity-0'
+                      : 'translate-y-0 scale-100 opacity-100'
+                  )}>
+                  <div aria-label="Dijital Stok" role="img">
+                    <BrandMark />
+                  </div>
+                </div>
+                <div
+                  className={clsx(
+                    'absolute inset-0 transition-all duration-200 ease-out motion-reduce:transition-none',
+                    isSidebarHovered
+                      ? 'translate-y-0 scale-100 opacity-100'
+                      : 'pointer-events-none translate-y-1 scale-90 opacity-0'
+                  )}>
+                  <SidebarTooltip label="Kenar çubuğunu genişlet">
+                    {sidebarToggleButton}
+                  </SidebarTooltip>
+                </div>
               </div>
-            ) : isCollapsed ? (
-              <SidebarTooltip label="Kenar çubuğunu genişlet">
-                {sidebarToggleButton}
-              </SidebarTooltip>
             ) : (
               sidebarToggleButton
             )}
