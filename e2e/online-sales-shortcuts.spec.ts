@@ -106,6 +106,33 @@ test.describe('Company-specific quick-add shortcuts @online', () => {
     ).trim();
 
     await createCompany(page, secondCompanyName);
+
+    await page.evaluate(() => {
+      const companySwitcher = document.querySelector(
+        '[aria-label="İşletme Seç"]'
+      );
+      let wasLoading = false;
+      let loadingPeriods = 0;
+
+      const inspect = () => {
+        const isLoading =
+          companySwitcher?.textContent?.includes('Yükleniyor...');
+        if (isLoading && !wasLoading) loadingPeriods += 1;
+        wasLoading = Boolean(isLoading);
+        window.sessionStorage.setItem(
+          'e2e-company-switch-loading-periods',
+          String(loadingPeriods)
+        );
+      };
+
+      new MutationObserver(inspect).observe(document.body, {
+        childList: true,
+        subtree: true,
+        characterData: true
+      });
+      window.setInterval(inspect, 25);
+      inspect();
+    });
     await switchCompany(page, firstCompanyName);
 
     const companySwitcher = page.getByRole('button', {
@@ -114,6 +141,15 @@ test.describe('Company-specific quick-add shortcuts @online', () => {
     await expect(companySwitcher).toContainText(firstCompanyName);
     await page.waitForTimeout(500);
     await expect(companySwitcher).not.toContainText('Yükleniyor...');
+    await expect
+      .poll(() =>
+        page.evaluate(() =>
+          Number(
+            window.sessionStorage.getItem('e2e-company-switch-loading-periods')
+          )
+        )
+      )
+      .toBeLessThanOrEqual(1);
   });
 
   test('never shows the previous company shortcuts after switching companies', async ({
