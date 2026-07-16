@@ -16,7 +16,7 @@ test.describe('Inventory Flow', () => {
     await expect(page.getByText('Envanter Yönetimi')).toBeVisible();
 
     // 1. Create Product
-    await page.click('button:has-text("Yeni Ürün Ekle")');
+    await page.click('button:has-text("Yeni Ürün")');
     await expect(
       page.getByRole('heading', { name: 'Yeni Ürün Ekle' })
     ).toBeVisible();

@@ -14,7 +14,9 @@ import {
   useInventoryStore,
   type InventoryItem
 } from '../store/useInventoryStore';
-import { ScannerModal } from '@/features/sales';
+const ScannerModal = lazy(
+  () => import('@/features/sales/components/ScannerModal')
+);
 import { Button } from '@heroui/react';
 import { FormInput } from '@/shared/components/FormInput';
 import {
@@ -405,11 +407,13 @@ export const ProductFormView: React.FC = () => {
           </div>
         </form>
       </div>
-      <ScannerModal
-        isOpen={isScannerOpen}
-        onClose={() => setIsScannerOpen(false)}
-        onScan={handleScan}
-      />
+      <Suspense fallback={null}>
+        <ScannerModal
+          isOpen={isScannerOpen}
+          onClose={() => setIsScannerOpen(false)}
+          onScan={handleScan}
+        />
+      </Suspense>
       {isEditMode && isLabelPrintOpen && (
         <Suspense fallback={null}>
           <LabelPrintModal

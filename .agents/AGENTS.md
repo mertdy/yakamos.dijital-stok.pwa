@@ -77,6 +77,9 @@ Always:
 - Keep files cohesive.
 - Prefer composition.
 - Use existing project patterns.
+- Prefer route-based and component-level lazy loading (`React.lazy()`) for all new pages, views, and heavy modals (e.g. scanner modal, wizards). Define these lazy routes inside a dedicated `routes.ts` file under each feature directory (e.g., `src/features/[feature]/routes.ts`), keeping the main `index.ts` barrel file clean and reserved only for lightweight store/hook/utility exports to prevent bundle bloat and dairesel (circular) dependencies.
+- Register all new page/view dynamic imports in `src/core/config/prefetchRegistry.ts` (under `corePrefetches` or `secondaryPrefetches`) to maintain offline compatibility and progressive prefetching.
+- Remember that `pnpm postbuild` runs automatically after `pnpm build` (which executes `scripts/check-bundle-budget.js`). Do not run the budget verification script manually if a build has already completed successfully.
 
 ---
 

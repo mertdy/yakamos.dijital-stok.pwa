@@ -28,7 +28,7 @@ test.describe('Kritik Para Akışı (Money Flow)', () => {
     // we can search for a product we know exists or create one.
     // Let's go to inventory and add one product first to make sure it exists
     await page.goto('/inventory');
-    await page.click('button:has-text("Yeni Ürün Ekle")');
+    await page.click('button:has-text("Yeni Ürün")');
     const productName = `Flow Item ${Date.now()}`;
     await page.locator('input[name="name"]').fill(productName);
     await page.locator('input[name="stock"]').fill('10');

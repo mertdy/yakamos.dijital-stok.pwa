@@ -14,7 +14,7 @@ test.describe('Sales (POS) Flow', () => {
 
     // 2. Ensure we have at least one test product in the inventory
     await page.goto('/inventory');
-    await page.click('button:has-text("Yeni Ürün Ekle")');
+    await page.click('button:has-text("Yeni Ürün")');
     await page.locator('input[name="name"]').fill(productName);
     await page.locator('input[name="stock"]').fill('50');
     await page.locator('input[name="price"]').fill('20.00');
@@ -55,6 +55,9 @@ test.describe('Sales (POS) Flow', () => {
 
   test('should hold and restore a sale', async ({ page }) => {
     await page.goto('/sales');
+    await expect(
+      page.getByRole('heading', { name: 'Sipariş Detayları' })
+    ).toBeVisible();
 
     // Search and add product
     const searchInput = page.locator(

@@ -1,25 +1,26 @@
-import { useEffect } from 'react';
+import { useEffect, Suspense } from 'react';
+import { Spinner } from '@heroui/react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { MainLayout } from './shared/layouts/MainLayout';
-import { InventoryView, ProductFormView } from '@/features/inventory';
-import { SalesView } from '@/features/sales';
+import { InventoryView, ProductFormView } from '@/features/inventory/routes';
+import { SalesView } from '@/features/sales/routes';
+import { useAuthStore } from '@/features/auth';
 import {
   LoginView,
   OnboardingView,
-  AccountSettingsView,
-  useAuthStore
-} from '@/features/auth';
+  AccountSettingsView
+} from '@/features/auth/routes';
 import {
   CustomerListView,
   CustomerFormView,
   CustomerDetailView
-} from '@/features/customers';
-import { SalesHistoryView } from '@/features/sales-history';
+} from '@/features/customers/routes';
+import { SalesHistoryView } from '@/features/sales-history/routes';
 import {
   DashboardView,
   CompanySettingsView,
   PricingPlansView
-} from '@/features/dashboard';
+} from '@/features/dashboard/routes';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from './core/firebase/config';
 import { Loader2 } from 'lucide-react';
@@ -28,7 +29,10 @@ import { useInventoryStore } from '@/features/inventory';
 import { useCustomerStore } from '@/features/customers';
 import { useSalesHistoryStore } from '@/features/sales-history';
 
+import { usePWAUpdate } from './shared/hooks/usePWAUpdate';
+
 function App() {
+  usePWAUpdate();
   const { user, profile, activeMembership, isInitialized, isLoading, setUser } =
     useAuthStore();
 
@@ -70,112 +74,123 @@ function App() {
     activeMembership?.permissions.includes('MANAGE_CUSTOMERS');
 
   return (
-    <Routes>
-      {/* Public Route */}
-      <Route
-        path="/login"
-        element={!user ? <LoginView /> : <Navigate to="/" replace />}
-      />
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen flex-col items-center justify-center gap-3 bg-gray-50">
+          <Spinner size="lg" color="accent" />
+          <p className="text-sm font-medium text-gray-500">Yükleniyor...</p>
+        </div>
+      }>
+      <Routes>
+        {/* Public Route */}
+        <Route
+          path="/login"
+          element={!user ? <LoginView /> : <Navigate to="/" replace />}
+        />
 
-      {/* Onboarding Route */}
-      <Route
-        path="/onboarding"
-        element={
-          user ? (
-            !hasNoCompany ? (
-              <Navigate to="/" replace />
+        {/* Onboarding Route */}
+        <Route
+          path="/onboarding"
+          element={
+            user ? (
+              !hasNoCompany ? (
+                <Navigate to="/" replace />
+              ) : (
+                <OnboardingView />
+              )
             ) : (
-              <OnboardingView />
+              <Navigate to="/login" replace />
             )
-          ) : (
-            <Navigate to="/login" replace />
-          )
-        }
-      />
+          }
+        />
 
-      {/* Protected Routes */}
-      <Route
-        element={
-          user && !hasNoCompany ? (
-            <MainLayout />
-          ) : (
-            <Navigate to={user ? '/onboarding' : '/login'} replace />
-          )
-        }>
-        <Route path="/" element={<DashboardView />} />
-        <Route path="/sales" element={<SalesView />} />
-        <Route path="/sales-history" element={<SalesHistoryView />} />
+        {/* Protected Routes */}
         <Route
-          path="/company-settings"
           element={
-            activeMembership?.role === 'OWNER' ? (
-              <CompanySettingsView />
+            user && !hasNoCompany ? (
+              <MainLayout />
             ) : (
-              <Navigate to="/" replace />
+              <Navigate to={user ? '/onboarding' : '/login'} replace />
             )
-          }
-        />
-        <Route path="/account-settings" element={<AccountSettingsView />} />
-        <Route
-          path="/planlar-ve-fiyatlandirma"
-          element={<PricingPlansView />}
-        />
-        <Route path="/customers" element={<CustomerListView />} />
-        <Route
-          path="/customers/new"
-          element={
-            hasCustomerPermission ? (
-              <CustomerFormView />
-            ) : (
-              <Navigate to="/customers" replace />
-            )
-          }
-        />
-        <Route
-          path="/customers/edit/:id"
-          element={
-            hasCustomerPermission ? (
-              <CustomerFormView />
-            ) : (
-              <Navigate to="/customers" replace />
-            )
-          }
-        />
-        <Route path="/customers/details/:id" element={<CustomerDetailView />} />
-        <Route path="/inventory" element={<InventoryView />} />
-        <Route
-          path="/inventory/new"
-          element={
-            hasInventoryPermission ? (
-              <ProductFormView />
-            ) : (
-              <Navigate to="/inventory" replace />
-            )
-          }
-        />
-        <Route
-          path="/inventory/edit/:id"
-          element={
-            hasInventoryPermission ? (
-              <ProductFormView />
-            ) : (
-              <Navigate to="/inventory" replace />
-            )
-          }
-        />
-      </Route>
-
-      {/* Fallback */}
-      <Route
-        path="*"
-        element={
-          <Navigate
-            to={user ? (hasNoCompany ? '/onboarding' : '/') : '/login'}
-            replace
+          }>
+          <Route path="/" element={<DashboardView />} />
+          <Route path="/sales" element={<SalesView />} />
+          <Route path="/sales-history" element={<SalesHistoryView />} />
+          <Route
+            path="/company-settings"
+            element={
+              activeMembership?.role === 'OWNER' ? (
+                <CompanySettingsView />
+              ) : (
+                <Navigate to="/" replace />
+              )
+            }
           />
-        }
-      />
-    </Routes>
+          <Route path="/account-settings" element={<AccountSettingsView />} />
+          <Route
+            path="/planlar-ve-fiyatlandirma"
+            element={<PricingPlansView />}
+          />
+          <Route path="/customers" element={<CustomerListView />} />
+          <Route
+            path="/customers/new"
+            element={
+              hasCustomerPermission ? (
+                <CustomerFormView />
+              ) : (
+                <Navigate to="/customers" replace />
+              )
+            }
+          />
+          <Route
+            path="/customers/edit/:id"
+            element={
+              hasCustomerPermission ? (
+                <CustomerFormView />
+              ) : (
+                <Navigate to="/customers" replace />
+              )
+            }
+          />
+          <Route
+            path="/customers/details/:id"
+            element={<CustomerDetailView />}
+          />
+          <Route path="/inventory" element={<InventoryView />} />
+          <Route
+            path="/inventory/new"
+            element={
+              hasInventoryPermission ? (
+                <ProductFormView />
+              ) : (
+                <Navigate to="/inventory" replace />
+              )
+            }
+          />
+          <Route
+            path="/inventory/edit/:id"
+            element={
+              hasInventoryPermission ? (
+                <ProductFormView />
+              ) : (
+                <Navigate to="/inventory" replace />
+              )
+            }
+          />
+        </Route>
+
+        {/* Fallback */}
+        <Route
+          path="*"
+          element={
+            <Navigate
+              to={user ? (hasNoCompany ? '/onboarding' : '/') : '/login'}
+              replace
+            />
+          }
+        />
+      </Routes>
+    </Suspense>
   );
 }
 

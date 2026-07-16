@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, lazy, Suspense } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -41,8 +41,16 @@ import {
   Pencil
 } from 'lucide-react';
 import { Download } from 'lucide-react';
-import { DataExportWizard } from '../components/DataExportWizard';
-import { DataImportWizard } from '../components/DataImportWizard';
+const DataExportWizard = lazy(() =>
+  import('../components/DataExportWizard').then(module => ({
+    default: module.DataExportWizard
+  }))
+);
+const DataImportWizard = lazy(() =>
+  import('../components/DataImportWizard').then(module => ({
+    default: module.DataImportWizard
+  }))
+);
 import { useConfirm } from '@/shared/contexts/ConfirmDialogContext';
 import { FormInput } from '@/shared/components/FormInput';
 import { PhoneInput } from '@/shared/components/PhoneInput';
@@ -601,17 +609,19 @@ export const CompanySettingsView = () => {
         </SettingsCard>
       </div>
 
-      {activeCompany && (
-        <DataExportWizard
-          isOpen={isExportWizardOpen}
-          onClose={() => setIsExportWizardOpen(false)}
-          company={activeCompany}
+      <Suspense fallback={null}>
+        {activeCompany && (
+          <DataExportWizard
+            isOpen={isExportWizardOpen}
+            onClose={() => setIsExportWizardOpen(false)}
+            company={activeCompany}
+          />
+        )}
+        <DataImportWizard
+          isOpen={isImportWizardOpen}
+          onClose={() => setIsImportWizardOpen(false)}
         />
-      )}
-      <DataImportWizard
-        isOpen={isImportWizardOpen}
-        onClose={() => setIsImportWizardOpen(false)}
-      />
+      </Suspense>
 
       {/* Invite Modal */}
       <Modal
