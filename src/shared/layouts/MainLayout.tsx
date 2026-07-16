@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { Suspense, useState, useEffect } from 'react';
 import { clsx } from 'clsx';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { SyncIndicator } from '@/shared/components/SyncIndicator';
 import { PWAInstallButton } from '@/shared/components/PWAInstallButton';
+import { LazyRouteErrorBoundary } from '@/shared/components/LazyRouteErrorBoundary';
 import { useAppHotkeys } from '@/shared/hooks/useAppHotkeys';
 import { useSalesStore } from '@/features/sales';
 import { useConfirm } from '@/shared/contexts/ConfirmDialogContext';
@@ -718,7 +719,21 @@ export const MainLayout: React.FC = () => {
         </header>
 
         <div className="mx-auto h-full w-full max-w-7xl">
-          <Outlet />
+          <LazyRouteErrorBoundary>
+            <Suspense
+              fallback={
+                <div className="flex min-h-[400px] items-center justify-center">
+                  <div className="flex flex-col items-center gap-3 text-gray-500">
+                    <Loader2 className="text-primary h-8 w-8 animate-spin" />
+                    <span className="text-sm font-medium">
+                      Sayfa hazırlanıyor...
+                    </span>
+                  </div>
+                </div>
+              }>
+              <Outlet />
+            </Suspense>
+          </LazyRouteErrorBoundary>
         </div>
       </main>
 

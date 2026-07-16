@@ -44,6 +44,7 @@ import { useGlobalBarcodeScanner } from '@/shared/hooks/useGlobalBarcodeScanner'
 import { useConfirm } from '@/shared/contexts/ConfirmDialogContext';
 import { useAuthStore } from '@/features/auth';
 import { createInternalBarcode } from '../domain/labelPrinting';
+import { playBarcodeFeedback } from '@/shared/utils/barcodeFeedback';
 
 const LabelPrintModal = lazy(() =>
   import('./LabelPrintModal').then(module => ({
@@ -74,6 +75,7 @@ export const InventoryTable: React.FC<InventoryTableProps> = ({
         .getState()
         .items.find(i => String(i.barcode) === barcode);
       if (item) {
+        playBarcodeFeedback();
         setGlobalFilter(barcode);
         toast.success(`Ürün bulundu: ${item.name}`);
       } else {

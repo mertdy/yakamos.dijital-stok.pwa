@@ -27,8 +27,8 @@ test.describe('Authentication Flow', () => {
     await page.click('#login-submit-btn');
 
     // Verify Turkish error message is displayed
-    await expect(page.getByRole('alert')).toContainText(
-      'E-posta veya şifre hatalı.'
-    );
+    await expect(
+      page.getByRole('tabpanel', { name: 'Giriş Yap' }).getByRole('alert')
+    ).toContainText('E-posta veya şifre hatalı.');
   });
 });

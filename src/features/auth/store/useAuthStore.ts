@@ -94,6 +94,7 @@ interface AuthState {
   registerWithEmail: (email: string, password: string) => Promise<void>;
   updateDisplayName: (displayName: string) => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
+  skipOnboarding: () => Promise<void>;
   logout: () => Promise<void>;
 
   createCompany: (
@@ -209,6 +210,7 @@ const checkAndMigrateLegacyUser = async (user: User): Promise<UserProfile> => {
     email: user.email || '',
     name: user.displayName || user.email?.split('@')[0] || 'Kullanıcı',
     activeCompanyId,
+    onboardingStatus: activeCompanyId ? 'COMPLETED' : 'PENDING',
     createdAt: new Date().toISOString()
   };
 
@@ -317,6 +319,12 @@ export const useAuthStore = getSingletonStore('auth', () =>
               const subCompany = onSnapshot(
                 doc(db, 'companies', normalizedProfile.activeCompanyId),
                 companySnap => {
+                  if (
+                    get().profile?.activeCompanyId !==
+                    normalizedProfile.activeCompanyId
+                  ) {
+                    return;
+                  }
                   if (companySnap.exists()) {
                     set({ activeCompany: companySnap.data() as Company });
                   } else {
@@ -425,10 +433,8 @@ export const useAuthStore = getSingletonStore('auth', () =>
           context: 'login_with_google'
         });
         const code = (error as { code?: string }).code ?? '';
-        set({ authError: getAuthErrorMessage(code) });
+        set({ authError: getAuthErrorMessage(code), isLoading: false });
         throw error;
-      } finally {
-        set({ isLoading: false });
       }
     },
 
@@ -453,10 +459,8 @@ export const useAuthStore = getSingletonStore('auth', () =>
           context: 'login_with_email'
         });
         const code = (error as { code?: string }).code ?? '';
-        set({ authError: getAuthErrorMessage(code) });
+        set({ authError: getAuthErrorMessage(code), isLoading: false });
         throw error;
-      } finally {
-        set({ isLoading: false });
       }
     },
 
@@ -482,10 +486,8 @@ export const useAuthStore = getSingletonStore('auth', () =>
           context: 'register_with_email'
         });
         const code = (error as { code?: string }).code ?? '';
-        set({ authError: getAuthErrorMessage(code) });
+        set({ authError: getAuthErrorMessage(code), isLoading: false });
         throw error;
-      } finally {
-        set({ isLoading: false });
       }
     },
 
@@ -520,6 +522,23 @@ export const useAuthStore = getSingletonStore('auth', () =>
       } finally {
         set({ isLoading: false });
       }
+    },
+
+    skipOnboarding: async () => {
+      const { user, profile } = get();
+      if (!user || !profile) throw new Error('User not authenticated');
+      const onboardingSkippedAt = new Date().toISOString();
+      await updateDoc(doc(db, 'users', user.uid), {
+        onboardingStatus: 'SKIPPED',
+        onboardingSkippedAt
+      });
+      set({
+        profile: {
+          ...profile,
+          onboardingStatus: 'SKIPPED',
+          onboardingSkippedAt
+        }
+      });
     },
 
     logout: async () => {
@@ -583,7 +602,29 @@ export const useAuthStore = getSingletonStore('auth', () =>
       await setDoc(membershipRef, membershipData);
 
       const userRef = doc(db, 'users', user.uid);
-      await updateDoc(userRef, { activeCompanyId: companyId });
+      await updateDoc(userRef, {
+        activeCompanyId: companyId,
+        onboardingStatus: 'COMPLETED'
+      });
+
+      const profile = get().profile;
+      set({
+        profile: profile
+          ? {
+              ...profile,
+              activeCompanyId: companyId,
+              onboardingStatus: 'COMPLETED'
+            }
+          : profile,
+        activeMembership: membershipData,
+        activeCompany: companyData,
+        memberships: [
+          ...get().memberships.filter(
+            membership => membership.id !== membershipId
+          ),
+          membershipData
+        ]
+      });
 
       return companyId;
     },
@@ -593,7 +634,10 @@ export const useAuthStore = getSingletonStore('auth', () =>
       if (!user) throw new Error('User not authenticated');
 
       const userRef = doc(db, 'users', user.uid);
-      const updatePromise = updateDoc(userRef, { activeCompanyId: companyId });
+      const updatePromise = updateDoc(userRef, {
+        activeCompanyId: companyId,
+        onboardingStatus: 'COMPLETED'
+      });
 
       if (!navigator.onLine) {
         const [companySnap, profile] = await Promise.all([
@@ -624,6 +668,35 @@ export const useAuthStore = getSingletonStore('auth', () =>
       }
 
       await updatePromise;
+      const activeMembership = get().memberships.find(
+        membership => membership.companyId === companyId
+      );
+      const profile = get().profile;
+      if (profile && activeMembership) {
+        set({
+          profile: { ...profile, activeCompanyId: companyId },
+          activeMembership,
+          activeCompany: null
+        });
+
+        // Do not depend solely on the profile listener to populate the active
+        // company. During the first login that listener can still be catching
+        // up, which otherwise leaves the switcher at "Yükleniyor...".
+        try {
+          const companySnap = await getDoc(doc(db, 'companies', companyId));
+          if (
+            get().profile?.activeCompanyId === companyId &&
+            companySnap.exists()
+          ) {
+            set({ activeCompany: companySnap.data() as Company });
+          }
+        } catch (error) {
+          console.warn(
+            'Active company could not be loaded after switch',
+            error
+          );
+        }
+      }
     },
 
     updateCompanyProfile: async details => {
@@ -747,7 +820,29 @@ export const useAuthStore = getSingletonStore('auth', () =>
       await updateDoc(inviteRef, { status: 'ACCEPTED' });
 
       const userRef = doc(db, 'users', user.uid);
-      await updateDoc(userRef, { activeCompanyId: invite.companyId });
+      await updateDoc(userRef, {
+        activeCompanyId: invite.companyId,
+        onboardingStatus: 'COMPLETED'
+      });
+
+      const profile = get().profile;
+      set({
+        profile: profile
+          ? {
+              ...profile,
+              activeCompanyId: invite.companyId,
+              onboardingStatus: 'COMPLETED'
+            }
+          : profile,
+        activeMembership: membershipData,
+        activeCompany: null,
+        memberships: [
+          ...get().memberships.filter(
+            membership => membership.id !== membershipId
+          ),
+          membershipData
+        ]
+      });
     },
 
     declineInvitation: async invitationId => {

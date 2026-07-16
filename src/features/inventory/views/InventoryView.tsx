@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { InventoryTable } from '../components/InventoryTable';
 import { Plus } from 'lucide-react';
@@ -16,7 +16,7 @@ export const InventoryView: React.FC = () => {
   const hasInventoryPermission =
     isOwner || activeMembership?.permissions.includes('MANAGE_INVENTORY');
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     posthog.capture('inventory_viewed', {
       view_source: 'navigation'
     });

@@ -250,6 +250,14 @@ export const ProductFormView: React.FC = () => {
     setIsLabelPrintOpen(true);
   };
 
+  if (isEditMode && hasLoadedItems === false) {
+    return (
+      <div className="flex min-h-[400px] items-center justify-center">
+        <Loader2 className="text-primary h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-3xl space-y-6 p-4 md:p-8">
       <div className="flex items-center gap-4">

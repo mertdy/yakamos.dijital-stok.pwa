@@ -113,7 +113,7 @@ export const QuickAddEditModal: React.FC<Props> = ({ isOpen, onClose }) => {
     saveQuickAddItems,
     isLoading
   } = usePreferencesStore();
-  const { activeCompany } = useAuthStore();
+  const activeCompanyId = useAuthStore(state => state.profile?.activeCompanyId);
 
   // Local state for editing before saving
   const [localQuickAddItems, setLocalQuickAddItems] = useState<string[]>([]);
@@ -124,11 +124,11 @@ export const QuickAddEditModal: React.FC<Props> = ({ isOpen, onClose }) => {
   useEffect(() => {
     if (isOpen) {
       setLocalQuickAddItems(
-        quickAddCompanyId === activeCompany?.id ? [...savedItems] : []
+        quickAddCompanyId === activeCompanyId ? [...savedItems] : []
       );
       setSearchQuery('');
     }
-  }, [isOpen, savedItems, quickAddCompanyId, activeCompany?.id]);
+  }, [isOpen, savedItems, quickAddCompanyId, activeCompanyId]);
 
   const searchResults = useMemo(() => {
     if (!debouncedSearch.trim()) return items.slice(0, 50); // Default show 50 items

@@ -8,9 +8,9 @@ import {
   getDocs,
   doc,
   writeBatch,
-  getDoc,
   where,
-  increment
+  increment,
+  documentId
 } from 'firebase/firestore';
 import { db, auth } from '@/core/firebase/config';
 import { useAuthStore } from '@/features/auth/store/useAuthStore';
@@ -21,18 +21,22 @@ import posthog from 'posthog-js';
 export interface SaleTransaction {
   id: string;
   userId: string;
+  /** Satış anındaki çalışanın görünen adı. Eski kayıtlar için üyelikten tamamlanır. */
+  sellerName?: string;
   companyId: string;
   invoiceNumber: string;
   customerId: string | null;
   subtotal: number;
   discount: number;
-  discountType?: 'percentage' | 'fixed';
+  discountType?: 'percentage' | 'amount' | 'fixed';
   discountValue?: number;
   totalAmount: number;
   paymentMethod: string;
   cart: CartItem[];
   createdAt: string;
   status?: 'completed' | 'cancelled';
+  syncStatus?: 'pending' | 'synced' | 'failed';
+  pendingBackupCount?: number;
 }
 
 export interface SalesHistoryFilter {
@@ -54,6 +58,13 @@ interface SalesHistoryState {
   filters: SalesHistoryFilter;
 
   fetchSales: (options?: { force?: boolean }) => Promise<void>;
+  recordSale: (sale: SaleTransaction) => void;
+  updateSaleSyncStatus: (
+    saleId: string,
+    syncStatus: NonNullable<SaleTransaction['syncStatus']>
+  ) => void;
+  confirmSaleBackup: (saleId: string) => void;
+  failSaleBackup: (saleId: string) => void;
   setFilters: (filters: Partial<SalesHistoryFilter>) => void;
   clearFilters: () => void;
   cancelSale: (saleId: string) => Promise<boolean>;
@@ -123,6 +134,77 @@ export const useSalesHistoryStore = getSingletonStore('sales-history', () =>
     loadingCompanyId: null,
     filters: {},
 
+    recordSale: sale => {
+      set(state => {
+        // A checkout can finish while the user is on another screen. Keep the
+        // active company's history in sync locally so navigating to history
+        // never depends on a new Firestore read or an online connection.
+        if (
+          state.loadedCompanyId !== null &&
+          state.loadedCompanyId !== sale.companyId
+        ) {
+          return state;
+        }
+
+        const rawSales = [
+          {
+            ...sale,
+            pendingBackupCount:
+              sale.syncStatus === 'pending' ? (sale.pendingBackupCount ?? 1) : 0
+          },
+          ...state.rawSales.filter(existingSale => existingSale.id !== sale.id)
+        ].sort(
+          (firstSale, secondSale) =>
+            new Date(secondSale.createdAt).getTime() -
+            new Date(firstSale.createdAt).getTime()
+        );
+
+        return { rawSales, sales: filterSales(rawSales, state.filters) };
+      });
+    },
+
+    updateSaleSyncStatus: (saleId, syncStatus) => {
+      set(state => {
+        const rawSales = state.rawSales.map(sale =>
+          sale.id === saleId ? { ...sale, syncStatus } : sale
+        );
+        return { rawSales, sales: filterSales(rawSales, state.filters) };
+      });
+    },
+
+    confirmSaleBackup: saleId => {
+      set(state => {
+        const rawSales = state.rawSales.map(sale => {
+          if (sale.id !== saleId || sale.syncStatus === 'failed') return sale;
+
+          const pendingBackupCount = Math.max(
+            0,
+            (sale.pendingBackupCount ?? 1) - 1
+          );
+          return {
+            ...sale,
+            pendingBackupCount,
+            syncStatus:
+              pendingBackupCount > 0
+                ? ('pending' as const)
+                : ('synced' as const)
+          };
+        });
+        return { rawSales, sales: filterSales(rawSales, state.filters) };
+      });
+    },
+
+    failSaleBackup: saleId => {
+      set(state => {
+        const rawSales = state.rawSales.map(sale =>
+          sale.id === saleId
+            ? { ...sale, pendingBackupCount: 0, syncStatus: 'failed' as const }
+            : sale
+        );
+        return { rawSales, sales: filterSales(rawSales, state.filters) };
+      });
+    },
+
     setFilters: newFilters => {
       const filters = { ...get().filters, ...newFilters };
       set({ filters, sales: filterSales(get().rawSales, filters) });
@@ -170,7 +252,9 @@ export const useSalesHistoryStore = getSingletonStore('sales-history', () =>
           const snapshot = await getDocs(q);
           let fetchedSales = snapshot.docs.map(doc => ({
             id: doc.id,
-            ...doc.data()
+            ...doc.data(),
+            syncStatus: doc.metadata?.hasPendingWrites ? 'pending' : 'synced',
+            pendingBackupCount: doc.metadata?.hasPendingWrites ? 1 : 0
           })) as SaleTransaction[];
 
           const isOwner = activeMembership?.role === 'OWNER';
@@ -180,6 +264,95 @@ export const useSalesHistoryStore = getSingletonStore('sales-history', () =>
             !activeMembership.permissions.includes('VIEW_SALES_HISTORY')
           ) {
             fetchedSales = fetchedSales.filter(s => s.userId === user.uid);
+          }
+
+          // New sales carry this value directly so they stay useful offline.
+          // Enrich older records from company memberships without making a
+          // missing offline cache entry prevent the sales list from rendering.
+          if (fetchedSales.some(sale => !sale.sellerName)) {
+            try {
+              const membershipsSnapshot = await getDocs(
+                query(
+                  collection(db, 'memberships'),
+                  where('companyId', '==', companyId)
+                )
+              );
+              const sellerDetails = new Map(
+                membershipsSnapshot.docs.flatMap(membership => {
+                  const data = membership.data() as {
+                    userId?: string;
+                    employeeName?: string;
+                    email?: string;
+                  };
+                  return data.userId
+                    ? [
+                        [
+                          data.userId,
+                          {
+                            employeeName: data.employeeName?.trim(),
+                            email: data.email?.trim()
+                          }
+                        ] as const
+                      ]
+                    : [];
+                })
+              );
+              const currentUserName =
+                activeMembership?.employeeName?.trim() ||
+                profile.name?.trim() ||
+                user.displayName?.trim() ||
+                user.email?.split('@')[0];
+              const userIdsMissingName = [
+                ...new Set(
+                  fetchedSales
+                    .filter(
+                      sale =>
+                        !sale.sellerName &&
+                        !sellerDetails.get(sale.userId)?.employeeName &&
+                        sale.userId !== user.uid
+                    )
+                    .map(sale => sale.userId)
+                )
+              ];
+              const profileNames = new Map<string, string>();
+
+              // Firestore permits at most 30 values in an `in` filter. Only
+              // profiles without a membership name are requested, in chunks.
+              for (
+                let index = 0;
+                index < userIdsMissingName.length;
+                index += 30
+              ) {
+                const userIds = userIdsMissingName.slice(index, index + 30);
+                const profilesSnapshot = await getDocs(
+                  query(
+                    collection(db, 'users'),
+                    where(documentId(), 'in', userIds)
+                  )
+                );
+                profilesSnapshot.docs.forEach(profileDoc => {
+                  const profileData = profileDoc.data() as { name?: string };
+                  const name = profileData.name?.trim();
+                  if (name) profileNames.set(profileDoc.id, name);
+                });
+              }
+
+              fetchedSales = fetchedSales.map(sale => ({
+                ...sale,
+                sellerName:
+                  sale.sellerName ||
+                  sellerDetails.get(sale.userId)?.employeeName ||
+                  profileNames.get(sale.userId) ||
+                  (sale.userId === user.uid ? currentUserName : undefined) ||
+                  sellerDetails.get(sale.userId)?.email ||
+                  'Bilinmeyen çalışan'
+              }));
+            } catch (error) {
+              console.warn(
+                'Could not resolve salespeople for legacy sales',
+                error
+              );
+            }
           }
 
           const isStillCurrent =
@@ -234,14 +407,11 @@ export const useSalesHistoryStore = getSingletonStore('sales-history', () =>
         const saleRef = doc(db, 'sales', saleId);
         batch.update(saleRef, { status: 'cancelled' });
 
-        // 2. Restore inventory stock
+        // 2. Restore inventory stock. An increment can be queued locally, so
+        // cancelling a sale never needs a network-dependent inventory read.
         for (const item of sale.cart) {
           const productRef = doc(db, 'inventory', item.inventoryId);
-          const productSnap = await getDoc(productRef);
-          if (productSnap.exists()) {
-            const currentStock = productSnap.data().stock || 0;
-            batch.update(productRef, { stock: currentStock + item.quantity });
-          }
+          batch.update(productRef, { stock: increment(item.quantity) });
         }
 
         // 3. Revert customer debt if it was a credit sale
@@ -252,7 +422,7 @@ export const useSalesHistoryStore = getSingletonStore('sales-history', () =>
           });
         }
 
-        await batch.commit();
+        const backupPromise = batch.commit();
 
         posthog.capture('sale_cancelled', {
           sale_id: saleId,
@@ -266,13 +436,34 @@ export const useSalesHistoryStore = getSingletonStore('sales-history', () =>
         set(state => {
           const rawSales = state.rawSales.map(sale =>
             sale.id === saleId
-              ? { ...sale, status: 'cancelled' as const }
+              ? {
+                  ...sale,
+                  status: 'cancelled' as const,
+                  syncStatus: 'pending' as const,
+                  pendingBackupCount:
+                    (sale.pendingBackupCount ??
+                      (sale.syncStatus === 'pending' ? 1 : 0)) + 1
+                }
               : sale
           );
           return { rawSales, sales: filterSales(rawSales, state.filters) };
         });
 
-        toast.success('Satış başarıyla iptal edildi ve stoklar güncellendi');
+        void backupPromise
+          .then(() => {
+            get().confirmSaleBackup(saleId);
+          })
+          .catch(error => {
+            console.error('Sale cancellation backup failed:', error);
+            get().failSaleBackup(saleId);
+            posthog.captureException(error, {
+              context: 'sale_cancel_backup',
+              sale_id: saleId
+            });
+            toast.danger('Satış iptali yedeklenemedi');
+          });
+
+        toast.success('Satış iptal edildi, yedekleme bekliyor');
         return true;
       } catch (error: any) {
         console.error('Cancel sale error:', error);

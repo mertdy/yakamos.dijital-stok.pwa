@@ -8,7 +8,7 @@ import {
   signInWithPopup,
   signOut
 } from 'firebase/auth';
-import { getDocs, updateDoc, writeBatch } from 'firebase/firestore';
+import { getDoc, getDocs, updateDoc, writeBatch } from 'firebase/firestore';
 import {
   getAuthErrorMessage,
   getAvailableActiveCompanyId
@@ -217,7 +217,7 @@ describe('useAuthStore', () => {
       'test@example.com',
       'password123'
     );
-    expect(store.getState().isLoading).toBe(false);
+    expect(store.getState().isLoading).toBe(true);
     expect(store.getState().authError).toBeNull();
   });
 
@@ -249,7 +249,7 @@ describe('useAuthStore', () => {
       'password123'
     );
     expect(sendEmailVerification).toHaveBeenCalledWith(fakeUser);
-    expect(store.getState().isLoading).toBe(false);
+    expect(store.getState().isLoading).toBe(true);
     expect(store.getState().authError).toBeNull();
   });
 
@@ -314,6 +314,36 @@ describe('useAuthStore', () => {
     expect(batch.commit).toHaveBeenCalledOnce();
   });
 
+  it('loads the selected company immediately after an online company switch', async () => {
+    vi.mocked(getDoc).mockResolvedValueOnce({
+      exists: () => true,
+      data: () => ({ id: 'company-b', name: 'İkinci İşletme' })
+    } as never);
+
+    const store = await buildStore();
+    store.setState({
+      user: { uid: 'user-1' } as never,
+      profile: {
+        id: 'user-1',
+        activeCompanyId: 'company-a'
+      } as never,
+      memberships: [
+        { companyId: 'company-a', companyName: 'İlk İşletme' },
+        { companyId: 'company-b', companyName: 'İkinci İşletme' }
+      ] as never,
+      activeCompany: null
+    });
+
+    await store.getState().switchCompany('company-b');
+
+    expect(store.getState().profile?.activeCompanyId).toBe('company-b');
+    expect(store.getState().activeCompany).toEqual({
+      id: 'company-b',
+      name: 'İkinci İşletme'
+    });
+    expect(getDoc).toHaveBeenCalled();
+  });
+
   // ── resetPassword ────────────────────────────────────────────────────────
 
   it('resetPassword calls sendPasswordResetEmail', async () => {
@@ -351,7 +381,7 @@ describe('useAuthStore', () => {
     const store = await buildStore();
     await store.getState().loginWithGoogle();
     expect(signInWithPopup).toHaveBeenCalledWith({}, {});
-    expect(store.getState().isLoading).toBe(false);
+    expect(store.getState().isLoading).toBe(true);
   });
 
   it('loginWithGoogle sets authError and re-throws on failure', async () => {

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { Button, Card, toast } from '@heroui/react';
+import { Badge, Button, Card, Tabs, toast } from '@heroui/react';
 import { useAuthStore } from '../store/useAuthStore';
 import { db } from '@/core/firebase/config';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
@@ -141,129 +141,172 @@ export const OnboardingView = () => {
           </p>
         </div>
 
-        {/* Invitations List Section */}
-        {!isCheckingInvites && invitations.length > 0 && (
-          <div className="space-y-4">
-            <h3 className="flex items-center gap-2 text-lg font-bold text-gray-800">
-              <Building2 size={20} className="text-primary" /> Bekleyen İşletme
-              Davetiyeleri
-            </h3>
-            {invitations.map(invite => (
-              <Card
-                key={invite.id}
-                className="border-primary/20 bg-primary/5 flex flex-col gap-4 rounded-2xl border p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <h4 className="text-base font-bold text-gray-900">
-                    {invite.companyName}
-                  </h4>
-                  <p className="mt-0.5 text-xs text-gray-500">
-                    Bu işletmede çalışan (Employee) olarak görev yapmaya davet
-                    edildiniz.
-                  </p>
-                  <div className="mt-2 flex flex-wrap gap-1.5">
-                    {invite.permissions.map(perm => (
-                      <span
-                        key={perm}
-                        className="inline-flex rounded border border-gray-100 bg-white px-2 py-0.5 text-[10px] font-semibold text-gray-600 shadow-sm">
-                        {perm === 'VIEW_DASHBOARD' && 'Dashboard Görünümü'}
-                        {perm === 'MANAGE_INVENTORY' && 'Envanter Yönetimi'}
-                        {perm === 'MANAGE_CUSTOMERS' && 'Müşteri Yönetimi'}
-                        {perm === 'TAKE_PAYMENT' && 'Ödeme Alıcı'}
-                        {perm === 'VIEW_SALES_HISTORY' && 'Satış Geçmişi'}
-                        {perm === 'MANAGE_SALES_HISTORY' && 'Satış İptali'}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-                <div className="flex gap-2 self-end sm:self-center">
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="text-danger hover:bg-danger/10"
-                    isDisabled={actionInviteId !== null}
-                    onPress={() => handleDeclineInvite(invite.id)}>
-                    {actionInviteId === invite.id ? (
-                      <Loader2 size={16} className="animate-spin" />
-                    ) : (
-                      <XCircle size={16} className="mr-1.5" />
-                    )}
-                    Reddet
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="primary"
-                    isDisabled={actionInviteId !== null}
-                    onPress={() => handleAcceptInvite(invite.id)}>
-                    {actionInviteId === invite.id ? (
-                      <Loader2 size={16} className="animate-spin" />
-                    ) : (
-                      <CheckCircle2 size={16} className="mr-1.5" />
-                    )}
-                    Kabul Et
-                  </Button>
-                </div>
+        <Tabs className="w-full">
+          <Tabs.ListContainer>
+            <Tabs.List aria-label="Başlangıç seçenekleri" className="w-full">
+              <Tabs.Tab id="setup" className="flex-1 justify-center">
+                İşletme Kur
+                <Tabs.Indicator />
+              </Tabs.Tab>
+              <Tabs.Tab id="invitations" className="flex-1 justify-center">
+                <Badge.Anchor>
+                  <span>Davetler</span>
+                  {invitations.length > 0 && (
+                    <Badge color="danger" variant="primary" size="sm">
+                      {invitations.length}
+                    </Badge>
+                  )}
+                </Badge.Anchor>
+                <Tabs.Indicator />
+              </Tabs.Tab>
+            </Tabs.List>
+          </Tabs.ListContainer>
+
+          <Tabs.Panel id="invitations" className="min-h-[466px] pt-6">
+            {!isCheckingInvites && invitations.length > 0 && (
+              <div className="space-y-4">
+                <h3 className="flex items-center gap-2 text-lg font-bold text-gray-800">
+                  <Building2 size={20} className="text-primary" /> Bekleyen
+                  İşletme Davetiyeleri
+                </h3>
+                {invitations.map(invite => (
+                  <Card
+                    key={invite.id}
+                    className="border-primary/20 bg-primary/5 flex flex-col gap-4 rounded-2xl border p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <h4 className="text-base font-bold text-gray-900">
+                        {invite.companyName}
+                      </h4>
+                      <p className="mt-0.5 text-xs text-gray-500">
+                        Bu işletmede çalışan (Employee) olarak görev yapmaya
+                        davet edildiniz.
+                      </p>
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        {invite.permissions.map(perm => (
+                          <span
+                            key={perm}
+                            className="inline-flex rounded border border-gray-100 bg-white px-2 py-0.5 text-[10px] font-semibold text-gray-600 shadow-sm">
+                            {perm === 'VIEW_DASHBOARD' && 'Dashboard Görünümü'}
+                            {perm === 'MANAGE_INVENTORY' && 'Envanter Yönetimi'}
+                            {perm === 'MANAGE_CUSTOMERS' && 'Müşteri Yönetimi'}
+                            {perm === 'TAKE_PAYMENT' && 'Ödeme Alıcı'}
+                            {perm === 'VIEW_SALES_HISTORY' && 'Satış Geçmişi'}
+                            {perm === 'MANAGE_SALES_HISTORY' && 'Satış İptali'}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="flex gap-2 self-end sm:self-center">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="text-danger hover:bg-danger/10"
+                        isDisabled={actionInviteId !== null}
+                        onPress={() => handleDeclineInvite(invite.id)}>
+                        {actionInviteId === invite.id ? (
+                          <Loader2 size={16} className="animate-spin" />
+                        ) : (
+                          <XCircle size={16} className="mr-1.5" />
+                        )}
+                        Reddet
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="primary"
+                        isDisabled={actionInviteId !== null}
+                        onPress={() => handleAcceptInvite(invite.id)}>
+                        {actionInviteId === invite.id ? (
+                          <Loader2 size={16} className="animate-spin" />
+                        ) : (
+                          <CheckCircle2 size={16} className="mr-1.5" />
+                        )}
+                        Kabul Et
+                      </Button>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            )}
+            {!isCheckingInvites && invitations.length === 0 && (
+              <Card className="rounded-3xl border border-gray-100 bg-white p-10 text-center shadow-sm">
+                <Building2 className="mx-auto mb-3 text-gray-300" size={32} />
+                <h3 className="font-bold text-gray-900">
+                  Bekleyen davetiniz yok
+                </h3>
+                <p className="mt-2 text-sm text-gray-500">
+                  Bir işletme sahibi sizi davet ettiğinde bu alanda görünecek.
+                </p>
               </Card>
-            ))}
-          </div>
-        )}
+            )}
+            {isCheckingInvites && (
+              <Card className="rounded-3xl border border-gray-100 bg-white p-10 text-center shadow-sm">
+                <Loader2
+                  className="text-primary mx-auto animate-spin"
+                  size={28}
+                />
+              </Card>
+            )}
+          </Tabs.Panel>
 
-        {/* Create Company Form */}
-        <Card className="rounded-3xl border border-gray-100 bg-white p-8 shadow-xl">
-          <h3 className="mb-6 flex items-center gap-2 text-xl font-bold text-gray-900">
-            <Plus size={22} className="text-primary" /> Yeni Bir İşletme Kur
-          </h3>
-          <form
-            onSubmit={handleSubmit(handleCreateCompany)}
-            className="space-y-5">
-            <FormInput
-              control={control}
-              name="name"
-              label="İşletme Adı"
-              isRequired
-              type="text"
-              placeholder="Örn: Yakamos Süpermarket"
-            />
+          <Tabs.Panel id="setup" className="min-h-[466px] pt-6">
+            <Card className="rounded-3xl border border-gray-100 bg-white p-8 shadow-xl">
+              <h3 className="mb-6 flex items-center gap-2 text-xl font-bold text-gray-900">
+                <Plus size={22} className="text-primary" /> Yeni Bir İşletme Kur
+              </h3>
+              <form
+                onSubmit={handleSubmit(handleCreateCompany)}
+                className="space-y-5">
+                <FormInput
+                  control={control}
+                  name="name"
+                  label="İşletme Adı"
+                  isRequired
+                  type="text"
+                  placeholder="Örn: Yakamos Süpermarket"
+                />
 
-            <FormInput
-              control={control}
-              name="receiptHeader"
-              label="Fiş Başlığı (Opsiyonel)"
-              type="text"
-              placeholder="Örn: YAKAMOS GIDA LTD. ŞTİ."
-            />
+                <FormInput
+                  control={control}
+                  name="receiptHeader"
+                  label="Fiş Başlığı (Opsiyonel)"
+                  type="text"
+                  placeholder="Örn: YAKAMOS GIDA LTD. ŞTİ."
+                />
 
-            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-              <PhoneInput
-                control={control}
-                name="phone"
-                label="Telefon (Opsiyonel)"
-                placeholder="555 555 55 55"
-              />
+                <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+                  <PhoneInput
+                    control={control}
+                    name="phone"
+                    label="Telefon (Opsiyonel)"
+                    placeholder="555 555 55 55"
+                  />
 
-              <FormInput
-                control={control}
-                name="address"
-                label="Adres (Opsiyonel)"
-                type="text"
-                placeholder="Örn: Kadıköy, İstanbul"
-              />
-            </div>
+                  <FormInput
+                    control={control}
+                    name="address"
+                    label="Adres (Opsiyonel)"
+                    type="text"
+                    placeholder="Örn: Kadıköy, İstanbul"
+                  />
+                </div>
 
-            <div className="pt-4">
-              <Button
-                type="submit"
-                variant="primary"
-                className="h-12 w-full rounded-xl text-sm font-bold"
-                isDisabled={isSubmitting}>
-                {isSubmitting ? (
-                  <Loader2 className="mr-2 animate-spin" size={20} />
-                ) : (
-                  'Kurulumu Tamamla'
-                )}
-              </Button>
-            </div>
-          </form>
-        </Card>
+                <div className="pt-4">
+                  <Button
+                    type="submit"
+                    variant="primary"
+                    className="h-12 w-full rounded-xl text-sm font-bold"
+                    isDisabled={isSubmitting}>
+                    {isSubmitting ? (
+                      <Loader2 className="mr-2 animate-spin" size={20} />
+                    ) : (
+                      'Kurulumu Tamamla'
+                    )}
+                  </Button>
+                </div>
+              </form>
+            </Card>
+          </Tabs.Panel>
+        </Tabs>
       </div>
     </div>
   );

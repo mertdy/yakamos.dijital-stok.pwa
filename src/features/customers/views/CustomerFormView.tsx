@@ -33,7 +33,8 @@ export const CustomerFormView: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const isEditMode = Boolean(id);
 
-  const { customers, addCustomer, updateCustomer } = useCustomerStore();
+  const { customers, addCustomer, updateCustomer, hasLoadedCustomers } =
+    useCustomerStore();
   const { setCustomerId } = useSalesStore();
   const navigate = useNavigate();
 
@@ -118,6 +119,14 @@ export const CustomerFormView: React.FC = () => {
       setIsSaving(false);
     }
   };
+
+  if (isEditMode && hasLoadedCustomers === false) {
+    return (
+      <div className="flex min-h-[400px] items-center justify-center">
+        <Loader2 className="text-primary h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-3xl space-y-6 p-4 md:p-8">

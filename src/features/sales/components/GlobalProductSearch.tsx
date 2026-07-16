@@ -7,6 +7,7 @@ import { useGlobalBarcodeScanner } from '@/shared/hooks/useGlobalBarcodeScanner'
 import { useNavigate } from 'react-router-dom';
 import { Input, toast } from '@heroui/react';
 import posthog from 'posthog-js';
+import { playBarcodeFeedback } from '@/shared/utils/barcodeFeedback';
 
 interface Props {
   onOpenScanner: () => void;
@@ -57,6 +58,7 @@ export const GlobalProductSearch: React.FC<Props> = ({ onOpenScanner }) => {
 
         if (item) {
           handleSelectProduct(item);
+          playBarcodeFeedback();
           toast.success(`${item.name} sepete eklendi`);
         } else {
           setIsFocused(false);

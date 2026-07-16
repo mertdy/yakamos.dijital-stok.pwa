@@ -30,6 +30,7 @@ import { useCustomerStore } from '@/features/customers';
 import { useSalesHistoryStore } from '@/features/sales-history';
 
 import { usePWAUpdate } from './shared/hooks/usePWAUpdate';
+import { LazyRouteErrorBoundary } from './shared/components/LazyRouteErrorBoundary';
 
 function App() {
   usePWAUpdate();
@@ -73,6 +74,7 @@ function App() {
   }
 
   const hasNoCompany = user && (!profile || !profile.activeCompanyId);
+  const noCompanyRoute = '/onboarding';
   const isOwner = activeMembership?.role === 'OWNER';
   const isEmployee = activeMembership?.role === 'EMPLOYEE';
   const hasInventoryPermission =
@@ -96,7 +98,15 @@ function App() {
         {/* Public Route */}
         <Route
           path="/login"
-          element={!user ? <LoginView /> : <Navigate to="/" replace />}
+          element={
+            !user ? (
+              <LazyRouteErrorBoundary>
+                <LoginView />
+              </LazyRouteErrorBoundary>
+            ) : (
+              <Navigate to="/" replace />
+            )
+          }
         />
 
         {/* Onboarding Route */}
@@ -107,10 +117,31 @@ function App() {
               !hasNoCompany ? (
                 <Navigate to="/" replace />
               ) : (
-                <OnboardingView />
+                <LazyRouteErrorBoundary>
+                  <OnboardingView />
+                </LazyRouteErrorBoundary>
               )
             ) : (
               <Navigate to="/login" replace />
+            )
+          }
+        />
+        <Route
+          path="/welcome"
+          element={<Navigate to={user ? noCompanyRoute : '/login'} replace />}
+        />
+        <Route
+          path="/account-settings"
+          element={
+            user && hasNoCompany ? (
+              <LazyRouteErrorBoundary>
+                <AccountSettingsView />
+              </LazyRouteErrorBoundary>
+            ) : (
+              <Navigate
+                to={user ? '/account-settings/app' : '/login'}
+                replace
+              />
             )
           }
         />
@@ -121,7 +152,7 @@ function App() {
             user && !hasNoCompany ? (
               <MainLayout />
             ) : (
-              <Navigate to={user ? '/onboarding' : '/login'} replace />
+              <Navigate to={user ? noCompanyRoute : '/login'} replace />
             )
           }>
           <Route path="/" element={<DashboardView />} />
@@ -137,7 +168,10 @@ function App() {
               )
             }
           />
-          <Route path="/account-settings" element={<AccountSettingsView />} />
+          <Route
+            path="/account-settings/app"
+            element={<AccountSettingsView />}
+          />
           <Route
             path="/planlar-ve-fiyatlandirma"
             element={<PricingPlansView />}
@@ -195,7 +229,7 @@ function App() {
           path="*"
           element={
             <Navigate
-              to={user ? (hasNoCompany ? '/onboarding' : '/') : '/login'}
+              to={user ? (hasNoCompany ? noCompanyRoute : '/') : '/login'}
               replace
             />
           }

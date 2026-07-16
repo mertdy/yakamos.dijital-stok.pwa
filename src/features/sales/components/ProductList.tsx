@@ -11,21 +11,21 @@ export const ProductList: React.FC = () => {
   const { addToCart } = useSalesStore();
   const { quickAddItems, quickAddCompanyId, loadPreferences } =
     usePreferencesStore();
-  const { activeCompany } = useAuthStore();
+  const activeCompanyId = useAuthStore(state => state.profile?.activeCompanyId);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   useEffect(() => {
-    loadPreferences();
-  }, [activeCompany?.id, loadPreferences]);
+    loadPreferences(activeCompanyId);
+  }, [activeCompanyId, loadPreferences]);
 
   const shortcutItems = useMemo(() => {
     const activeQuickAddItems =
-      quickAddCompanyId === activeCompany?.id ? quickAddItems : [];
+      quickAddCompanyId === activeCompanyId ? quickAddItems : [];
 
     return activeQuickAddItems
       .map(id => items.find(i => i.id === id))
       .filter(Boolean);
-  }, [items, quickAddItems, quickAddCompanyId, activeCompany?.id]);
+  }, [items, quickAddItems, quickAddCompanyId, activeCompanyId]);
 
   return (
     <div className="flex h-full flex-col overflow-hidden rounded-3xl border border-gray-100 bg-white shadow-sm">

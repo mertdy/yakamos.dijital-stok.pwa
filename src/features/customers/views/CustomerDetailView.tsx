@@ -30,7 +30,8 @@ import { normalizeWhatsAppPhone } from '../domain/customerStatement';
 export const CustomerDetailView: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { customers, getCustomerTransactions, isLoading } = useCustomerStore();
+  const { customers, getCustomerTransactions, isLoading, hasLoadedCustomers } =
+    useCustomerStore();
   const { activeMembership } = useAuthStore();
   const isOwner = activeMembership?.role === 'OWNER';
   const hasPaymentPermission =
@@ -80,7 +81,7 @@ export const CustomerDetailView: React.FC = () => {
     }
   }, [id, loadTransactions]);
 
-  if (isLoading) {
+  if (isLoading || hasLoadedCustomers === false) {
     return (
       <div className="flex h-full min-h-[400px] items-center justify-center">
         <div className="flex animate-pulse flex-col items-center">

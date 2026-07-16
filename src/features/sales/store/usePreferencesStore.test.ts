@@ -72,4 +72,39 @@ describe('usePreferencesStore', () => {
       { merge: true }
     );
   });
+
+  it('ignores a legacy-preference migration that finishes after a company switch', async () => {
+    let completeMigration: (() => void) | undefined;
+    vi.mocked(setDoc).mockImplementationOnce(
+      () =>
+        new Promise<void>(resolve => {
+          completeMigration = resolve;
+        })
+    );
+    vi.mocked(getDoc)
+      .mockResolvedValueOnce({
+        exists: () => true,
+        data: () => ({ quickAddItems: ['product-a'] })
+      } as never)
+      .mockResolvedValueOnce({
+        exists: () => true,
+        data: () => ({
+          quickAddItemsByCompany: { 'company-b': ['product-b'] }
+        })
+      } as never);
+    const store = await buildStore();
+
+    const firstCompanyLoad = store.getState().loadPreferences();
+    await vi.waitFor(() => expect(setDoc).toHaveBeenCalledTimes(1));
+
+    authState.activeCompanyId = 'company-b';
+    await store.getState().loadPreferences();
+    expect(store.getState().quickAddItems).toEqual(['product-b']);
+
+    completeMigration?.();
+    await firstCompanyLoad;
+
+    expect(store.getState().quickAddItems).toEqual(['product-b']);
+    expect(store.getState().quickAddCompanyId).toBe('company-b');
+  });
 });
