@@ -24,8 +24,6 @@ export interface UserProfile {
   email: string;
   name: string;
   activeCompanyId: string | null;
-  onboardingStatus?: 'PENDING' | 'SKIPPED' | 'COMPLETED';
-  onboardingSkippedAt?: string;
   createdAt: string;
 }
 

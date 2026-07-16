@@ -94,7 +94,6 @@ interface AuthState {
   registerWithEmail: (email: string, password: string) => Promise<void>;
   updateDisplayName: (displayName: string) => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
-  skipOnboarding: () => Promise<void>;
   logout: () => Promise<void>;
 
   createCompany: (
@@ -210,7 +209,6 @@ const checkAndMigrateLegacyUser = async (user: User): Promise<UserProfile> => {
     email: user.email || '',
     name: user.displayName || user.email?.split('@')[0] || 'Kullanıcı',
     activeCompanyId,
-    onboardingStatus: activeCompanyId ? 'COMPLETED' : 'PENDING',
     createdAt: new Date().toISOString()
   };
 
@@ -524,23 +522,6 @@ export const useAuthStore = getSingletonStore('auth', () =>
       }
     },
 
-    skipOnboarding: async () => {
-      const { user, profile } = get();
-      if (!user || !profile) throw new Error('User not authenticated');
-      const onboardingSkippedAt = new Date().toISOString();
-      await updateDoc(doc(db, 'users', user.uid), {
-        onboardingStatus: 'SKIPPED',
-        onboardingSkippedAt
-      });
-      set({
-        profile: {
-          ...profile,
-          onboardingStatus: 'SKIPPED',
-          onboardingSkippedAt
-        }
-      });
-    },
-
     logout: async () => {
       set({ isLoading: true });
       try {
@@ -603,19 +584,12 @@ export const useAuthStore = getSingletonStore('auth', () =>
 
       const userRef = doc(db, 'users', user.uid);
       await updateDoc(userRef, {
-        activeCompanyId: companyId,
-        onboardingStatus: 'COMPLETED'
+        activeCompanyId: companyId
       });
 
       const profile = get().profile;
       set({
-        profile: profile
-          ? {
-              ...profile,
-              activeCompanyId: companyId,
-              onboardingStatus: 'COMPLETED'
-            }
-          : profile,
+        profile: profile ? { ...profile, activeCompanyId: companyId } : profile,
         activeMembership: membershipData,
         activeCompany: companyData,
         memberships: [
@@ -635,8 +609,7 @@ export const useAuthStore = getSingletonStore('auth', () =>
 
       const userRef = doc(db, 'users', user.uid);
       const updatePromise = updateDoc(userRef, {
-        activeCompanyId: companyId,
-        onboardingStatus: 'COMPLETED'
+        activeCompanyId: companyId
       });
 
       if (!navigator.onLine) {
@@ -821,18 +794,13 @@ export const useAuthStore = getSingletonStore('auth', () =>
 
       const userRef = doc(db, 'users', user.uid);
       await updateDoc(userRef, {
-        activeCompanyId: invite.companyId,
-        onboardingStatus: 'COMPLETED'
+        activeCompanyId: invite.companyId
       });
 
       const profile = get().profile;
       set({
         profile: profile
-          ? {
-              ...profile,
-              activeCompanyId: invite.companyId,
-              onboardingStatus: 'COMPLETED'
-            }
+          ? { ...profile, activeCompanyId: invite.companyId }
           : profile,
         activeMembership: membershipData,
         activeCompany: null,
