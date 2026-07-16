@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { clsx } from 'clsx';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { SyncIndicator } from '@/shared/components/SyncIndicator';
+import { PWAInstallButton } from '@/shared/components/PWAInstallButton';
 import { useAppHotkeys } from '@/shared/hooks/useAppHotkeys';
 import { useSalesStore } from '@/features/sales';
 import { useConfirm } from '@/shared/contexts/ConfirmDialogContext';
@@ -675,6 +676,7 @@ export const MainLayout: React.FC = () => {
               </Dropdown.Popover>
             </Dropdown>
           )}
+          <PWAInstallButton isCollapsed={isCollapsed} />
           {isCollapsed ? (
             <SidebarTooltip label="Çıkış yap">{logoutButton}</SidebarTooltip>
           ) : (
