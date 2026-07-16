@@ -9,7 +9,7 @@ import posthog from 'posthog-js';
 import { useAuthStore } from '@/features/auth/store/useAuthStore';
 
 export const CustomerListView: React.FC = () => {
-  const { customers, loadCustomers, isLoading } = useCustomerStore();
+  const { customers, isLoading } = useCustomerStore();
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const { activeMembership } = useAuthStore();
@@ -21,8 +21,7 @@ export const CustomerListView: React.FC = () => {
     posthog.capture('customers_viewed', {
       view_source: 'navigation'
     });
-    loadCustomers();
-  }, [loadCustomers]);
+  }, []);
 
   const filteredCustomers = customers.filter(
     c =>

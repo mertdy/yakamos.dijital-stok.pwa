@@ -7,7 +7,7 @@ import { QuickAddEditModal } from './QuickAddEditModal';
 import { useAuthStore } from '@/features/auth';
 
 export const ProductList: React.FC = () => {
-  const { items, loadItems } = useInventoryStore();
+  const { items } = useInventoryStore();
   const { addToCart } = useSalesStore();
   const { quickAddItems, quickAddCompanyId, loadPreferences } =
     usePreferencesStore();
@@ -15,9 +15,8 @@ export const ProductList: React.FC = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   useEffect(() => {
-    loadItems();
     loadPreferences();
-  }, [activeCompany?.id, loadItems, loadPreferences]);
+  }, [activeCompany?.id, loadPreferences]);
 
   const shortcutItems = useMemo(() => {
     const activeQuickAddItems =

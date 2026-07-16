@@ -59,8 +59,7 @@ export const ProductFormView: React.FC = () => {
   const [searchParams] = useSearchParams();
   const initialBarcode = searchParams.get('barcode');
 
-  const { items, hasLoadedItems, loadItems, addItem, updateItem } =
-    useInventoryStore();
+  const { items, hasLoadedItems, addItem, updateItem } = useInventoryStore();
   const navigate = useNavigate();
   const hasRedirectedForMissingItem = useRef(false);
 
@@ -90,12 +89,6 @@ export const ProductFormView: React.FC = () => {
       price: 0
     }
   });
-
-  useEffect(() => {
-    if (!hasLoadedItems) {
-      loadItems();
-    }
-  }, [hasLoadedItems, loadItems]);
 
   const searchProductByBarcode = useCallback(
     async (barcodeToSearch: string) => {

@@ -53,6 +53,17 @@ function App() {
     }
   }, [activeCompanyId]);
 
+  useEffect(() => {
+    const refreshSalesAfterReconnect = () => {
+      useSalesHistoryStore.getState().fetchSales({ force: true });
+    };
+
+    window.addEventListener('online', refreshSalesAfterReconnect);
+    return () => {
+      window.removeEventListener('online', refreshSalesAfterReconnect);
+    };
+  }, []);
+
   if (!isInitialized || isLoading) {
     return (
       <div className="text-primary flex min-h-screen items-center justify-center bg-gray-50">

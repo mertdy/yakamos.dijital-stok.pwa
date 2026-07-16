@@ -1,4 +1,4 @@
-import { useMemo, useEffect, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useSalesHistoryStore } from '@/features/sales-history';
 import { useInventoryStore } from '@/features/inventory';
 import { useCustomerStore } from '@/features/customers';
@@ -16,17 +16,11 @@ export type ChartPeriod =
   | 'THIS_YEAR';
 
 export const useDashboardStats = () => {
-  const { sales, fetchSales } = useSalesHistoryStore();
-  const { items, loadItems } = useInventoryStore();
-  const { customers, loadCustomers } = useCustomerStore();
+  const { rawSales } = useSalesHistoryStore();
+  const { items } = useInventoryStore();
+  const { customers } = useCustomerStore();
 
   const [period, setPeriod] = useState<ChartPeriod>('7D');
-
-  useEffect(() => {
-    fetchSales();
-    loadItems();
-    loadCustomers();
-  }, [fetchSales, loadItems, loadCustomers]);
 
   const stats = useMemo(() => {
     const today = dayjs().startOf('day');
@@ -41,7 +35,7 @@ export const useDashboardStats = () => {
     // Payment methods
     const paymentMethodsStats: Record<string, number> = {};
 
-    sales.forEach(sale => {
+    rawSales.forEach(sale => {
       // Exclude cancelled
       if (sale.status === 'cancelled') return;
 
@@ -122,7 +116,7 @@ export const useDashboardStats = () => {
       paymentMethods,
       lowStockProducts
     };
-  }, [sales, items, customers]);
+  }, [rawSales, items, customers]);
 
   // Chart data based on selected period
   const chartData = useMemo(() => {
@@ -170,7 +164,7 @@ export const useDashboardStats = () => {
       }
     }
 
-    sales.forEach(sale => {
+    rawSales.forEach(sale => {
       if (sale.status === 'cancelled') return;
       const saleDate = dayjs(sale.createdAt);
       if (saleDate.isSameOrAfter(startDate)) {
@@ -185,7 +179,7 @@ export const useDashboardStats = () => {
       date,
       Ciro: amount
     }));
-  }, [sales, period]);
+  }, [rawSales, period]);
 
   return {
     ...stats,

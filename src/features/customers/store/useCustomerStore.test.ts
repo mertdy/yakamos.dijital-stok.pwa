@@ -1,5 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { setDoc, updateDoc, getDocs, writeBatch } from 'firebase/firestore';
+import {
+  getDocs,
+  onSnapshot,
+  setDoc,
+  updateDoc,
+  writeBatch
+} from 'firebase/firestore';
 
 vi.mock('firebase/firestore', () => {
   const batchMock = {
@@ -193,5 +199,19 @@ describe('useCustomerStore', () => {
         status: 'OPENED'
       })
     );
+  });
+
+  it('does not recreate the active company subscription', async () => {
+    const store = await buildStore();
+    store.setState({
+      subscriptionCompanyId: null,
+      unsubscribeSnapshot: null,
+      hasLoadedCustomers: false
+    });
+
+    store.getState().loadCustomers();
+    store.getState().loadCustomers();
+
+    expect(onSnapshot).toHaveBeenCalledTimes(1);
   });
 });

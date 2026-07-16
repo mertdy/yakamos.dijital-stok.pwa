@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { InventoryTable } from '../components/InventoryTable';
-import { useInventoryStore } from '../store/useInventoryStore';
 import { Plus } from 'lucide-react';
 import { Button } from '@heroui/react';
 import posthog from 'posthog-js';
@@ -11,7 +10,6 @@ import { useAuthStore } from '@/features/auth/store/useAuthStore';
 export const InventoryView: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { loadItems } = useInventoryStore();
   const { activeMembership } = useAuthStore();
   const [printItemId, setPrintItemId] = useState<string | null>(null);
   const isOwner = activeMembership?.role === 'OWNER';
@@ -22,8 +20,6 @@ export const InventoryView: React.FC = () => {
     posthog.capture('inventory_viewed', {
       view_source: 'navigation'
     });
-    loadItems();
-
     // Check if we need to auto-open the form with a barcode
     const addBarcode = searchParams.get('add');
     if (addBarcode && hasInventoryPermission) {
@@ -32,13 +28,7 @@ export const InventoryView: React.FC = () => {
       setSearchParams(searchParams, { replace: true });
       navigate(`/inventory/new?barcode=${addBarcode}`);
     }
-  }, [
-    loadItems,
-    searchParams,
-    setSearchParams,
-    navigate,
-    hasInventoryPermission
-  ]);
+  }, [searchParams, setSearchParams, navigate, hasInventoryPermission]);
 
   useEffect(() => {
     const itemId = searchParams.get('print');

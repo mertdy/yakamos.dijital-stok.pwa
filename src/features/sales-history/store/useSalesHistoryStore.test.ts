@@ -46,14 +46,24 @@ async function buildStore() {
 }
 
 describe('useSalesHistoryStore', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
+    const store = await buildStore();
+    store.setState({
+      sales: [],
+      rawSales: [],
+      isLoading: false,
+      loadedCompanyId: null,
+      loadingCompanyId: null,
+      filters: {}
+    });
   });
 
   it('has correct initial state', async () => {
     const store = await buildStore();
     const state = store.getState();
     expect(state.sales).toEqual([]);
+    expect(state.rawSales).toEqual([]);
     expect(state.isLoading).toBe(false);
     expect(state.filters).toEqual({});
   });
@@ -103,7 +113,26 @@ describe('useSalesHistoryStore', () => {
     expect(getDocs).toHaveBeenCalled();
   });
 
-  it('setFilters updates filters and calls fetchSales', async () => {
+  it('shares an in-flight request for the active company', async () => {
+    let resolveRequest: (value: unknown) => void;
+    const request = new Promise(resolve => {
+      resolveRequest = resolve;
+    });
+    vi.mocked(getDocs).mockReturnValueOnce(request as any);
+
+    const store = await buildStore();
+    const firstRequest = store.getState().fetchSales();
+    const secondRequest = store.getState().fetchSales();
+
+    expect(getDocs).toHaveBeenCalledTimes(1);
+
+    resolveRequest!({ docs: [] });
+    await Promise.all([firstRequest, secondRequest]);
+
+    expect(store.getState().loadedCompanyId).toBe('test-company-id');
+  });
+
+  it('setFilters updates the visible sales without fetching again', async () => {
     const mockSales = [
       {
         id: 'sale-1',
@@ -129,18 +158,41 @@ describe('useSalesHistoryStore', () => {
     } as any);
 
     const store = await buildStore();
+    store.setState({ rawSales: mockSales as any, sales: mockSales as any });
     store.getState().setFilters({ searchQuery: 'INV-001' });
 
     expect(store.getState().filters.searchQuery).toBe('INV-001');
-    expect(getDocs).toHaveBeenCalled();
+    expect(store.getState().sales).toHaveLength(1);
+    expect(getDocs).not.toHaveBeenCalled();
   });
 
-  it('clearFilters clears filters and fetches sales', async () => {
+  it('clearFilters restores the unfiltered sales without fetching again', async () => {
     const store = await buildStore();
-    store.setState({ filters: { searchQuery: 'INV-001' } });
+    const mockSales = [
+      {
+        id: 'sale-1',
+        userId: 'test-user-id',
+        companyId: 'test-company-id',
+        invoiceNumber: 'INV-001',
+        customerId: null,
+        subtotal: 100,
+        discount: 0,
+        totalAmount: 100,
+        paymentMethod: 'Cash',
+        createdAt: '2026-07-09T01:00:00Z',
+        cart: []
+      }
+    ];
+    store.setState({
+      rawSales: mockSales as any,
+      sales: [],
+      filters: { searchQuery: 'INV-001' }
+    });
     store.getState().clearFilters();
 
     expect(store.getState().filters).toEqual({});
+    expect(store.getState().sales).toEqual(mockSales);
+    expect(getDocs).not.toHaveBeenCalled();
   });
 
   it('cancelSale performs batch updates and marks sale as cancelled', async () => {
@@ -159,7 +211,7 @@ describe('useSalesHistoryStore', () => {
     };
 
     const store = await buildStore();
-    store.setState({ sales: [mockSale] });
+    store.setState({ rawSales: [mockSale], sales: [mockSale] });
 
     const success = await store.getState().cancelSale('sale-1');
 

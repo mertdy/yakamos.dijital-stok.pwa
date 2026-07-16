@@ -31,8 +31,9 @@ interface InventoryState {
   items: InventoryItem[];
   isLoading: boolean;
   hasLoadedItems: boolean;
+  subscriptionCompanyId: string | null;
   unsubscribeSnapshot: (() => void) | null;
-  loadItems: () => void;
+  loadItems: (options?: { force?: boolean }) => void;
   addItem: (
     item: Omit<InventoryItem, 'id' | 'updatedAt' | 'userId' | 'companyId'>
   ) => Promise<void>;
@@ -47,22 +48,37 @@ export const useInventoryStore = getSingletonStore('inventory', () =>
     items: [],
     isLoading: false,
     hasLoadedItems: false,
+    subscriptionCompanyId: null,
     unsubscribeSnapshot: null,
 
-    loadItems: () => {
+    loadItems: ({ force = false } = {}) => {
       const profile = useAuthStore.getState().profile;
-      if (!profile?.activeCompanyId) return;
+      const companyId = profile?.activeCompanyId;
+      if (!companyId) return;
 
-      const { unsubscribeSnapshot } = get();
+      const { unsubscribeSnapshot, subscriptionCompanyId } = get();
+      if (
+        !force &&
+        subscriptionCompanyId === companyId &&
+        unsubscribeSnapshot
+      ) {
+        return;
+      }
+
       if (unsubscribeSnapshot) {
         unsubscribeSnapshot();
       }
 
-      set({ isLoading: true, hasLoadedItems: false });
+      set({
+        items: subscriptionCompanyId === companyId ? get().items : [],
+        isLoading: true,
+        hasLoadedItems: false,
+        subscriptionCompanyId: companyId
+      });
 
       const q = query(
         collection(db, 'inventory'),
-        where('companyId', '==', profile.activeCompanyId)
+        where('companyId', '==', companyId)
       );
 
       const unsubscribe = onSnapshot(
@@ -72,10 +88,12 @@ export const useInventoryStore = getSingletonStore('inventory', () =>
           snapshot.forEach(doc => {
             items.push({ id: doc.id, ...doc.data() } as InventoryItem);
           });
+          if (get().subscriptionCompanyId !== companyId) return;
           set({ items, isLoading: false, hasLoadedItems: true });
         },
         error => {
           console.error('Firestore snapshot error:', error);
+          if (get().subscriptionCompanyId !== companyId) return;
           set({ isLoading: false, hasLoadedItems: true });
         }
       );
@@ -194,7 +212,13 @@ export const useInventoryStore = getSingletonStore('inventory', () =>
       if (unsubscribeSnapshot) {
         unsubscribeSnapshot();
       }
-      set({ items: [], hasLoadedItems: false, unsubscribeSnapshot: null });
+      set({
+        items: [],
+        isLoading: false,
+        hasLoadedItems: false,
+        subscriptionCompanyId: null,
+        unsubscribeSnapshot: null
+      });
     }
   }))
 );

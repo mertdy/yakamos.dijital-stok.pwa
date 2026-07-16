@@ -30,8 +30,7 @@ import { normalizeWhatsAppPhone } from '../domain/customerStatement';
 export const CustomerDetailView: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { customers, getCustomerTransactions, loadCustomers, isLoading } =
-    useCustomerStore();
+  const { customers, getCustomerTransactions, isLoading } = useCustomerStore();
   const { activeMembership } = useAuthStore();
   const isOwner = activeMembership?.role === 'OWNER';
   const hasPaymentPermission =
@@ -49,10 +48,6 @@ export const CustomerDetailView: React.FC = () => {
   const toggleExpand = (txId: string) => {
     setExpandedTxId(prev => (prev === txId ? null : txId));
   };
-
-  useEffect(() => {
-    loadCustomers();
-  }, [loadCustomers]);
 
   const customer = customers.find(c => c.id === id);
 

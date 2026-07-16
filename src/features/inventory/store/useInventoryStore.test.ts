@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { setDoc, deleteDoc, writeBatch } from 'firebase/firestore';
+import { onSnapshot, setDoc, deleteDoc, writeBatch } from 'firebase/firestore';
 
 const mockBatch = {
   delete: vi.fn(),
@@ -101,5 +101,19 @@ describe('useInventoryStore', () => {
     expect(unsubscribeMock).toHaveBeenCalled();
     expect(store.getState().items).toEqual([]);
     expect(store.getState().unsubscribeSnapshot).toBeNull();
+  });
+
+  it('does not recreate the active company subscription', async () => {
+    const store = await buildStore();
+    store.setState({
+      subscriptionCompanyId: null,
+      unsubscribeSnapshot: null,
+      hasLoadedItems: false
+    });
+
+    store.getState().loadItems();
+    store.getState().loadItems();
+
+    expect(onSnapshot).toHaveBeenCalledTimes(1);
   });
 });

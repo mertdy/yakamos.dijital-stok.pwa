@@ -85,8 +85,10 @@ export interface StatementShare extends StatementShareInput {
 interface CustomerState {
   customers: Customer[];
   isLoading: boolean;
+  hasLoadedCustomers: boolean;
+  subscriptionCompanyId: string | null;
   unsubscribeSnapshot: (() => void) | null;
-  loadCustomers: () => void;
+  loadCustomers: (options?: { force?: boolean }) => void;
   addCustomer: (
     customer: Omit<
       Customer,
@@ -112,22 +114,38 @@ export const useCustomerStore = getSingletonStore('customers', () =>
   create<CustomerState>((set, get) => ({
     customers: [],
     isLoading: false,
+    hasLoadedCustomers: false,
+    subscriptionCompanyId: null,
     unsubscribeSnapshot: null,
 
-    loadCustomers: () => {
+    loadCustomers: ({ force = false } = {}) => {
       const profile = useAuthStore.getState().profile;
-      if (!profile?.activeCompanyId) return;
+      const companyId = profile?.activeCompanyId;
+      if (!companyId) return;
 
-      const { unsubscribeSnapshot } = get();
+      const { unsubscribeSnapshot, subscriptionCompanyId } = get();
+      if (
+        !force &&
+        subscriptionCompanyId === companyId &&
+        unsubscribeSnapshot
+      ) {
+        return;
+      }
+
       if (unsubscribeSnapshot) {
         unsubscribeSnapshot();
       }
 
-      set({ isLoading: true });
+      set({
+        customers: subscriptionCompanyId === companyId ? get().customers : [],
+        isLoading: true,
+        hasLoadedCustomers: false,
+        subscriptionCompanyId: companyId
+      });
 
       const q = query(
         collection(db, 'customers'),
-        where('companyId', '==', profile.activeCompanyId)
+        where('companyId', '==', companyId)
       );
 
       const unsubscribe = onSnapshot(
@@ -137,11 +155,13 @@ export const useCustomerStore = getSingletonStore('customers', () =>
           snapshot.forEach(doc => {
             customers.push({ id: doc.id, ...doc.data() } as Customer);
           });
-          set({ customers, isLoading: false });
+          if (get().subscriptionCompanyId !== companyId) return;
+          set({ customers, isLoading: false, hasLoadedCustomers: true });
         },
         error => {
           console.error('Firestore snapshot error:', error);
-          set({ isLoading: false });
+          if (get().subscriptionCompanyId !== companyId) return;
+          set({ isLoading: false, hasLoadedCustomers: true });
         }
       );
 
@@ -431,7 +451,13 @@ export const useCustomerStore = getSingletonStore('customers', () =>
       if (unsubscribeSnapshot) {
         unsubscribeSnapshot();
       }
-      set({ customers: [], unsubscribeSnapshot: null });
+      set({
+        customers: [],
+        isLoading: false,
+        hasLoadedCustomers: false,
+        subscriptionCompanyId: null,
+        unsubscribeSnapshot: null
+      });
     }
   }))
 );

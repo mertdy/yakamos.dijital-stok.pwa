@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { clsx } from 'clsx';
 import { useCustomerStore } from '../store/useCustomerStore';
 import { useSalesStore } from '@/features/sales';
@@ -14,17 +14,11 @@ interface Props {
 }
 
 export const CustomerDrawer: React.FC<Props> = ({ isOpen, onClose }) => {
-  const { customers, loadCustomers } = useCustomerStore();
+  const { customers } = useCustomerStore();
   const { customerId, setCustomerId } = useSalesStore();
   const navigate = useNavigate();
 
   const [search, setSearch] = useState('');
-
-  useEffect(() => {
-    if (isOpen) {
-      loadCustomers();
-    }
-  }, [isOpen, loadCustomers]);
 
   const filteredCustomers = customers.filter(
     c =>

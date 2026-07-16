@@ -47,122 +47,177 @@ export interface SalesHistoryFilter {
 
 interface SalesHistoryState {
   sales: SaleTransaction[];
+  rawSales: SaleTransaction[];
   isLoading: boolean;
+  loadedCompanyId: string | null;
+  loadingCompanyId: string | null;
   filters: SalesHistoryFilter;
 
-  fetchSales: () => Promise<void>;
+  fetchSales: (options?: { force?: boolean }) => Promise<void>;
   setFilters: (filters: Partial<SalesHistoryFilter>) => void;
   clearFilters: () => void;
   cancelSale: (saleId: string) => Promise<boolean>;
   clearSales: () => void;
 }
 
+const filterSales = (sales: SaleTransaction[], filters: SalesHistoryFilter) => {
+  let filteredSales = sales;
+
+  if (filters.searchQuery) {
+    const queryLower = filters.searchQuery.toLowerCase();
+    filteredSales = filteredSales.filter(sale =>
+      sale.invoiceNumber?.toLowerCase().includes(queryLower)
+    );
+  }
+
+  if (filters.customerId) {
+    filteredSales = filteredSales.filter(
+      sale => sale.customerId === filters.customerId
+    );
+  }
+
+  if (filters.paymentMethod) {
+    filteredSales = filteredSales.filter(
+      sale => sale.paymentMethod === filters.paymentMethod
+    );
+  }
+
+  if (filters.minAmount !== undefined && !isNaN(filters.minAmount)) {
+    filteredSales = filteredSales.filter(
+      sale => sale.totalAmount >= filters.minAmount!
+    );
+  }
+
+  if (filters.maxAmount !== undefined && !isNaN(filters.maxAmount)) {
+    filteredSales = filteredSales.filter(
+      sale => sale.totalAmount <= filters.maxAmount!
+    );
+  }
+
+  if (filters.startDate) {
+    const start = new Date(filters.startDate).getTime();
+    filteredSales = filteredSales.filter(
+      sale => new Date(sale.createdAt).getTime() >= start
+    );
+  }
+
+  if (filters.endDate) {
+    const end = new Date(filters.endDate).getTime();
+    filteredSales = filteredSales.filter(
+      sale => new Date(sale.createdAt).getTime() <= end
+    );
+  }
+
+  return filteredSales;
+};
+
+const inFlightSalesRequests = new Map<string, Promise<void>>();
+let salesRequestVersion = 0;
+
 export const useSalesHistoryStore = getSingletonStore('sales-history', () =>
   create<SalesHistoryState>((set, get) => ({
     sales: [],
+    rawSales: [],
     isLoading: false,
+    loadedCompanyId: null,
+    loadingCompanyId: null,
     filters: {},
 
     setFilters: newFilters => {
-      set(state => ({
-        filters: { ...state.filters, ...newFilters }
-      }));
-      get().fetchSales();
+      const filters = { ...get().filters, ...newFilters };
+      set({ filters, sales: filterSales(get().rawSales, filters) });
     },
 
     clearFilters: () => {
-      set({ filters: {} });
-      get().fetchSales();
+      set({ filters: {}, sales: get().rawSales });
     },
 
-    fetchSales: async () => {
+    fetchSales: async ({ force = false } = {}) => {
       const user = auth.currentUser;
       if (!user) return;
 
       const profile = useAuthStore.getState().profile;
       const activeMembership = useAuthStore.getState().activeMembership;
-      if (!profile?.activeCompanyId) return;
+      const companyId = profile?.activeCompanyId;
+      if (!companyId) return;
 
-      set({ isLoading: true });
+      const state = get();
+      if (!force && state.loadedCompanyId === companyId) return;
+
+      const existingRequest = inFlightSalesRequests.get(companyId);
+      if (!force && existingRequest) return existingRequest;
+
+      const requestVersion = ++salesRequestVersion;
+      const request = (async () => {
+        set({
+          sales: state.loadedCompanyId === companyId ? state.sales : [],
+          rawSales: state.loadedCompanyId === companyId ? state.rawSales : [],
+          isLoading: true,
+          loadedCompanyId:
+            state.loadedCompanyId === companyId ? companyId : null,
+          loadingCompanyId: companyId
+        });
+
+        try {
+          const salesRef = collection(db, 'sales');
+          const q = query(
+            salesRef,
+            where('companyId', '==', companyId),
+            orderBy('createdAt', 'desc'),
+            limit(500)
+          );
+
+          const snapshot = await getDocs(q);
+          let fetchedSales = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+          })) as SaleTransaction[];
+
+          const isOwner = activeMembership?.role === 'OWNER';
+          if (
+            !isOwner &&
+            activeMembership?.role === 'EMPLOYEE' &&
+            !activeMembership.permissions.includes('VIEW_SALES_HISTORY')
+          ) {
+            fetchedSales = fetchedSales.filter(s => s.userId === user.uid);
+          }
+
+          const isStillCurrent =
+            requestVersion === salesRequestVersion &&
+            auth.currentUser?.uid === user.uid &&
+            useAuthStore.getState().profile?.activeCompanyId === companyId;
+          if (!isStillCurrent) return;
+
+          const filters = get().filters;
+          set({
+            rawSales: fetchedSales,
+            sales: filterSales(fetchedSales, filters),
+            loadedCompanyId: companyId
+          });
+        } catch (error) {
+          const isStillCurrent =
+            requestVersion === salesRequestVersion &&
+            useAuthStore.getState().profile?.activeCompanyId === companyId;
+          if (!isStillCurrent) return;
+          console.error('Error fetching sales:', error);
+          toast.danger('Satış geçmişi yüklenirken bir hata oluştu');
+        } finally {
+          if (
+            requestVersion === salesRequestVersion &&
+            get().loadingCompanyId === companyId
+          ) {
+            set({ isLoading: false, loadingCompanyId: null });
+          }
+        }
+      })();
+
+      inFlightSalesRequests.set(companyId, request);
       try {
-        const salesRef = collection(db, 'sales');
-        // Query sales for current company
-        const q = query(
-          salesRef,
-          where('companyId', '==', profile.activeCompanyId),
-          orderBy('createdAt', 'desc'),
-          limit(500)
-        );
-
-        const snapshot = await getDocs(q);
-        let fetchedSales = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        })) as SaleTransaction[];
-
-        // Filter by cashier if cashier role and lacks VIEW_SALES_HISTORY permission
-        const isOwner = activeMembership?.role === 'OWNER';
-        if (
-          !isOwner &&
-          activeMembership?.role === 'EMPLOYEE' &&
-          !activeMembership.permissions.includes('VIEW_SALES_HISTORY')
-        ) {
-          fetchedSales = fetchedSales.filter(s => s.userId === user.uid);
-        }
-
-        const { filters } = get();
-
-        if (filters.searchQuery) {
-          const queryLower = filters.searchQuery.toLowerCase();
-          fetchedSales = fetchedSales.filter(s =>
-            s.invoiceNumber?.toLowerCase().includes(queryLower)
-          );
-        }
-
-        if (filters.customerId) {
-          fetchedSales = fetchedSales.filter(
-            s => s.customerId === filters.customerId
-          );
-        }
-
-        if (filters.paymentMethod) {
-          fetchedSales = fetchedSales.filter(
-            s => s.paymentMethod === filters.paymentMethod
-          );
-        }
-
-        if (filters.minAmount !== undefined && !isNaN(filters.minAmount)) {
-          fetchedSales = fetchedSales.filter(
-            s => s.totalAmount >= filters.minAmount!
-          );
-        }
-
-        if (filters.maxAmount !== undefined && !isNaN(filters.maxAmount)) {
-          fetchedSales = fetchedSales.filter(
-            s => s.totalAmount <= filters.maxAmount!
-          );
-        }
-
-        if (filters.startDate) {
-          const start = new Date(filters.startDate).getTime();
-          fetchedSales = fetchedSales.filter(
-            s => new Date(s.createdAt).getTime() >= start
-          );
-        }
-
-        if (filters.endDate) {
-          const end = new Date(filters.endDate).getTime();
-          fetchedSales = fetchedSales.filter(
-            s => new Date(s.createdAt).getTime() <= end
-          );
-        }
-
-        set({ sales: fetchedSales });
-      } catch (error) {
-        console.error('Error fetching sales:', error);
-        toast.danger('Satış geçmişi yüklenirken bir hata oluştu');
+        await request;
       } finally {
-        set({ isLoading: false });
+        if (inFlightSalesRequests.get(companyId) === request) {
+          inFlightSalesRequests.delete(companyId);
+        }
       }
     },
 
@@ -208,11 +263,14 @@ export const useSalesHistoryStore = getSingletonStore('sales-history', () =>
           has_customer: Boolean(sale.customerId)
         });
 
-        set(state => ({
-          sales: state.sales.map(s =>
-            s.id === saleId ? { ...s, status: 'cancelled' } : s
-          )
-        }));
+        set(state => {
+          const rawSales = state.rawSales.map(sale =>
+            sale.id === saleId
+              ? { ...sale, status: 'cancelled' as const }
+              : sale
+          );
+          return { rawSales, sales: filterSales(rawSales, state.filters) };
+        });
 
         toast.success('Satış başarıyla iptal edildi ve stoklar güncellendi');
         return true;
@@ -228,7 +286,16 @@ export const useSalesHistoryStore = getSingletonStore('sales-history', () =>
     },
 
     clearSales: () => {
-      set({ sales: [], filters: {} });
+      salesRequestVersion++;
+      inFlightSalesRequests.clear();
+      set({
+        sales: [],
+        rawSales: [],
+        isLoading: false,
+        loadedCompanyId: null,
+        loadingCompanyId: null,
+        filters: {}
+      });
     }
   }))
 );

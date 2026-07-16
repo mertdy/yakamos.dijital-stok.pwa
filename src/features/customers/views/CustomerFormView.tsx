@@ -33,8 +33,7 @@ export const CustomerFormView: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const isEditMode = Boolean(id);
 
-  const { customers, loadCustomers, addCustomer, updateCustomer } =
-    useCustomerStore();
+  const { customers, addCustomer, updateCustomer } = useCustomerStore();
   const { setCustomerId } = useSalesStore();
   const navigate = useNavigate();
 
@@ -56,13 +55,6 @@ export const CustomerFormView: React.FC = () => {
       creditLimit: 0
     }
   });
-
-  useEffect(() => {
-    // If we refresh on edit page, customers might be empty
-    if (customers.length === 0) {
-      loadCustomers();
-    }
-  }, [customers.length, loadCustomers]);
 
   useEffect(() => {
     if (isEditMode && customers.length > 0) {

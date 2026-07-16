@@ -51,9 +51,7 @@ export const DataExportWizard = ({ isOpen, onClose, company }: Props) => {
     if (selected.length === 0) return;
     setIsExporting(true);
     try {
-      const datasets = (await loadExportDatasets(company)).filter(dataset =>
-        selected.includes(dataset.key)
-      );
+      const datasets = await loadExportDatasets(company, selected);
       await exportDatasets(
         datasets,
         format,

@@ -63,10 +63,10 @@ describe('CustomerDrawer', () => {
     vi.clearAllMocks();
   });
 
-  it('renders correctly and loads customers on open', () => {
+  it('renders customers from the central subscription on open', () => {
     render(<CustomerDrawer isOpen={true} onClose={onCloseMock} />);
 
-    expect(loadCustomersMock).toHaveBeenCalled();
+    expect(loadCustomersMock).not.toHaveBeenCalled();
     expect(screen.getByText('Müşteri Seçimi')).toBeInTheDocument();
     expect(screen.getByText('John Doe')).toBeInTheDocument();
     expect(screen.getByText('Jane Smith')).toBeInTheDocument();
