@@ -8,6 +8,7 @@ import './index.css';
 
 import { ConfirmDialogProvider } from './shared/contexts/ConfirmDialogContext';
 import { AppErrorBoundary } from './shared/components/AppErrorBoundary';
+import { PWAInstallProvider } from './shared/hooks/usePWAInstall';
 import posthog from 'posthog-js';
 import { FirebaseCrashlytics } from '@capacitor-firebase/crashlytics';
 import { Capacitor } from '@capacitor/core';
@@ -52,9 +53,11 @@ createRoot(document.getElementById('root')!).render(
       <I18nProvider locale="tr-TR">
         <ToastProvider />
         <BrowserRouter>
-          <ConfirmDialogProvider>
-            <App />
-          </ConfirmDialogProvider>
+          <PWAInstallProvider>
+            <ConfirmDialogProvider>
+              <App />
+            </ConfirmDialogProvider>
+          </PWAInstallProvider>
         </BrowserRouter>
       </I18nProvider>
     </StrictMode>

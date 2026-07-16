@@ -1,41 +1,61 @@
-import { useState, useEffect } from 'react';
+import {
+  createContext,
+  createElement,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type PropsWithChildren
+} from 'react';
 import { Capacitor } from '@capacitor/core';
 
+type InstallOutcome = 'accepted' | 'dismissed';
+
 export interface BeforeInstallPromptEvent extends Event {
-  readonly platforms: Array<string>;
+  readonly platforms: string[];
   readonly userChoice: Promise<{
-    outcome: 'accepted' | 'dismissed';
+    outcome: InstallOutcome;
     platform: string;
   }>;
-  prompt(): Promise<void>;
+  prompt(): Promise<{
+    outcome: InstallOutcome;
+    platform: string;
+  }>;
 }
 
+interface PWAInstallContextValue {
+  isInstallable: boolean;
+  deviceType: 'mobile' | 'desktop';
+  installApp: () => Promise<InstallOutcome>;
+}
+
+const PWAInstallContext = createContext<PWAInstallContextValue | null>(null);
+
 /**
- * Hook to manage PWA installation prompt lifecycle.
- * Intercepts the browser's install event and allows custom UI triggers.
+ * Captures the browser install event as soon as the React application mounts.
+ * It must remain above routes that are mounted only after authentication.
  */
-export const usePWAInstall = () => {
+export const PWAInstallProvider: React.FC<PropsWithChildren> = ({
+  children
+}) => {
   const [installPromptEvent, setInstallPromptEvent] =
     useState<BeforeInstallPromptEvent | null>(null);
   const [isInstalled, setIsInstalled] = useState(false);
   const [deviceType, setDeviceType] = useState<'mobile' | 'desktop'>('desktop');
+  const isNativePlatform = Capacitor.isNativePlatform();
 
-  // Detect platform (mobile vs desktop) for dynamic wording
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-
     const isMobileDevice =
       /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
         navigator.userAgent
-      ) ||
-      (window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+      ) || window.matchMedia('(pointer: coarse)').matches;
 
     setDeviceType(isMobileDevice ? 'mobile' : 'desktop');
 
-    // Check if the PWA is already running in standalone/installed mode
     const isStandalone =
       window.matchMedia('(display-mode: standalone)').matches ||
-      (navigator as any).standalone ||
+      (navigator as Navigator & { standalone?: boolean }).standalone === true ||
       document.referrer.includes('android-app://');
 
     if (isStandalone) {
@@ -44,24 +64,16 @@ export const usePWAInstall = () => {
   }, []);
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    if (isNativePlatform) return;
 
-    // Capacitor native apps do not need browser PWA installation
-    if (Capacitor.isNativePlatform()) {
-      return;
-    }
-
-    const handleBeforeInstallPrompt = (e: Event) => {
-      // Prevent browser from automatically showing the install banner
-      e.preventDefault();
-      // Store the event so we can trigger it later on user click
-      setInstallPromptEvent(e as BeforeInstallPromptEvent);
+    const handleBeforeInstallPrompt = (event: Event) => {
+      event.preventDefault();
+      setInstallPromptEvent(event as BeforeInstallPromptEvent);
     };
 
     const handleAppInstalled = () => {
       setIsInstalled(true);
       setInstallPromptEvent(null);
-      console.log('Dijital Stok successfully installed.');
     };
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
@@ -74,42 +86,47 @@ export const usePWAInstall = () => {
       );
       window.removeEventListener('appinstalled', handleAppInstalled);
     };
-  }, []);
+  }, [isNativePlatform]);
 
-  const installApp = async (): Promise<'accepted' | 'dismissed'> => {
-    if (!installPromptEvent) {
-      return 'dismissed';
-    }
+  const installApp = useCallback(async (): Promise<InstallOutcome> => {
+    if (!installPromptEvent) return 'dismissed';
+
+    // A BeforeInstallPromptEvent can only be prompted once. Clear it before
+    // awaiting the browser UI so repeated clicks cannot reuse a stale event.
+    setInstallPromptEvent(null);
 
     try {
-      // Show the native browser install prompt
-      await installPromptEvent.prompt();
+      const { outcome } = await installPromptEvent.prompt();
 
-      // Wait for the user choice
-      const choiceResult = await installPromptEvent.userChoice;
-
-      if (choiceResult.outcome === 'accepted') {
-        console.log('User accepted PWA installation');
+      if (outcome === 'accepted') {
         setIsInstalled(true);
-        setInstallPromptEvent(null);
-        return 'accepted';
-      } else {
-        console.log('User dismissed PWA installation');
-        return 'dismissed';
       }
+
+      return outcome;
     } catch (error) {
       console.error('Error during PWA installation prompt:', error);
       return 'dismissed';
     }
-  };
+  }, [installPromptEvent]);
 
-  // The PWA is installable if we have the prompt event stashed and it's not already installed
-  const isInstallable =
-    !!installPromptEvent && !isInstalled && !Capacitor.isNativePlatform();
+  const value = useMemo<PWAInstallContextValue>(
+    () => ({
+      isInstallable: !!installPromptEvent && !isInstalled && !isNativePlatform,
+      deviceType,
+      installApp
+    }),
+    [deviceType, installApp, installPromptEvent, isInstalled, isNativePlatform]
+  );
 
-  return {
-    isInstallable,
-    deviceType,
-    installApp
-  };
+  return createElement(PWAInstallContext.Provider, { value }, children);
+};
+
+export const usePWAInstall = () => {
+  const context = useContext(PWAInstallContext);
+
+  if (!context) {
+    throw new Error('usePWAInstall must be used within PWAInstallProvider');
+  }
+
+  return context;
 };

@@ -8,7 +8,7 @@ import { visualizer } from 'rollup-plugin-visualizer';
 import { fileURLToPath } from 'node:url';
 
 // https://vite.dev/config/
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url))
@@ -133,11 +133,15 @@ export default defineConfig({
         ]
       } as any
     }),
-    visualizer({
-      filename: 'dist/stats.html',
-      gzipSize: true,
-      brotliSize: true
-    })
+    ...(mode === 'analyze'
+      ? [
+          visualizer({
+            filename: 'dist/stats.html',
+            gzipSize: true,
+            brotliSize: true
+          })
+        ]
+      : [])
   ],
   server: {
     headers: {
@@ -150,4 +154,4 @@ export default defineConfig({
     setupFiles: './vitest.setup.ts',
     exclude: ['node_modules', 'e2e/**/*']
   }
-});
+}));
