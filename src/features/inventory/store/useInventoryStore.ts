@@ -184,7 +184,7 @@ export const useInventoryStore = getSingletonStore('inventory', () =>
         merge: true
       });
       const changedFields = getFieldChangeDetails(
-        currentItem as Record<string, unknown>,
+        currentItem as unknown as Record<string, unknown>,
         updatedData as Record<string, unknown>,
         {
           name: 'Ürün adı',

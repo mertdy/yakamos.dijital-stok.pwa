@@ -72,7 +72,7 @@ export const PendingSyncOperationsList = ({
             {clickable ? (
               <button
                 type="button"
-                onClick={() => onOperationPress(operation)}
+                onClick={() => onOperationPress?.(operation)}
                 className="focus:ring-primary/40 flex w-full items-start gap-3 rounded-xl border border-amber-200 bg-amber-50/60 p-3 transition-colors hover:bg-amber-100 focus:ring-2 focus:outline-none">
                 {content}
               </button>
