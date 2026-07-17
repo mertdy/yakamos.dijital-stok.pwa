@@ -78,15 +78,15 @@ Cloud Run Job, sürekli açık bir sunucu yerine işi çalıştırıp sonlanan b
 
 ## Önerilen karar
 
-| Veri alma yöntemi | Kullanılacak altyapı |
-|---|---|
-| Belgelenmiş REST API | Cloud Functions |
-| XML/CSV ürün feed’i | Cloud Functions veya Cloud Run Job |
-| Basit statik HTML | Cloud Run Job |
-| JavaScript ile açılan sayfa | Cloud Run + Playwright |
-| Büyük miktarda scraping | Ayrı worker + görev kuyruğu |
-| Bildirim oluşturma | Cloud Functions |
-| Mobil push gönderme | Cloud Functions + FCM |
+| Veri alma yöntemi           | Kullanılacak altyapı               |
+| --------------------------- | ---------------------------------- |
+| Belgelenmiş REST API        | Cloud Functions                    |
+| XML/CSV ürün feed’i         | Cloud Functions veya Cloud Run Job |
+| Basit statik HTML           | Cloud Run Job                      |
+| JavaScript ile açılan sayfa | Cloud Run + Playwright             |
+| Büyük miktarda scraping     | Ayrı worker + görev kuyruğu        |
+| Bildirim oluşturma          | Cloud Functions                    |
+| Mobil push gönderme         | Cloud Functions + FCM              |
 
 İlk sürümde API bulunursa Cloud Functions ile başlayın. Scraping kesinleşirse Cloud Run Job ekleyin.
 
@@ -194,13 +194,9 @@ Her site için ayrı bir “adapter” yazılmalı.
 interface PriceSourceAdapter {
   sourceId: string;
 
-  fetchProducts(input: {
-    barcodes: string[];
-  }): Promise<RawPriceObservation[]>;
+  fetchProducts(input: { barcodes: string[] }): Promise<RawPriceObservation[]>;
 
-  normalize(
-    observation: RawPriceObservation
-  ): NormalizedPriceObservation | null;
+  normalize(observation: RawPriceObservation): NormalizedPriceObservation | null;
 }
 ```
 
@@ -454,11 +450,7 @@ interface PriceAlert {
   companyId: string;
   inventoryId: string;
   barcode: string;
-  type:
-    | 'LOW_MARGIN'
-    | 'BELOW_REFERENCE'
-    | 'ABOVE_REFERENCE'
-    | 'COST_INCREASE';
+  type: 'LOW_MARGIN' | 'BELOW_REFERENCE' | 'ABOVE_REFERENCE' | 'COST_INCREASE';
   currentPrice: number;
   currentCost?: number;
   referenceMedian?: number;
@@ -501,11 +493,7 @@ Aritmetik ortalama yüksek uç değerden etkilenir. Medyan ise 51,50 TL olur.
 Örnek güven skoru:
 
 ```ts
-const confidence =
-  sourceCoverageScore * 0.4 +
-  freshnessScore * 0.25 +
-  productMatchScore * 0.25 +
-  priceConsistencyScore * 0.1;
+const confidence = sourceCoverageScore * 0.4 + freshnessScore * 0.25 + productMatchScore * 0.25 + priceConsistencyScore * 0.1;
 ```
 
 ## Bildirim şartı
@@ -575,10 +563,7 @@ belgesini güncelleyin.
 Yeni fiyat öncekiyle aynıysa Firestore’a tekrar yazmayın.
 
 ```ts
-if (
-  previous.contentHash === current.contentHash &&
-  previous.price === current.price
-) {
+if (previous.contentHash === current.contentHash && previous.price === current.price) {
   return;
 }
 ```
@@ -647,15 +632,15 @@ Böylece fiyat 20 gün değişmediyse 20 kayıt yerine tek dönem kaydı tutulab
 
 Önerilen politika:
 
-| Veri | Saklama süresi |
-|---|---:|
-| Ham HTML/JSON | 3–7 gün |
+| Veri                      |    Saklama süresi |
+| ------------------------- | ----------------: |
+| Ham HTML/JSON             |           3–7 gün |
 | Kaynak bazlı güncel fiyat | Sürekli overwrite |
-| Günlük fiyat özeti | 90 gün |
-| Haftalık fiyat özeti | 1–2 yıl |
-| Aylık fiyat özeti | Uzun süre |
-| Açık bildirimler | Sonuçlanana kadar |
-| Kapatılmış bildirimler | 90–180 gün |
+| Günlük fiyat özeti        |            90 gün |
+| Haftalık fiyat özeti      |           1–2 yıl |
+| Aylık fiyat özeti         |         Uzun süre |
+| Açık bildirimler          | Sonuçlanana kadar |
+| Kapatılmış bildirimler    |        90–180 gün |
 
 90 günden eski günlük veriler haftalık özetlere dönüştürülebilir:
 
@@ -769,11 +754,7 @@ Takip dışı ürün → hiç sorgulama
 Örnek öncelik skoru:
 
 ```ts
-priority =
-  salesVelocityScore * 0.35 +
-  recentPriceVolatility * 0.25 +
-  marginRiskScore * 0.25 +
-  stockValueScore * 0.15;
+priority = salesVelocityScore * 0.35 + recentPriceVolatility * 0.25 + marginRiskScore * 0.25 + stockValueScore * 0.15;
 ```
 
 Bu yöntem hem API hem scraping maliyetini düşürür.

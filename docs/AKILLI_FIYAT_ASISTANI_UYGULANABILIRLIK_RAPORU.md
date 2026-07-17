@@ -426,9 +426,9 @@ Bu özellik doğrulanırsa ücretsiz veya en ucuz pakete koymamanızı öneririm
 
 Örnek:
 
-| Paket | Aylık fiyat |
-|---|---:|
-| Dijital Stok Esnaf | 399 TL + KDV |
+| Paket                     |      Aylık fiyat |
+| ------------------------- | ---------------: |
+| Dijital Stok Esnaf        |     399 TL + KDV |
 | Dijital Stok Akıllı Fiyat | 549–599 TL + KDV |
 
 Akıllı Fiyat paketinde:

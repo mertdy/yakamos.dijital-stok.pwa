@@ -274,6 +274,7 @@ export const InventoryTable: React.FC<InventoryTableProps> = ({
     return Object.keys(rowSelection).filter(id => rowSelection[id]);
   }, [rowSelection]);
 
+  // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
     data: filteredItems,
     columns,

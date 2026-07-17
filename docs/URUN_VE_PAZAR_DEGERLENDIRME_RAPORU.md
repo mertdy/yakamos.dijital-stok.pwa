@@ -327,13 +327,13 @@ Bunlar doğrudan pazarlama özelliği değildir ama müşteri güveni açısınd
 
 # Önerdiğim ürün yol haritası
 
-| Aşama | Özellikler | Ticari amaç |
-|---|---|---|
-| İlk 4–6 hafta | Maliyet/KDV/kâr, stok hareketleri, CSV içe/dışa aktarma, WhatsApp ekstre, kredi limiti kontrolü | Demo dönüşümünü ve mevcut programdan geçişi artırmak |
-| Sonraki 6–10 hafta | Tedarikçi, alış faturası, stok sayımı, barkod etiketi, gün sonu/kasa | Ürünü günlük işletme sistemi haline getirmek |
-| Sonraki dönem | e-Fatura/e-Arşiv entegrasyonu, gelişmiş raporlar, vardiya ve çoklu kasa | Daha yüksek ücretli işletme paketine geçmek |
-| Büyüme paketi | Sadakat, kampanya, pazaryeri ve e-ticaret entegrasyonu | Yeni müşteri segmentleri ve ek gelir |
-| İleri aşama | Talep tahmini, otomatik sipariş önerisi, anomali tespiti | Premium farklılaşma |
+| Aşama              | Özellikler                                                                                      | Ticari amaç                                          |
+| ------------------ | ----------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
+| İlk 4–6 hafta      | Maliyet/KDV/kâr, stok hareketleri, CSV içe/dışa aktarma, WhatsApp ekstre, kredi limiti kontrolü | Demo dönüşümünü ve mevcut programdan geçişi artırmak |
+| Sonraki 6–10 hafta | Tedarikçi, alış faturası, stok sayımı, barkod etiketi, gün sonu/kasa                            | Ürünü günlük işletme sistemi haline getirmek         |
+| Sonraki dönem      | e-Fatura/e-Arşiv entegrasyonu, gelişmiş raporlar, vardiya ve çoklu kasa                         | Daha yüksek ücretli işletme paketine geçmek          |
+| Büyüme paketi      | Sadakat, kampanya, pazaryeri ve e-ticaret entegrasyonu                                          | Yeni müşteri segmentleri ve ek gelir                 |
+| İleri aşama        | Talep tahmini, otomatik sipariş önerisi, anomali tespiti                                        | Premium farklılaşma                                  |
 
 ## En doğru konumlandırma
 

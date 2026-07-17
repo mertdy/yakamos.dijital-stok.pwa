@@ -41,11 +41,10 @@ body {
 }
 
 /* Global Tooltip Word Wrapping Fix */
-[role="tooltip"],
+[role='tooltip'],
 .tooltip,
-[data-slot="tooltip"] {
+[data-slot='tooltip'] {
   word-break: normal !important;
   overflow-wrap: break-word !important;
   hyphens: none !important;
 }
-

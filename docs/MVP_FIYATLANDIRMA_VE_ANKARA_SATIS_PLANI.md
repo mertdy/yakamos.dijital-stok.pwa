@@ -248,10 +248,10 @@ Bu fiyat:
 
 İlk 15–20 ücretli müşteri sonrasında iki paket yeterli olacaktır.
 
-| Paket | Aylık fiyat önerisi | Hedef |
-|---|---:|---|
-| Esnaf | 349–399 TL + KDV | Tek kişi veya 1–2 çalışan |
-| Esnaf Plus | 499–599 TL + KDV | 3–5 çalışan, daha fazla kontrol |
+| Paket      | Aylık fiyat önerisi | Hedef                           |
+| ---------- | ------------------: | ------------------------------- |
+| Esnaf      |    349–399 TL + KDV | Tek kişi veya 1–2 çalışan       |
+| Esnaf Plus |    499–599 TL + KDV | 3–5 çalışan, daha fazla kontrol |
 
 ## Esnaf
 
