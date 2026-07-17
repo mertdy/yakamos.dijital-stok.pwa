@@ -278,5 +278,6 @@ test.describe('Company-specific quick-add shortcuts @online', () => {
     await deleteProduct(page, firstCompanyProduct);
     await switchCompany(page, secondCompanyName);
     await deleteProduct(page, secondCompanyProduct);
+    await switchCompany(page, firstCompanyName);
   });
 });

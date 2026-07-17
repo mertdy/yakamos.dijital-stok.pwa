@@ -128,7 +128,8 @@ export const QuickAddEditModal: React.FC<Props> = ({ isOpen, onClose }) => {
       );
       setSearchQuery('');
     }
-  }, [isOpen, savedItems, quickAddCompanyId, activeCompanyId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
 
   const searchResults = useMemo(() => {
     if (!debouncedSearch.trim()) return items.slice(0, 50); // Default show 50 items

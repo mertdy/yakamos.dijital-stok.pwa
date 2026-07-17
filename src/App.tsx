@@ -130,21 +130,6 @@ function App() {
           path="/welcome"
           element={<Navigate to={user ? noCompanyRoute : '/login'} replace />}
         />
-        <Route
-          path="/account-settings"
-          element={
-            user && hasNoCompany ? (
-              <LazyRouteErrorBoundary>
-                <AccountSettingsView />
-              </LazyRouteErrorBoundary>
-            ) : (
-              <Navigate
-                to={user ? '/account-settings/app' : '/login'}
-                replace
-              />
-            )
-          }
-        />
 
         {/* Protected Routes */}
         <Route
@@ -168,10 +153,7 @@ function App() {
               )
             }
           />
-          <Route
-            path="/account-settings/app"
-            element={<AccountSettingsView />}
-          />
+          <Route path="/account-settings" element={<AccountSettingsView />} />
           <Route
             path="/planlar-ve-fiyatlandirma"
             element={<PricingPlansView />}

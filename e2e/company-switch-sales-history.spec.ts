@@ -41,9 +41,14 @@ test.describe('Company switch sales history @online', () => {
     );
 
     await login(page);
-    const hostCompanyName = (
+    let hostCompanyName = (
       await page.getByRole('button', { name: 'İşletme Seç' }).innerText()
     ).trim();
+
+    if (hostCompanyName !== 'Test E2E Sirketi') {
+      await switchCompany(page, 'Test E2E Sirketi');
+      hostCompanyName = 'Test E2E Sirketi';
+    }
     await page.goto('/sales-history');
     const invoiceCells = page.locator('tbody tr td:nth-child(2)');
     await expect(invoiceCells).not.toHaveCount(0);
