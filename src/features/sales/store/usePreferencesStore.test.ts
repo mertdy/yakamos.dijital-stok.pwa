@@ -1,10 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { getDoc, setDoc } from 'firebase/firestore';
+import { arrayRemove, getDoc, setDoc } from 'firebase/firestore';
 
 const authState = vi.hoisted(() => ({ activeCompanyId: 'company-a' }));
 
 vi.mock('firebase/firestore', () => ({
   doc: vi.fn((...path: string[]) => ({ path: path.join('/') })),
+  arrayRemove: vi.fn((...items: string[]) => ({ items })),
   getDoc: vi.fn(),
   setDoc: vi.fn().mockResolvedValue(undefined)
 }));
@@ -69,6 +70,28 @@ describe('usePreferencesStore', () => {
     expect(setDoc).toHaveBeenCalledWith(
       expect.anything(),
       { quickAddItemsByCompany: { 'company-a': ['product-a'] } },
+      { merge: true }
+    );
+  });
+
+  it('removes deleted products from the active company shortcuts', async () => {
+    const store = await buildStore();
+    store.setState({
+      quickAddItems: ['product-a', 'product-b'],
+      quickAddCompanyId: 'company-a'
+    });
+
+    await store.getState().removeQuickAddItems(['product-a']);
+
+    expect(store.getState().quickAddItems).toEqual(['product-b']);
+    expect(arrayRemove).toHaveBeenCalledWith('product-a');
+    expect(setDoc).toHaveBeenCalledWith(
+      expect.anything(),
+      {
+        quickAddItemsByCompany: {
+          'company-a': { items: ['product-a'] }
+        }
+      },
       { merge: true }
     );
   });

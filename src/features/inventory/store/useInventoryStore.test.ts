@@ -33,6 +33,14 @@ vi.mock('@/features/auth/store/useAuthStore', () => ({
   }
 }));
 
+const removeQuickAddItems = vi.fn().mockResolvedValue(undefined);
+
+vi.mock('@/features/sales/store/usePreferencesStore', () => ({
+  usePreferencesStore: {
+    getState: () => ({ removeQuickAddItems })
+  }
+}));
+
 async function buildStore() {
   const { useInventoryStore } = await import('./useInventoryStore');
   return useInventoryStore;
@@ -77,6 +85,7 @@ describe('useInventoryStore', () => {
     const store = await buildStore();
     await store.getState().deleteItem('p1');
     expect(deleteDoc).toHaveBeenCalled();
+    expect(removeQuickAddItems).toHaveBeenCalledWith(['p1']);
   });
 
   it('deleteItems triggers writeBatch delete and commit', async () => {
@@ -85,6 +94,7 @@ describe('useInventoryStore', () => {
     expect(writeBatch).toHaveBeenCalled();
     expect(mockBatch.delete).toHaveBeenCalledTimes(2);
     expect(mockBatch.commit).toHaveBeenCalled();
+    expect(removeQuickAddItems).toHaveBeenCalledWith(['p1', 'p2']);
   });
 
   it('clearItems resets snapshot and clears items array', async () => {

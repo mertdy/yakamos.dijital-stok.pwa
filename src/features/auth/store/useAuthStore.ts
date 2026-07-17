@@ -126,7 +126,6 @@ interface AuthState {
   unsubscribeProfile: (() => void) | null;
   unsubscribeMemberships: (() => void) | null;
   unsubscribeActiveCompany: (() => void) | null;
-  activeCompanySubscriptionId: string | null;
 }
 
 const checkAndMigrateLegacyUser = async (user: User): Promise<UserProfile> => {
@@ -232,7 +231,6 @@ export const useAuthStore = getSingletonStore('auth', () =>
     unsubscribeProfile: null,
     unsubscribeMemberships: null,
     unsubscribeActiveCompany: null,
-    activeCompanySubscriptionId: null,
 
     setUser: async user => {
       const {
@@ -247,8 +245,7 @@ export const useAuthStore = getSingletonStore('auth', () =>
       set({
         unsubscribeProfile: null,
         unsubscribeMemberships: null,
-        unsubscribeActiveCompany: null,
-        activeCompanySubscriptionId: null
+        unsubscribeActiveCompany: null
       });
 
       if (!user) {
@@ -298,12 +295,6 @@ export const useAuthStore = getSingletonStore('auth', () =>
               memberships.find(
                 m => m.companyId === normalizedProfile.activeCompanyId
               ) || null;
-            const activeCompanyChanged =
-              get().profile?.activeCompanyId !==
-              normalizedProfile.activeCompanyId;
-            const needsActiveCompanySubscription =
-              get().activeCompanySubscriptionId !==
-              normalizedProfile.activeCompanyId;
 
             if (normalizedProfile !== profileData) {
               updateDoc(doc(db, 'users', user.uid), {
@@ -316,29 +307,16 @@ export const useAuthStore = getSingletonStore('auth', () =>
             set({
               profile: normalizedProfile,
               activeMembership,
-              // switchCompany already fetches the selected company immediately.
-              // Clearing it again when the profile listener receives the same
-              // update causes the switcher and offline-preparation indicator to
-              // briefly return to their loading states a second time.
-              ...(activeCompanyChanged ? { activeCompany: null } : {})
+              activeCompany: null
             });
 
-            if (
-              normalizedProfile.activeCompanyId &&
-              needsActiveCompanySubscription
-            ) {
+            if (normalizedProfile.activeCompanyId) {
               const { unsubscribeActiveCompany: oldSubCompany } = get();
               if (oldSubCompany) oldSubCompany();
 
               const subCompany = onSnapshot(
                 doc(db, 'companies', normalizedProfile.activeCompanyId),
                 companySnap => {
-                  if (
-                    get().profile?.activeCompanyId !==
-                    normalizedProfile.activeCompanyId
-                  ) {
-                    return;
-                  }
                   if (companySnap.exists()) {
                     set({ activeCompany: companySnap.data() as Company });
                   } else {
@@ -346,15 +324,9 @@ export const useAuthStore = getSingletonStore('auth', () =>
                   }
                 }
               );
-              set({
-                unsubscribeActiveCompany: subCompany,
-                activeCompanySubscriptionId: normalizedProfile.activeCompanyId
-              });
-            } else if (needsActiveCompanySubscription) {
-              set({
-                activeCompany: null,
-                activeCompanySubscriptionId: null
-              });
+              set({ unsubscribeActiveCompany: subCompany });
+            } else {
+              set({ activeCompany: null });
             }
           }
         );
@@ -400,8 +372,7 @@ export const useAuthStore = getSingletonStore('auth', () =>
             set({
               profile: { ...profile, activeCompanyId: nextActiveCompanyId },
               activeCompany: null,
-              unsubscribeActiveCompany: null,
-              activeCompanySubscriptionId: null
+              unsubscribeActiveCompany: null
             });
             updateDoc(doc(db, 'users', user.uid), {
               activeCompanyId: nextActiveCompanyId
@@ -664,35 +635,6 @@ export const useAuthStore = getSingletonStore('auth', () =>
       }
 
       await updatePromise;
-      const activeMembership = get().memberships.find(
-        membership => membership.companyId === companyId
-      );
-      const profile = get().profile;
-      if (profile && activeMembership) {
-        set({
-          profile: { ...profile, activeCompanyId: companyId },
-          activeMembership,
-          activeCompany: null
-        });
-
-        // Do not depend solely on the profile listener to populate the active
-        // company. During the first login that listener can still be catching
-        // up, which otherwise leaves the switcher at "Yükleniyor...".
-        try {
-          const companySnap = await getDoc(doc(db, 'companies', companyId));
-          if (
-            get().profile?.activeCompanyId === companyId &&
-            companySnap.exists()
-          ) {
-            set({ activeCompany: companySnap.data() as Company });
-          }
-        } catch (error) {
-          console.warn(
-            'Active company could not be loaded after switch',
-            error
-          );
-        }
-      }
     },
 
     updateCompanyProfile: async details => {

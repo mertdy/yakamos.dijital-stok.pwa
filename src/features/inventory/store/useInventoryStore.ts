@@ -12,6 +12,7 @@ import {
 } from 'firebase/firestore';
 import { db, auth } from '@/core/firebase/config';
 import { useAuthStore } from '@/features/auth/store/useAuthStore';
+import { usePreferencesStore } from '@/features/sales/store/usePreferencesStore';
 import posthog from 'posthog-js';
 
 export interface InventoryItem {
@@ -201,6 +202,8 @@ export const useInventoryStore = getSingletonStore('inventory', () =>
         });
       });
 
+      usePreferencesStore.getState().removeQuickAddItems([id]);
+
       posthog.capture('inventory_item_deleted', {
         inventory_id: id
       });
@@ -222,6 +225,8 @@ export const useInventoryStore = getSingletonStore('inventory', () =>
           inventory_ids: ids
         });
       });
+
+      await usePreferencesStore.getState().removeQuickAddItems(ids);
 
       posthog.capture('inventory_items_deleted', {
         count: ids.length,

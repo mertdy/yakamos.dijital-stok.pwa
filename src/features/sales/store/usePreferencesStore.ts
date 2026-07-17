@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { getSingletonStore } from '@/shared/utils/getSingletonStore';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { arrayRemove, doc, getDoc, setDoc } from 'firebase/firestore';
 import { db, auth } from '@/core/firebase/config';
 import { useAuthStore } from '@/features/auth/store/useAuthStore';
 
@@ -10,6 +10,7 @@ interface PreferencesState {
   isLoading: boolean;
   loadPreferences: (companyId?: string | null) => Promise<void>;
   saveQuickAddItems: (items: string[]) => Promise<void>;
+  removeQuickAddItems: (itemIds: string[]) => Promise<void>;
   clearPreferences: () => void;
 }
 
@@ -126,6 +127,34 @@ export const usePreferencesStore = getSingletonStore('preferences', () => {
         throw error;
       } finally {
         set({ isLoading: false });
+      }
+    },
+
+    removeQuickAddItems: async itemIds => {
+      const user = auth.currentUser;
+      const companyId = useAuthStore.getState().profile?.activeCompanyId;
+      if (!user || !companyId || itemIds.length === 0) return;
+
+      if (get().quickAddCompanyId === companyId) {
+        set(state => ({
+          quickAddItems: state.quickAddItems.filter(
+            itemId => !itemIds.includes(itemId)
+          )
+        }));
+      }
+
+      try {
+        await setDoc(
+          doc(db, 'userPreferences', user.uid),
+          {
+            quickAddItemsByCompany: {
+              [companyId]: arrayRemove(...itemIds)
+            }
+          },
+          { merge: true }
+        );
+      } catch (error) {
+        console.error('Error removing quick add items:', error);
       }
     },
 

@@ -8,6 +8,7 @@ import { useAuthStore } from '../store/useAuthStore';
 import { db } from '@/core/firebase/config';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import type { Invitation } from '@/core/types/tenant';
+import { PERMISSION_META } from '@/core/types/permissions';
 import {
   Loader2,
   Plus,
@@ -149,14 +150,12 @@ export const OnboardingView = () => {
                 <Tabs.Indicator />
               </Tabs.Tab>
               <Tabs.Tab id="invitations" className="flex-1 justify-center">
-                <Badge.Anchor>
-                  <span>Davetler</span>
-                  {invitations.length > 0 && (
-                    <Badge color="danger" variant="primary" size="sm">
-                      {invitations.length}
-                    </Badge>
-                  )}
-                </Badge.Anchor>
+                <span>Davetler</span>
+                {invitations.length > 0 && (
+                  <Badge color="danger" variant="primary" size="sm">
+                    {invitations.length}
+                  </Badge>
+                )}
                 <Tabs.Indicator />
               </Tabs.Tab>
             </Tabs.List>
@@ -178,20 +177,18 @@ export const OnboardingView = () => {
                         {invite.companyName}
                       </h4>
                       <p className="mt-0.5 text-xs text-gray-500">
-                        Bu işletmede çalışan (Employee) olarak görev yapmaya
-                        davet edildiniz.
+                        Bu işletmede{' '}
+                        <span className="font-extrabold text-gray-700">
+                          {invite.jobTitle?.trim() || 'çalışan'}
+                        </span>{' '}
+                        olarak görev yapmaya davet edildiniz.
                       </p>
                       <div className="mt-2 flex flex-wrap gap-1.5">
                         {invite.permissions.map(perm => (
                           <span
                             key={perm}
                             className="inline-flex rounded border border-gray-100 bg-white px-2 py-0.5 text-[10px] font-semibold text-gray-600 shadow-sm">
-                            {perm === 'VIEW_DASHBOARD' && 'Dashboard Görünümü'}
-                            {perm === 'MANAGE_INVENTORY' && 'Envanter Yönetimi'}
-                            {perm === 'MANAGE_CUSTOMERS' && 'Müşteri Yönetimi'}
-                            {perm === 'TAKE_PAYMENT' && 'Ödeme Alıcı'}
-                            {perm === 'VIEW_SALES_HISTORY' && 'Satış Geçmişi'}
-                            {perm === 'MANAGE_SALES_HISTORY' && 'Satış İptali'}
+                            {PERMISSION_META[perm].label}
                           </span>
                         ))}
                       </div>
