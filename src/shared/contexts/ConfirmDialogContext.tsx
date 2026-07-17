@@ -10,7 +10,7 @@ import { Button } from '@heroui/react';
 
 export interface ConfirmOptions {
   title?: string;
-  description: string;
+  description: ReactNode | ((close: () => void) => ReactNode);
   confirmText?: string;
   cancelText?: string;
   variant?: 'primary' | 'secondary' | 'danger' | 'ghost' | 'outline';
@@ -105,7 +105,11 @@ export const ConfirmDialogProvider: React.FC<ConfirmDialogProviderProps> = ({
                     <AlertDialog.Heading>{options.title}</AlertDialog.Heading>
                   </AlertDialog.Header>
                 )}
-                <AlertDialog.Body>{options.description}</AlertDialog.Body>
+                <AlertDialog.Body>
+                  {typeof options.description === 'function'
+                    ? options.description(handleCancel)
+                    : options.description}
+                </AlertDialog.Body>
                 <AlertDialog.Footer>
                   <Button variant="ghost" onPress={handleCancel}>
                     {options.cancelText || 'İptal'}

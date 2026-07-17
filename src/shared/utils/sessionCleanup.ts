@@ -4,6 +4,7 @@ import {
   waitForPendingWrites
 } from 'firebase/firestore';
 import { db } from '@/core/firebase/config';
+import { clearPendingSyncOperations } from './pendingSyncOperations';
 
 const CHANNEL_NAME = 'dijital-stok-session';
 const OFFLINE_CACHE_KEY = 'dijital-stok.offline-company-cache.v1';
@@ -23,6 +24,7 @@ const getChannel = () => {
 export const clearUserLocalStorage = () => {
   localStorage.removeItem(OFFLINE_CACHE_KEY);
   localStorage.removeItem(SALES_STORAGE_KEY);
+  clearPendingSyncOperations();
   localStorage.removeItem(RETRY_CLEANUP_KEY);
 };
 

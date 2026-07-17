@@ -9,6 +9,7 @@ import {
   type SaleTransaction
 } from '@/features/sales-history';
 import posthog from 'posthog-js';
+import { trackPendingSyncOperation } from '@/shared/utils/pendingSyncOperations';
 
 export interface CartItem {
   inventoryId: string;
@@ -285,6 +286,14 @@ export const useSalesStore = getSingletonStore('sales', () =>
             }
 
             const backupPromise = batch.commit();
+            trackPendingSyncOperation({
+              kind: 'sale',
+              title: `Fatura No: ${invoiceNumber}`,
+              details: [
+                `Satış tutarı: ${totalAmount.toLocaleString('tr-TR')} ₺`
+              ],
+              target: { type: 'sale', id: saleRef.id }
+            });
 
             const completedSale: SaleTransaction = {
               id: saleRef.id,

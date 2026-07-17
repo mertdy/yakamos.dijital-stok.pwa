@@ -16,6 +16,8 @@ import { db, auth } from '@/core/firebase/config';
 import { useAuthStore } from '@/features/auth/store/useAuthStore';
 import posthog from 'posthog-js';
 import { normalizeWhatsAppPhone } from '../domain/customerStatement';
+import { trackPendingSyncOperation } from '@/shared/utils/pendingSyncOperations';
+import { getFieldChangeDetails } from '@/shared/utils/formatFieldChanges';
 
 export interface Customer {
   id: string;
@@ -194,7 +196,14 @@ export const useCustomerStore = getSingletonStore('customers', () =>
         companyId: profile.activeCompanyId
       };
 
-      setDoc(doc(db, 'customers', id), newCustomer).catch(err => {
+      const saveCustomer = setDoc(doc(db, 'customers', id), newCustomer);
+      trackPendingSyncOperation({
+        kind: 'customer',
+        title: newCustomer.name,
+        details: ['Müşteri eklendi'],
+        target: { type: 'customer', id }
+      });
+      saveCustomer.catch(err => {
         console.error('Firestore background sync failed', err);
         posthog.captureException(err, {
           context: 'customer_add',
@@ -232,10 +241,56 @@ export const useCustomerStore = getSingletonStore('customers', () =>
             ? customerData
             : { ...customerData, phone: normalizedPhone || '' };
         const customerRef = doc(db, 'customers', id);
-        await updateDoc(customerRef, {
+        const saveCustomer = updateDoc(customerRef, {
           ...normalizedCustomerData,
           updatedAt: new Date().toISOString()
         });
+        const customerName =
+          get().customers.find(customer => customer.id === id)?.name ?? id;
+        const currentCustomer = get().customers.find(
+          customer => customer.id === id
+        );
+        const changedFields = getFieldChangeDetails(
+          (currentCustomer ?? {}) as Record<string, unknown>,
+          normalizedCustomerData as Record<string, unknown>,
+          {
+            name: 'Ad',
+            surname: 'Soyad',
+            phone: 'Telefon',
+            email: 'E-posta',
+            address: 'Adres',
+            creditLimit: 'Kredi limiti',
+            notes: 'Notlar'
+          },
+          {
+            creditLimit: value =>
+              typeof value === 'number'
+                ? `${value.toLocaleString('tr-TR')} ₺`
+                : value === undefined || value === null
+                  ? '—'
+                  : String(value)
+          }
+        );
+        trackPendingSyncOperation({
+          kind: 'customer',
+          title: customerName,
+          details:
+            changedFields.length > 0 ? changedFields : ['Müşteri güncellendi'],
+          target: { type: 'customer', id }
+        });
+        if (navigator.onLine) {
+          await saveCustomer;
+        } else {
+          // Firestore keeps the write in its offline queue. Do not leave the
+          // edit form in a loading state while waiting for connectivity.
+          void saveCustomer.catch(error => {
+            console.error('Offline customer update sync failed:', error);
+            posthog.captureException(error, {
+              context: 'customer_update_offline_sync',
+              customer_id: id
+            });
+          });
+        }
 
         set(state => ({
           customers: state.customers.map(c =>
@@ -306,7 +361,17 @@ export const useCustomerStore = getSingletonStore('customers', () =>
           totalDebt: increment(-amount)
         });
 
-        await batch.commit();
+        const savePayment = batch.commit();
+        const customerName =
+          get().customers.find(customer => customer.id === customerId)?.name ??
+          customerId;
+        trackPendingSyncOperation({
+          kind: 'payment',
+          title: customerName,
+          details: [`Tahsilat: ${amount.toLocaleString('tr-TR')} ₺`],
+          target: { type: 'customer', id: customerId }
+        });
+        await savePayment;
         posthog.capture('customer_payment_recorded', {
           customer_id: customerId,
           payment_id: paymentId,

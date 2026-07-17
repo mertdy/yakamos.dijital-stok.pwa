@@ -14,6 +14,8 @@ import { db, auth } from '@/core/firebase/config';
 import { useAuthStore } from '@/features/auth/store/useAuthStore';
 import { usePreferencesStore } from '@/features/sales/store/usePreferencesStore';
 import posthog from 'posthog-js';
+import { trackPendingSyncOperation } from '@/shared/utils/pendingSyncOperations';
+import { getFieldChangeDetails } from '@/shared/utils/formatFieldChanges';
 
 export interface InventoryItem {
   id: string;
@@ -128,6 +130,12 @@ export const useInventoryStore = getSingletonStore('inventory', () =>
       }));
 
       const saveItem = setDoc(doc(db, 'inventory', id), newItem);
+      trackPendingSyncOperation({
+        kind: 'inventory',
+        title: newItem.name,
+        details: ['Ürün eklendi'],
+        target: { type: 'inventory', id }
+      });
       const reportSaveError = (err: unknown) => {
         console.error('Firestore background sync failed', err);
         posthog.captureException(err, {
@@ -172,15 +180,45 @@ export const useInventoryStore = getSingletonStore('inventory', () =>
         items: state.items.map(item => (item.id === id ? mergedItem : item))
       }));
 
-      setDoc(doc(db, 'inventory', id), mergedItem, { merge: true }).catch(
-        err => {
-          console.error('Firestore background sync failed', err);
-          posthog.captureException(err, {
-            context: 'inventory_update_item',
-            inventory_id: id
-          });
+      const saveItem = setDoc(doc(db, 'inventory', id), mergedItem, {
+        merge: true
+      });
+      const changedFields = getFieldChangeDetails(
+        currentItem as Record<string, unknown>,
+        updatedData as Record<string, unknown>,
+        {
+          name: 'Ürün adı',
+          stock: 'Stok miktarı',
+          price: 'Fiyat',
+          barcode: 'Barkod',
+          sku: 'Stok kodu',
+          imageUrl: 'Ürün görseli'
+        },
+        {
+          price: value =>
+            typeof value === 'number'
+              ? `${value.toLocaleString('tr-TR')} ₺`
+              : value === undefined || value === null
+                ? '—'
+                : String(value),
+          stock: value =>
+            value === undefined || value === null ? '—' : String(value)
         }
       );
+      trackPendingSyncOperation({
+        kind: 'inventory',
+        title: mergedItem.name,
+        details:
+          changedFields.length > 0 ? changedFields : ['Ürün güncellendi'],
+        target: { type: 'inventory', id }
+      });
+      saveItem.catch(err => {
+        console.error('Firestore background sync failed', err);
+        posthog.captureException(err, {
+          context: 'inventory_update_item',
+          inventory_id: id
+        });
+      });
 
       posthog.capture('inventory_item_updated', {
         inventory_id: id,
@@ -194,7 +232,14 @@ export const useInventoryStore = getSingletonStore('inventory', () =>
       const user = auth.currentUser;
       if (!user) throw new Error('User not authenticated');
 
-      deleteDoc(doc(db, 'inventory', id)).catch(err => {
+      const itemName = get().items.find(item => item.id === id)?.name ?? id;
+      const deleteItem = deleteDoc(doc(db, 'inventory', id));
+      trackPendingSyncOperation({
+        kind: 'inventory',
+        title: itemName,
+        details: ['Ürün silindi']
+      });
+      deleteItem.catch(err => {
         console.error('Firestore background sync failed', err);
         posthog.captureException(err, {
           context: 'inventory_delete_item',
@@ -218,7 +263,13 @@ export const useInventoryStore = getSingletonStore('inventory', () =>
         batch.delete(doc(db, 'inventory', id));
       });
 
-      await batch.commit().catch(err => {
+      const deleteItems = batch.commit();
+      trackPendingSyncOperation({
+        kind: 'inventory',
+        title: `${ids.length} stok kaydı silindi`,
+        details: ['Toplu silme işlemi']
+      });
+      await deleteItems.catch(err => {
         console.error('Firestore background sync batch failed', err);
         posthog.captureException(err, {
           context: 'inventory_delete_items',
