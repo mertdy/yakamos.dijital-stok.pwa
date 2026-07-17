@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
+import { clsx } from 'clsx';
 import { BrowserMultiFormatReader } from '@zxing/browser';
 import {
   BarcodeScanner,
@@ -9,7 +10,9 @@ import { useInventoryStore } from '@/features/inventory';
 import { toast, Button, Modal } from '@heroui/react';
 import { useSalesStore } from '../store/useSalesStore';
 import { useNavigate } from 'react-router-dom';
+import { ROUTES } from '@/core/config/routes';
 import posthog from 'posthog-js';
+import { playBarcodeFeedback } from '@/shared/utils/barcodeFeedback';
 
 interface ScannerModalProps {
   isOpen: boolean;
@@ -87,6 +90,7 @@ const ScannerModal: React.FC<ScannerModalProps> = ({
 
       if (onScan) {
         hasScannedRef.current = true;
+        playBarcodeFeedback();
         onScan(barcode);
         if (Capacitor.getPlatform() !== 'web') {
           stopScan();
@@ -99,6 +103,7 @@ const ScannerModal: React.FC<ScannerModalProps> = ({
       const item = items.find((i: any) => i.barcode === barcode);
       if (item) {
         hasScannedRef.current = true;
+        playBarcodeFeedback();
         posthog.capture('scanner_item_added_to_cart', {
           inventory_id: item.id,
           barcode_length: barcode.length,
@@ -137,7 +142,7 @@ const ScannerModal: React.FC<ScannerModalProps> = ({
                 stopScan();
               }
               onClose();
-              navigate(`/inventory/new?barcode=${encodeURIComponent(barcode)}`);
+              navigate(ROUTES.INVENTORY.NEW_WITH_BARCODE(barcode));
             }
           }
         });
@@ -291,10 +296,13 @@ const ScannerModal: React.FC<ScannerModalProps> = ({
         if (!open) onClose();
       }}>
       <button style={{ display: 'none' }} aria-hidden="true" tabIndex={-1} />
-      <Modal.Backdrop className={isNativeScanning ? 'bg-transparent' : ''}>
+      <Modal.Backdrop className={clsx(isNativeScanning && 'bg-transparent')}>
         <Modal.Container>
           <Modal.Dialog
-            className={`w-full max-w-md overflow-hidden rounded-[28px] bg-white shadow-2xl outline-none ${isNativeScanning ? 'bg-transparent shadow-none' : ''}`}>
+            className={clsx(
+              'w-full max-w-md overflow-hidden rounded-[28px] bg-white shadow-2xl outline-none',
+              isNativeScanning && 'bg-transparent shadow-none'
+            )}>
             <Modal.CloseTrigger />
             <Modal.Header>
               <Modal.Heading className="text-xl">Barkod Okut</Modal.Heading>

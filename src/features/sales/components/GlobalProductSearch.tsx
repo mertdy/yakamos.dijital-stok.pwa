@@ -5,8 +5,10 @@ import { useSalesStore } from '../store/useSalesStore';
 import { useDebounce } from '@/shared/hooks/useDebounce';
 import { useGlobalBarcodeScanner } from '@/shared/hooks/useGlobalBarcodeScanner';
 import { useNavigate } from 'react-router-dom';
-import { toast } from '@heroui/react';
+import { ROUTES } from '@/core/config/routes';
+import { Input, toast } from '@heroui/react';
 import posthog from 'posthog-js';
+import { playBarcodeFeedback } from '@/shared/utils/barcodeFeedback';
 
 interface Props {
   onOpenScanner: () => void;
@@ -57,6 +59,7 @@ export const GlobalProductSearch: React.FC<Props> = ({ onOpenScanner }) => {
 
         if (item) {
           handleSelectProduct(item);
+          playBarcodeFeedback();
           toast.success(`${item.name} sepete eklendi`);
         } else {
           setIsFocused(false);
@@ -66,9 +69,7 @@ export const GlobalProductSearch: React.FC<Props> = ({ onOpenScanner }) => {
               children: 'Yeni Ürün Ekle',
               onPress: () => {
                 setQuery('');
-                navigate(
-                  `/inventory/new?barcode=${encodeURIComponent(barcode)}`
-                );
+                navigate(ROUTES.INVENTORY.NEW_WITH_BARCODE(barcode));
               }
             }
           });
@@ -114,18 +115,19 @@ export const GlobalProductSearch: React.FC<Props> = ({ onOpenScanner }) => {
   const showDropdown = isFocused && debouncedQuery.trim().length > 0;
 
   return (
-    <div className="relative z-40 flex-shrink-0" ref={containerRef}>
+    <div className="relative flex-shrink-0" ref={containerRef}>
       <Search
         className="absolute top-1/2 left-4 -translate-y-1/2 text-gray-400"
         size={18}
       />
-      <input
+      <Input
         type="text"
+        fullWidth
         placeholder="Ürün veya barkod ara..."
         value={query}
         onChange={e => setQuery(e.target.value)}
         onFocus={() => setIsFocused(true)}
-        className="focus:ring-primary w-full rounded-2xl border border-gray-100 bg-white py-3.5 pr-14 pl-11 text-sm shadow-sm transition-all outline-none focus:ring-2"
+        className="pr-14 pl-11"
       />
       <button
         onClick={onOpenScanner}
@@ -178,9 +180,7 @@ export const GlobalProductSearch: React.FC<Props> = ({ onOpenScanner }) => {
                 onClick={() => {
                   setQuery('');
                   setIsFocused(false);
-                  navigate(
-                    `/inventory/new?barcode=${encodeURIComponent(debouncedQuery)}`
-                  );
+                  navigate(ROUTES.INVENTORY.NEW_WITH_BARCODE(debouncedQuery));
                 }}
                 className="text-primary mt-1 cursor-pointer font-medium hover:underline">
                 Bu ürünü eklemek ister misiniz?

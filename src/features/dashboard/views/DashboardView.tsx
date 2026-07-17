@@ -1,8 +1,9 @@
 import React, { useMemo } from 'react';
+import { clsx } from 'clsx';
 import { Card, Tabs, Select, ListBox, Table, Chip } from '@heroui/react';
 import { useDashboardStats } from '../hooks/useDashboardStats';
 import type { ChartPeriod } from '../hooks/useDashboardStats';
-import { Package, TrendingUp } from 'lucide-react';
+import { Package } from 'lucide-react';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -172,7 +173,7 @@ export const DashboardView: React.FC = () => {
             </div>
             <div className="bg-default-100 h-2 w-full overflow-hidden rounded-full">
               <div
-                className={`h-full rounded-full ${color}`}
+                className={clsx('h-full rounded-full', color)}
                 style={{
                   width: `${maxVal > 0 ? (item.value / maxVal) * 100 : 0}%`
                 }}
@@ -185,10 +186,14 @@ export const DashboardView: React.FC = () => {
   };
 
   return (
-    <div className="mx-auto h-full max-w-7xl overflow-y-auto p-4 md:p-6 lg:p-8">
-      <div className="mb-6 flex items-center gap-2">
-        <TrendingUp className="text-primary h-6 w-6" />
-        <h1 className="text-default-900 text-2xl font-bold">Anasayfa</h1>
+    <div className="mx-auto h-full max-w-7xl overflow-y-auto p-4 md:p-6">
+      <div className="mb-6">
+        <h1 className="text-3xl font-bold tracking-tight text-gray-900">
+          Anasayfa
+        </h1>
+        <p className="mt-1 text-sm text-gray-500">
+          İşletmenizin güncel performansını ve önemli özetlerini takip edin.
+        </p>
       </div>
 
       {/* Top Metric Cards */}

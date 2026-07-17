@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
+import { clsx } from 'clsx';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod/v4';
 import { useAuthStore } from '../store/useAuthStore';
 import { Package, Eye, EyeOff, ArrowLeft, CheckCircle } from 'lucide-react';
-import { Button } from '@heroui/react';
+import { Button, Input, Label } from '@heroui/react';
 
 // ─── Schemas ─────────────────────────────────────────────────────────────────
 
@@ -57,22 +58,17 @@ const FormField: React.FC<FormFieldProps> = ({
   autoComplete
 }) => (
   <div className="flex flex-col gap-1.5 text-left">
-    <label htmlFor={id} className="text-sm font-semibold text-gray-700">
-      {label}
-    </label>
+    <Label htmlFor={id}>{label}</Label>
     <div className="relative">
-      <input
+      <Input
         id={id}
         type={type}
+        fullWidth
         placeholder={placeholder}
         autoComplete={autoComplete}
-        aria-invalid={!!error}
+        aria-invalid={Boolean(error)}
         aria-describedby={error ? `${id}-error` : undefined}
-        className={`w-full rounded-xl border px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-all outline-none focus:ring-2 focus:ring-blue-500/30 ${
-          error
-            ? 'border-red-400 bg-red-50 focus:border-red-400'
-            : 'border-gray-200 bg-gray-50 focus:border-blue-400 focus:bg-white'
-        } ${rightElement ? 'pr-12' : ''}`}
+        className={clsx(rightElement && 'pr-12')}
         {...registration}
       />
       {rightElement && (
@@ -82,10 +78,7 @@ const FormField: React.FC<FormFieldProps> = ({
       )}
     </div>
     {error && (
-      <p
-        id={`${id}-error`}
-        role="alert"
-        className="mt-0.5 text-xs font-medium text-red-500">
+      <p id={`${id}-error`} role="alert" className="text-danger text-xs">
         {error}
       </p>
     )}
@@ -530,11 +523,12 @@ export const LoginView: React.FC = () => {
                 aria-selected={activeTab === 'login'}
                 aria-controls="panel-login"
                 onClick={() => handleTabChange('login')}
-                className={`flex-1 rounded-xl py-2.5 text-sm font-semibold transition-all ${
+                className={clsx(
+                  'flex-1 rounded-xl py-2.5 text-sm font-semibold transition-all',
                   activeTab === 'login'
                     ? 'bg-white text-gray-900 shadow-sm'
                     : 'text-gray-500 hover:text-gray-700'
-                }`}>
+                )}>
                 Giriş Yap
               </button>
               <button
@@ -544,11 +538,12 @@ export const LoginView: React.FC = () => {
                 aria-selected={activeTab === 'register'}
                 aria-controls="panel-register"
                 onClick={() => handleTabChange('register')}
-                className={`flex-1 rounded-xl py-2.5 text-sm font-semibold transition-all ${
+                className={clsx(
+                  'flex-1 rounded-xl py-2.5 text-sm font-semibold transition-all',
                   activeTab === 'register'
                     ? 'bg-white text-gray-900 shadow-sm'
                     : 'text-gray-500 hover:text-gray-700'
-                }`}>
+                )}>
                 Kayıt Ol
               </button>
             </div>

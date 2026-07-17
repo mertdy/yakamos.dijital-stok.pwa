@@ -10,6 +10,18 @@ vi.mock('../store/useCustomerStore', () => ({
 }));
 
 // Mock react-router-dom
+vi.mock('@/features/auth', () => ({
+  useAuthStore: Object.assign(
+    () => ({
+      activeMembership: { role: 'OWNER', permissions: [] }
+    }),
+    {
+      getState: () => ({
+        activeMembership: { role: 'OWNER', permissions: [] }
+      })
+    }
+  )
+}));
 const mockNavigate = vi.fn();
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual('react-router-dom');
@@ -81,6 +93,28 @@ describe('CustomerDetailView', () => {
     await waitFor(() => {
       expect(screen.getByText('Veresiye Satış')).toBeInTheDocument();
     });
+  });
+
+  it('shows the user who recorded a payment in the statement', async () => {
+    mockGetTransactions.mockResolvedValueOnce([
+      {
+        id: 'payment-1',
+        type: 'PAYMENT',
+        amount: 200,
+        date: '2024-01-02T10:00:00Z',
+        description: 'Tahsilat',
+        collectedBy: {
+          userId: 'user-2',
+          displayName: 'Ayşe Demir',
+          email: 'ayse@example.com'
+        }
+      }
+    ]);
+
+    renderComponent();
+
+    expect(await screen.findByText('Ayşe Demir')).toBeInTheDocument();
+    expect(screen.getByText('ayse@example.com')).toBeInTheDocument();
   });
 
   it('opens payment modal when Tahsilat Al is clicked', async () => {

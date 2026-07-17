@@ -1,12 +1,19 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { writeBatch } from 'firebase/firestore';
 
+const { batchMock, recordSaleMock, updateSaleSyncStatusMock } = vi.hoisted(
+  () => ({
+    batchMock: {
+      set: vi.fn(),
+      update: vi.fn(),
+      commit: vi.fn().mockResolvedValue(undefined)
+    },
+    recordSaleMock: vi.fn(),
+    updateSaleSyncStatusMock: vi.fn()
+  })
+);
+
 vi.mock('firebase/firestore', () => {
-  const batchMock = {
-    set: vi.fn(),
-    update: vi.fn(),
-    commit: vi.fn().mockResolvedValue(undefined)
-  };
   return {
     collection: vi.fn(),
     doc: vi.fn(() => ({ id: 'mock-doc-id' })),
@@ -22,6 +29,26 @@ vi.mock('@/core/firebase/config', () => ({
   }
 }));
 
+vi.mock('@/features/auth/store/useAuthStore', () => ({
+  useAuthStore: {
+    getState: () => ({
+      profile: { activeCompanyId: 'test-company-id', name: 'Test Sahibi' },
+      activeMembership: { role: 'OWNER', permissions: [] }
+    })
+  }
+}));
+
+vi.mock('@/features/sales-history', () => ({
+  useSalesHistoryStore: {
+    getState: () => ({
+      recordSale: recordSaleMock,
+      updateSaleSyncStatus: updateSaleSyncStatusMock,
+      confirmSaleBackup: updateSaleSyncStatusMock,
+      failSaleBackup: updateSaleSyncStatusMock
+    })
+  }
+}));
+
 async function buildStore() {
   const { useSalesStore } = await import('./useSalesStore');
   return useSalesStore;
@@ -30,6 +57,9 @@ async function buildStore() {
 describe('useSalesStore', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    recordSaleMock.mockClear();
+    updateSaleSyncStatusMock.mockClear();
+    batchMock.commit.mockResolvedValue(undefined);
   });
 
   it('has correct initial state', async () => {
@@ -121,7 +151,7 @@ describe('useSalesStore', () => {
     expect(store.getState().heldSales).toEqual([]);
   });
 
-  it('checkout submits firestore batch and clears cart', async () => {
+  it('makes a completed sale immediately available in sales history', async () => {
     const store = await buildStore();
     store.setState({
       cart: [{ inventoryId: 'p1', name: 'Item 1', price: 10, quantity: 2 }],
@@ -133,5 +163,45 @@ describe('useSalesStore', () => {
     expect(success).toBe(true);
     expect(writeBatch).toHaveBeenCalled();
     expect(store.getState().cart).toEqual([]);
+    expect(recordSaleMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'mock-doc-id',
+        companyId: 'test-company-id',
+        sellerName: 'Test Sahibi',
+        paymentMethod: 'Cash',
+        status: 'completed',
+        totalAmount: 20
+      })
+    );
+  });
+
+  it('completes checkout before an offline backup is confirmed', async () => {
+    let resolveBackup: () => void;
+    batchMock.commit.mockImplementationOnce(
+      () =>
+        new Promise<void>(resolve => {
+          resolveBackup = resolve;
+        })
+    );
+
+    const store = await buildStore();
+    store.setState({
+      cart: [{ inventoryId: 'p1', name: 'Item 1', price: 10, quantity: 2 }],
+      paymentMethod: 'Cash'
+    });
+
+    await expect(store.getState().checkout()).resolves.toBe(true);
+
+    expect(store.getState().isProcessing).toBe(false);
+    expect(store.getState().cart).toEqual([]);
+    expect(recordSaleMock).toHaveBeenCalledWith(
+      expect.objectContaining({ syncStatus: 'pending' })
+    );
+    expect(updateSaleSyncStatusMock).not.toHaveBeenCalled();
+
+    resolveBackup!();
+    await vi.waitFor(() => {
+      expect(updateSaleSyncStatusMock).toHaveBeenCalledWith('mock-doc-id');
+    });
   });
 });

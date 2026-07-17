@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { clsx } from 'clsx';
 import { useSalesHistoryStore } from '../store/useSalesHistoryStore';
 import { useCustomerStore } from '@/features/customers';
 import {
@@ -6,16 +7,23 @@ import {
   ChevronDown,
   ChevronUp,
   Package,
-  AlertCircle
+  AlertCircle,
+  CloudUpload
 } from 'lucide-react';
-import { Button } from '@heroui/react';
+import { Button, Tooltip } from '@heroui/react';
 import { useNavigate } from 'react-router-dom';
+import { ROUTES } from '@/core/config/routes';
 import { useConfirm } from '@/shared/contexts/ConfirmDialogContext';
+import { useAuthStore } from '@/features/auth';
 
 export const SalesHistoryList: React.FC = () => {
   const { sales, cancelSale } = useSalesHistoryStore();
   const { confirm } = useConfirm();
   const { customers } = useCustomerStore();
+  const { activeMembership } = useAuthStore();
+  const isOwner = activeMembership?.role === 'OWNER';
+  const hasCancelPermission =
+    isOwner || activeMembership?.permissions.includes('MANAGE_SALES_HISTORY');
   const [expandedSaleId, setExpandedSaleId] = useState<string | null>(null);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
   const navigate = useNavigate();
@@ -65,12 +73,13 @@ export const SalesHistoryList: React.FC = () => {
 
   return (
     <div className="flex-1 overflow-x-auto p-2">
-      <table className="w-full min-w-[800px] border-collapse text-left">
+      <table className="w-full min-w-[920px] border-collapse text-left">
         <thead>
           <tr className="border-b border-gray-100 text-xs tracking-wider text-gray-400 uppercase">
             <th className="px-6 py-4 font-semibold">Tarih</th>
             <th className="px-6 py-4 font-semibold">Fatura No</th>
             <th className="px-6 py-4 font-semibold">Müşteri</th>
+            <th className="px-6 py-4 font-semibold">Satışı Yapan</th>
             <th className="px-6 py-4 font-semibold">Ödeme Yöntemi</th>
             <th className="px-6 py-4 font-semibold">Durum</th>
             <th className="px-6 py-4 text-right font-semibold">Tutar</th>
@@ -79,7 +88,7 @@ export const SalesHistoryList: React.FC = () => {
         <tbody>
           {sales.length === 0 ? (
             <tr>
-              <td colSpan={6} className="px-6 py-16 text-center text-gray-500">
+              <td colSpan={7} className="px-6 py-16 text-center text-gray-500">
                 <ReceiptText className="mx-auto mb-3 text-4xl opacity-20" />
                 <p>Belirlenen kriterlere uygun satış bulunamadı.</p>
               </td>
@@ -88,7 +97,12 @@ export const SalesHistoryList: React.FC = () => {
             sales.map(sale => (
               <React.Fragment key={sale.id}>
                 <tr
-                  className={`cursor-pointer border-b border-gray-50 transition-colors ${sale.status === 'cancelled' ? 'bg-danger/5 hover:bg-danger/10 text-gray-400' : 'hover:bg-gray-50/30'}`}
+                  className={clsx(
+                    'cursor-pointer border-b border-gray-50 transition-colors',
+                    sale.status === 'cancelled'
+                      ? 'bg-danger/5 hover:bg-danger/10 text-gray-400'
+                      : 'hover:bg-gray-50/30'
+                  )}
                   onClick={() => toggleExpand(sale.id)}>
                   <td className="px-6 py-4 text-sm text-gray-600">
                     {new Date(sale.createdAt).toLocaleDateString('tr-TR', {
@@ -106,12 +120,42 @@ export const SalesHistoryList: React.FC = () => {
                     {getCustomerName(sale.customerId)}
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-700">
+                    {sale.sellerName || 'Bilinmeyen çalışan'}
+                  </td>
+                  <td className="px-6 py-4 text-sm text-gray-700">
                     <span className="inline-flex items-center rounded-md bg-gray-100 px-2 py-1 text-xs font-semibold text-gray-600">
                       {getPaymentMethodLabel(sale.paymentMethod)}
                     </span>
                   </td>
                   <td className="px-6 py-4 text-sm">
-                    {sale.status === 'cancelled' ? (
+                    {sale.syncStatus === 'pending' ||
+                    sale.syncStatus === 'failed' ? (
+                      <Tooltip delay={0} closeDelay={0}>
+                        <Tooltip.Trigger
+                          aria-label={
+                            sale.syncStatus === 'pending'
+                              ? 'İşlem cihazınıza kaydedildi; internet bağlantısı geldiğinde buluta yedeklenecek.'
+                              : 'İşlem buluta yedeklenemedi. İnternet bağlantınızı kontrol edin.'
+                          }>
+                          <span className="bg-warning/10 text-warning inline-flex cursor-help items-center gap-1 rounded-md px-2 py-1 text-xs font-semibold">
+                            {sale.status === 'cancelled' ? (
+                              <>
+                                <AlertCircle size={12} /> İptal Edildi
+                              </>
+                            ) : (
+                              'Tamamlandı'
+                            )}
+                            <CloudUpload size={13} aria-hidden />
+                          </span>
+                        </Tooltip.Trigger>
+                        <Tooltip.Content showArrow placement="top">
+                          <Tooltip.Arrow />
+                          {sale.syncStatus === 'pending'
+                            ? 'İşlem cihazınıza kaydedildi; internet bağlantısı geldiğinde buluta yedeklenecek.'
+                            : 'İşlem buluta yedeklenemedi. İnternet bağlantınızı kontrol edin.'}
+                        </Tooltip.Content>
+                      </Tooltip>
+                    ) : sale.status === 'cancelled' ? (
                       <span className="bg-danger/10 text-danger inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-semibold">
                         <AlertCircle size={12} /> İptal Edildi
                       </span>
@@ -150,24 +194,25 @@ export const SalesHistoryList: React.FC = () => {
                 {/* Expanded Sale Details */}
                 {expandedSaleId === sale.id && (
                   <tr className="border-b border-gray-100 bg-gray-50/50">
-                    <td colSpan={6} className="px-6 py-4">
+                    <td colSpan={7} className="px-6 py-4">
                       <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
                         <div className="mb-3 flex items-start justify-between">
                           <h4 className="flex items-center gap-2 text-sm font-semibold text-gray-900">
                             <Package size={16} className="text-primary" />
                             Satış Detayları
                           </h4>
-                          {sale.status !== 'cancelled' && (
-                            <Button
-                              variant="danger"
-                              onPress={() => handleCancelSale(sale.id)}
-                              isDisabled={cancellingId === sale.id}
-                              className="h-8 rounded-lg px-3 text-xs">
-                              {cancellingId === sale.id
-                                ? 'İptal Ediliyor...'
-                                : 'Satışı İptal Et'}
-                            </Button>
-                          )}
+                          {sale.status !== 'cancelled' &&
+                            hasCancelPermission && (
+                              <Button
+                                variant="danger"
+                                onPress={() => handleCancelSale(sale.id)}
+                                isDisabled={cancellingId === sale.id}
+                                className="h-8 rounded-lg px-3 text-xs">
+                                {cancellingId === sale.id
+                                  ? 'İptal Ediliyor...'
+                                  : 'Satışı İptal Et'}
+                              </Button>
+                            )}
                         </div>
 
                         {sale.cart && sale.cart.length > 0 ? (
@@ -193,34 +238,51 @@ export const SalesHistoryList: React.FC = () => {
                                 {sale.cart.map((item: any, idx: number) => (
                                   <tr
                                     key={idx}
-                                    className={
-                                      sale.status === 'cancelled'
-                                        ? 'text-gray-400'
-                                        : ''
-                                    }>
+                                    className={clsx(
+                                      sale.status === 'cancelled' &&
+                                        'text-gray-400'
+                                    )}>
                                     <td
-                                      className={`px-4 py-2 ${sale.status === 'cancelled' ? '' : 'text-gray-900'}`}>
+                                      className={clsx(
+                                        'px-4 py-2',
+                                        sale.status !== 'cancelled' &&
+                                          'text-gray-900'
+                                      )}>
                                       <span
                                         className="hover:text-primary cursor-pointer transition-colors hover:underline"
                                         onClick={e => {
                                           e.stopPropagation();
                                           navigate(
-                                            `/inventory/edit/${item.inventoryId}`
+                                            ROUTES.INVENTORY.EDIT(
+                                              item.inventoryId
+                                            )
                                           );
                                         }}>
                                         {item.name}
                                       </span>
                                     </td>
                                     <td
-                                      className={`px-4 py-2 text-center ${sale.status === 'cancelled' ? '' : 'text-gray-600'}`}>
+                                      className={clsx(
+                                        'px-4 py-2 text-center',
+                                        sale.status !== 'cancelled' &&
+                                          'text-gray-600'
+                                      )}>
                                       {item.quantity}
                                     </td>
                                     <td
-                                      className={`px-4 py-2 text-right ${sale.status === 'cancelled' ? '' : 'text-gray-600'}`}>
+                                      className={clsx(
+                                        'px-4 py-2 text-right',
+                                        sale.status !== 'cancelled' &&
+                                          'text-gray-600'
+                                      )}>
                                       ₺{item.price?.toFixed(2)}
                                     </td>
                                     <td
-                                      className={`px-4 py-2 text-right font-medium ${sale.status === 'cancelled' ? '' : 'text-gray-900'}`}>
+                                      className={clsx(
+                                        'px-4 py-2 text-right font-medium',
+                                        sale.status !== 'cancelled' &&
+                                          'text-gray-900'
+                                      )}>
                                       ₺{(item.price * item.quantity).toFixed(2)}
                                     </td>
                                   </tr>
@@ -268,11 +330,10 @@ export const SalesHistoryList: React.FC = () => {
                             <div className="flex justify-between border-t border-gray-100 pt-2 font-bold text-gray-900">
                               <span>Genel Toplam:</span>
                               <span
-                                className={
-                                  sale.status === 'cancelled'
-                                    ? 'text-gray-400 line-through'
-                                    : ''
-                                }>
+                                className={clsx(
+                                  sale.status === 'cancelled' &&
+                                    'text-gray-400 line-through'
+                                )}>
                                 ₺{sale.totalAmount.toFixed(2)}
                               </span>
                             </div>

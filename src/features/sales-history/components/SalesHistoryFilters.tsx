@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
+import { clsx } from 'clsx';
 import { useSalesHistoryStore } from '../store/useSalesHistoryStore';
 import { useCustomerStore } from '@/features/customers';
 import { Search, Filter, X } from 'lucide-react';
-import { Button } from '@heroui/react';
+import { Button, Input } from '@heroui/react';
 import {
   DateRangePicker,
   DateField,
@@ -11,10 +12,6 @@ import {
   TimeField
 } from '@heroui/react';
 import { parseAbsoluteToLocal } from '@internationalized/date';
-// Using native inputs as fallback if HeroUI compound components are too complex,
-// but we will attempt to integrate them if needed.
-// For now, let's use a unified advanced filter panel.
-
 export const SalesHistoryFilters: React.FC = () => {
   const { filters, setFilters, clearFilters } = useSalesHistoryStore();
   const { customers } = useCustomerStore();
@@ -47,10 +44,11 @@ export const SalesHistoryFilters: React.FC = () => {
             className="absolute top-1/2 left-3 -translate-y-1/2 text-gray-400"
             size={20}
           />
-          <input
+          <Input
             type="text"
+            fullWidth
             placeholder="Fatura No veya Müşteri Adı ile ara..."
-            className="focus:ring-primary/20 w-full rounded-xl border-none bg-gray-50 py-2 pr-4 pl-10 text-sm focus:ring-2"
+            className="pl-10"
             value={localFilters.searchQuery || ''}
             onChange={handleSearchChange}
           />
@@ -58,7 +56,12 @@ export const SalesHistoryFilters: React.FC = () => {
         <Button
           variant={showAdvanced ? 'primary' : 'outline'}
           onPress={() => setShowAdvanced(!showAdvanced)}
-          className={`h-9 gap-2 rounded-xl ${showAdvanced ? 'bg-primary/10 text-primary hover:bg-primary/20 border-none shadow-none' : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'}`}>
+          className={clsx(
+            'h-9 gap-2 rounded-xl',
+            showAdvanced
+              ? 'bg-primary/10 text-primary hover:bg-primary/20 border-none shadow-none'
+              : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
+          )}>
           <Filter size={16} />
           <span className="hidden sm:inline">Gelişmiş Filtreler</span>
         </Button>
@@ -113,9 +116,9 @@ export const SalesHistoryFilters: React.FC = () => {
             <label className="ml-1 text-xs font-semibold text-gray-500">
               Min Tutar (₺)
             </label>
-            <input
+            <Input
               type="number"
-              className="focus:ring-primary/20 w-full rounded-xl border-none bg-gray-50 px-3 py-2 text-sm focus:ring-2"
+              fullWidth
               placeholder="0"
               value={localFilters.minAmount || ''}
               onChange={e =>
@@ -131,9 +134,9 @@ export const SalesHistoryFilters: React.FC = () => {
             <label className="ml-1 text-xs font-semibold text-gray-500">
               Max Tutar (₺)
             </label>
-            <input
+            <Input
               type="number"
-              className="focus:ring-primary/20 w-full rounded-xl border-none bg-gray-50 px-3 py-2 text-sm focus:ring-2"
+              fullWidth
               placeholder="10000"
               value={localFilters.maxAmount || ''}
               onChange={e =>

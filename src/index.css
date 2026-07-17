@@ -39,3 +39,12 @@ body {
   color: #202124;
   -webkit-font-smoothing: antialiased;
 }
+
+/* Global Tooltip Word Wrapping Fix */
+[role='tooltip'],
+.tooltip,
+[data-slot='tooltip'] {
+  word-break: normal !important;
+  overflow-wrap: break-word !important;
+  hyphens: none !important;
+}

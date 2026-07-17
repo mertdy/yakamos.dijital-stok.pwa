@@ -13,8 +13,6 @@ dist-ssr
 *.local
 
 # Editor directories and files
-.vscode/*
-!.vscode/extensions.json
 .idea
 .DS_Store
 *.suo
@@ -39,3 +37,5 @@ playwright-report/
 test-results/
 blob-report/
 .eslintcache
+# heroui-agents-md
+.heroui-docs/

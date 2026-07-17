@@ -6,24 +6,24 @@ Dijital Stok is a modern, mobile-friendly (PWA) inventory and Point of Sale (POS
 
 ## 🚀 Key Features
 
-*   **Point of Sale (POS):** Fast-paced sales interface with real-time barcode interceptor, held/suspended sales, and multi-method payment support (Cash, Card, QR, Credit/Veresiye).
-*   **Inventory Management:** Track items, prices, stock levels, and automatically retrieve product metadata (name, brand, image, ingredients) via the external Open Food Facts API when scanning unregistered barcodes.
-*   **Customer & Debt Ledger:** Customer accounts with customizable credit limits, debt accrual for credit sales, payment collections, and unified transaction history.
-*   **Sales History & Cancellation:** List of past transactions with deep client-side filtering and a single-batch transaction cancellation logic that reverts stock and customer debts.
-*   **Analytics Dashboard:** Metrics (revenue, order counts, average order value, total outstanding debt), ciro charts, low stock alerts, and top-selling/revenue lists.
-*   **Offline-First & Auto Sync:** Native offline support powered by Cloud Firestore's persistent cache. Displays network connectivity states ("Online" vs "Offline") via a dynamic sync indicator.
-*   **Cross-Platform Support:** Ready to run as a Web PWA or wrapped as a native iOS/Android application via CapacitorJS.
+- **Point of Sale (POS):** Fast-paced sales interface with real-time barcode interceptor, held/suspended sales, and multi-method payment support (Cash, Card, QR, Credit/Veresiye).
+- **Inventory Management:** Track items, prices, stock levels, and automatically retrieve product metadata (name, brand, image, ingredients) via the external Open Food Facts API when scanning unregistered barcodes.
+- **Customer & Debt Ledger:** Customer accounts with customizable credit limits, debt accrual for credit sales, payment collections, and unified transaction history.
+- **Sales History & Cancellation:** List of past transactions with deep client-side filtering and a single-batch transaction cancellation logic that reverts stock and customer debts.
+- **Analytics Dashboard:** Metrics (revenue, order counts, average order value, total outstanding debt), ciro charts, low stock alerts, and top-selling/revenue lists.
+- **Offline-First & Auto Sync:** Native offline support powered by Cloud Firestore's persistent cache. Displays network connectivity states ("Online" vs "Offline") via a dynamic sync indicator.
+- **Cross-Platform Support:** Ready to run as a Web PWA or wrapped as a native iOS/Android application via CapacitorJS.
 
 ---
 
 ## 🛠️ Main Technologies
 
-*   **Frontend Core:** React 19 (React-DOM 19), TypeScript 6, Vite 8
-*   **UI & Styling:** Tailwind CSS v4, HeroUI v3 (formerly NextUI), Framer Motion 12, Lucide Icons
-*   **State Management:** Zustand 5 (with persist middleware for local storage caching)
-*   **Database & Auth:** Cloud Firestore, Firebase Auth
-*   **Native & Hardware Integrations:** CapacitorJS (with MLKit Barcode Scanning and Capacitor Network plugins), ZXing Browser (for web camera scanning)
-*   **Testing:** Vitest, React Testing Library
+- **Frontend Core:** React 19 (React-DOM 19), TypeScript 6, Vite 8
+- **UI & Styling:** Tailwind CSS v4, HeroUI v3 (formerly NextUI), Framer Motion 12, Lucide Icons
+- **State Management:** Zustand 5 (with persist middleware for local storage caching)
+- **Database & Auth:** Cloud Firestore, Firebase Auth
+- **Native & Hardware Integrations:** CapacitorJS (with MLKit Barcode Scanning and Capacitor Network plugins), ZXing Browser (for web camera scanning)
+- **Testing:** Vitest, React Testing Library
 
 ---
 
@@ -71,6 +71,10 @@ VITE_FIREBASE_MEASUREMENT_ID=G-3VGSXRNWW1
 # E2E Test Credentials
 VITE_TEST_USER_EMAIL=test@dijitalstok.com
 VITE_TEST_USER_PASSWORD=test1234
+
+# Second E2E test user
+VITE_TEST_USER_2_EMAIL=test2@dijitalstok.com
+VITE_TEST_USER_2_PASSWORD=qweQWE123
 ```
 
 ---
@@ -102,18 +106,18 @@ To install dependencies and run the development environment, make sure you have 
 
 Pre-commit hooks are configured via Husky to ensure formatting and linting rules are enforced before code is committed.
 
-*   **Run linter checks:**
-    ```bash
-    pnpm lint
-    ```
-*   **Run unit tests (Vitest):**
-    ```bash
-    pnpm test
-    ```
-*   **Run E2E tests (Playwright):**
-    ```bash
-    pnpm test:e2e
-    ```
+- **Run linter checks:**
+  ```bash
+  pnpm lint
+  ```
+- **Run unit tests (Vitest):**
+  ```bash
+  pnpm test
+  ```
+- **Run E2E tests (Playwright):**
+  ```bash
+  pnpm test:e2e
+  ```
 
 ---
 

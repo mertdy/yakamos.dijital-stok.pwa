@@ -1,5 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { setDoc, updateDoc, getDocs } from 'firebase/firestore';
+import {
+  getDocs,
+  onSnapshot,
+  setDoc,
+  updateDoc,
+  writeBatch
+} from 'firebase/firestore';
 
 vi.mock('firebase/firestore', () => {
   const batchMock = {
@@ -24,7 +30,20 @@ vi.mock('firebase/firestore', () => {
 vi.mock('@/core/firebase/config', () => ({
   db: {},
   auth: {
-    currentUser: { uid: 'test-user-id' }
+    currentUser: {
+      uid: 'test-user-id',
+      displayName: 'Test Kullanıcısı',
+      email: 'test@example.com'
+    }
+  }
+}));
+
+vi.mock('@/features/auth/store/useAuthStore', () => ({
+  useAuthStore: {
+    getState: () => ({
+      profile: { activeCompanyId: 'test-company-id' },
+      activeMembership: { role: 'OWNER', permissions: [] }
+    })
   }
 }));
 
@@ -51,7 +70,7 @@ describe('useCustomerStore', () => {
     const newCustomer = {
       name: 'Ahmet',
       surname: 'Yılmaz',
-      phone: '555',
+      phone: '05551234567',
       email: 'ahmet@test.com',
       creditLimit: 500
     };
@@ -84,6 +103,18 @@ describe('useCustomerStore', () => {
     const paymentId = await store.getState().addPayment('c1', 100);
 
     expect(paymentId).toBeDefined();
+    const batch = vi.mocked(writeBatch).mock.results[0]?.value;
+    expect(batch.set).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        userId: 'test-user-id',
+        collectedBy: {
+          userId: 'test-user-id',
+          displayName: 'Test Kullanıcısı',
+          email: 'test@example.com'
+        }
+      })
+    );
   });
 
   it('getCustomerTransactions fetches sales and payments and merges them', async () => {
@@ -99,6 +130,15 @@ describe('useCustomerStore', () => {
           invoiceNumber: 'INV-123',
           paymentMethod: 'Credit'
         })
+      },
+      {
+        id: 's-cancelled',
+        data: () => ({
+          totalAmount: 999,
+          createdAt: new Date().toISOString(),
+          paymentMethod: 'Credit',
+          status: 'cancelled'
+        })
       }
     ];
 
@@ -107,7 +147,12 @@ describe('useCustomerStore', () => {
         id: 'p1',
         data: () => ({
           amount: 50,
-          createdAt: new Date().toISOString()
+          createdAt: new Date().toISOString(),
+          collectedBy: {
+            userId: 'collector-1',
+            displayName: 'Ayşe Demir',
+            email: 'ayse@example.com'
+          }
         })
       }
     ];
@@ -121,6 +166,52 @@ describe('useCustomerStore', () => {
 
     expect(txs.length).toBe(2);
     expect(txs[0].type).toBeDefined();
+    expect(txs.find(tx => tx.type === 'PAYMENT')?.collectedBy).toEqual({
+      userId: 'collector-1',
+      displayName: 'Ayşe Demir',
+      email: 'ayse@example.com'
+    });
     expect(getDocs).toHaveBeenCalledTimes(2);
+  });
+
+  it('records a tenant-scoped WhatsApp statement audit entry', async () => {
+    const store = await buildStore();
+
+    const id = await store.getState().recordStatementShare({
+      customerId: 'c1',
+      periodStart: '2026-07-01',
+      periodEnd: '2026-07-31',
+      openingBalanceMinor: 10_000,
+      closingBalanceMinor: 15_000,
+      transactionCount: 2,
+      includedTransactions: true,
+      messageCharacterCount: 300
+    });
+
+    expect(id).toBeDefined();
+    expect(setDoc).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        companyId: 'test-company-id',
+        createdBy: 'test-user-id',
+        channel: 'WHATSAPP',
+        mode: 'CLICK_TO_CHAT',
+        status: 'OPENED'
+      })
+    );
+  });
+
+  it('does not recreate the active company subscription', async () => {
+    const store = await buildStore();
+    store.setState({
+      subscriptionCompanyId: null,
+      unsubscribeSnapshot: null,
+      hasLoadedCustomers: false
+    });
+
+    store.getState().loadCustomers();
+    store.getState().loadCustomers();
+
+    expect(onSnapshot).toHaveBeenCalledTimes(1);
   });
 });

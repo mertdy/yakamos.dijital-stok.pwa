@@ -1,21 +1,28 @@
 import React, { useEffect, useState } from 'react';
+import { clsx } from 'clsx';
 import { useNavigate } from 'react-router-dom';
+import { ROUTES } from '@/core/config/routes';
 import { useCustomerStore } from '../store/useCustomerStore';
 import { Plus, Search, User, Phone, Edit2, Eye } from 'lucide-react';
-import { Button } from '@heroui/react';
+import { Button, Input } from '@heroui/react';
 import posthog from 'posthog-js';
 
+import { useAuthStore } from '@/features/auth/store/useAuthStore';
+
 export const CustomerListView: React.FC = () => {
-  const { customers, loadCustomers, isLoading } = useCustomerStore();
+  const { customers, isLoading } = useCustomerStore();
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
+  const { activeMembership } = useAuthStore();
+  const isOwner = activeMembership?.role === 'OWNER';
+  const hasCustomerPermission =
+    isOwner || activeMembership?.permissions.includes('MANAGE_CUSTOMERS');
 
   useEffect(() => {
     posthog.capture('customers_viewed', {
       view_source: 'navigation'
     });
-    loadCustomers();
-  }, [loadCustomers]);
+  }, []);
 
   const filteredCustomers = customers.filter(
     c =>
@@ -35,9 +42,13 @@ export const CustomerListView: React.FC = () => {
             Müşterilerinizi ve veresiye limitlerini yönetin.
           </p>
         </div>
-        <Button onPress={() => navigate('/customers/new')} variant="primary">
-          <Plus className="mr-2 text-xl" /> Yeni Müşteri
-        </Button>
+        {hasCustomerPermission && (
+          <Button
+            onPress={() => navigate(ROUTES.CUSTOMERS.NEW)}
+            variant="primary">
+            <Plus className="mr-2 text-xl" /> Yeni Müşteri
+          </Button>
+        )}
       </div>
 
       <div className="min-h-0 flex-1">
@@ -48,12 +59,13 @@ export const CustomerListView: React.FC = () => {
                 className="absolute top-1/2 left-3 -translate-y-1/2 text-gray-400"
                 size={20}
               />
-              <input
+              <Input
                 type="text"
+                fullWidth
                 placeholder="İsim, soyisim veya telefon ile ara..."
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                className="focus:ring-primary w-full rounded-xl border border-gray-200 bg-white py-2.5 pr-4 pl-10 outline-none focus:ring-2"
+                className="pl-10"
               />
             </div>
           </div>
@@ -120,7 +132,7 @@ export const CustomerListView: React.FC = () => {
                         key={customer.id}
                         className="cursor-pointer border-b border-gray-100 transition-colors hover:bg-gray-50/50"
                         onClick={() =>
-                          navigate(`/customers/details/${customer.id}`)
+                          navigate(ROUTES.CUSTOMERS.DETAILS(customer.id))
                         }>
                         <td className="px-6 py-4 text-sm">
                           <div className="flex items-center gap-3">
@@ -152,7 +164,10 @@ export const CustomerListView: React.FC = () => {
                         </td>
                         <td className="px-6 py-4 text-right text-sm">
                           <span
-                            className={`font-semibold ${debt > 0 ? 'text-orange-600' : 'text-gray-600'}`}>
+                            className={clsx(
+                              'font-semibold',
+                              debt > 0 ? 'text-orange-600' : 'text-gray-600'
+                            )}>
                             ₺
                             {debt.toLocaleString('tr-TR', {
                               minimumFractionDigits: 2
@@ -165,12 +180,24 @@ export const CustomerListView: React.FC = () => {
                               <>
                                 <div className="h-2 w-24 overflow-hidden rounded-full bg-gray-100">
                                   <div
-                                    className={`h-full rounded-full ${isExceeded ? 'bg-danger' : percentage > 80 ? 'bg-orange-500' : 'bg-success'}`}
+                                    className={clsx(
+                                      'h-full rounded-full',
+                                      isExceeded
+                                        ? 'bg-danger'
+                                        : percentage > 80
+                                          ? 'bg-orange-500'
+                                          : 'bg-success'
+                                    )}
                                     style={{ width: `${percentage}%` }}
                                   />
                                 </div>
                                 <span
-                                  className={`rounded-md px-2 py-0.5 text-[10px] font-bold ${isExceeded ? 'bg-danger/10 text-danger' : 'bg-gray-100 text-gray-500'}`}>
+                                  className={clsx(
+                                    'rounded-md px-2 py-0.5 text-[10px] font-bold',
+                                    isExceeded
+                                      ? 'bg-danger/10 text-danger'
+                                      : 'bg-gray-100 text-gray-500'
+                                  )}>
                                   %{percentage.toFixed(0)}
                                 </span>
                               </>
@@ -189,20 +216,22 @@ export const CustomerListView: React.FC = () => {
                               variant="tertiary"
                               isIconOnly
                               onPress={() =>
-                                navigate(`/customers/details/${customer.id}`)
+                                navigate(ROUTES.CUSTOMERS.DETAILS(customer.id))
                               }
                               aria-label="Hesap Detayı">
                               <Eye className="text-lg" />
                             </Button>
-                            <Button
-                              variant="tertiary"
-                              isIconOnly
-                              onPress={() =>
-                                navigate(`/customers/edit/${customer.id}`)
-                              }
-                              aria-label="Müşteriyi Düzenle">
-                              <Edit2 className="text-lg" />
-                            </Button>
+                            {hasCustomerPermission && (
+                              <Button
+                                variant="tertiary"
+                                isIconOnly
+                                onPress={() =>
+                                  navigate(ROUTES.CUSTOMERS.EDIT(customer.id))
+                                }
+                                aria-label="Müşteriyi Düzenle">
+                                <Edit2 className="text-lg" />
+                              </Button>
+                            )}
                           </div>
                         </td>
                       </tr>

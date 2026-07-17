@@ -9,11 +9,15 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import posthog from 'posthog-js';
+import { normalizeWhatsAppPhone } from '../domain/customerStatement';
+import { FormInput } from '@/shared/components/FormInput';
+import { PhoneInput } from '@/shared/components/PhoneInput';
+import { optionalPhoneNumberSchema } from '@/shared/utils/phoneNumber';
 
 const customerSchema = z.object({
   name: z.string().min(2, 'Müşteri adı en az 2 karakter olmalıdır'),
   surname: z.string().optional(),
-  phone: z.string().optional(),
+  phone: optionalPhoneNumberSchema,
   email: z
     .union([
       z.literal(''),
@@ -29,7 +33,7 @@ export const CustomerFormView: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const isEditMode = Boolean(id);
 
-  const { customers, loadCustomers, addCustomer, updateCustomer } =
+  const { customers, addCustomer, updateCustomer, hasLoadedCustomers } =
     useCustomerStore();
   const { setCustomerId } = useSalesStore();
   const navigate = useNavigate();
@@ -37,10 +41,10 @@ export const CustomerFormView: React.FC = () => {
   const [isSaving, setIsSaving] = useState(false);
 
   const {
-    register,
+    control,
     handleSubmit,
     reset,
-    formState: { errors, isValid }
+    formState: { isValid }
   } = useForm<CustomerFormData>({
     resolver: zodResolver(customerSchema),
     mode: 'onChange',
@@ -52,13 +56,6 @@ export const CustomerFormView: React.FC = () => {
       creditLimit: 0
     }
   });
-
-  useEffect(() => {
-    // If we refresh on edit page, customers might be empty
-    if (customers.length === 0) {
-      loadCustomers();
-    }
-  }, [customers.length, loadCustomers]);
 
   useEffect(() => {
     if (isEditMode && customers.length > 0) {
@@ -78,6 +75,9 @@ export const CustomerFormView: React.FC = () => {
   const onSubmit = async (data: CustomerFormData) => {
     setIsSaving(true);
     try {
+      const normalizedPhone = data.phone?.trim()
+        ? normalizeWhatsAppPhone(data.phone)
+        : '';
       posthog.capture('customer_form_submitted', {
         form_mode: isEditMode ? 'edit' : 'create',
         customer_id: id,
@@ -90,7 +90,7 @@ export const CustomerFormView: React.FC = () => {
         await updateCustomer(id, {
           name: data.name.trim(),
           surname: data.surname?.trim() || '',
-          phone: data.phone?.trim() || '',
+          phone: normalizedPhone || '',
           email: data.email?.trim() || '',
           creditLimit: data.creditLimit || 0
         });
@@ -99,7 +99,7 @@ export const CustomerFormView: React.FC = () => {
         const newId = await addCustomer({
           name: data.name.trim(),
           surname: data.surname?.trim() || '',
-          phone: data.phone?.trim() || '',
+          phone: normalizedPhone || '',
           email: data.email?.trim() || '',
           creditLimit: data.creditLimit || 0
         });
@@ -119,6 +119,14 @@ export const CustomerFormView: React.FC = () => {
       setIsSaving(false);
     }
   };
+
+  if (isEditMode && hasLoadedCustomers === false) {
+    return (
+      <div className="flex min-h-[400px] items-center justify-center">
+        <Loader2 className="text-primary h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-3xl space-y-6 p-4 md:p-8">
@@ -145,112 +153,54 @@ export const CustomerFormView: React.FC = () => {
           onSubmit={handleSubmit(onSubmit)}
           className="space-y-6 p-6 md:p-8">
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-            <div className="space-y-1.5">
-              <label
-                htmlFor="name"
-                className="ml-1 block text-sm font-semibold text-gray-700">
-                Ad <span className="text-danger">*</span>
-              </label>
-              <input
-                id="name"
-                type="text"
-                {...register('name')}
-                className={`focus:ring-primary w-full rounded-xl border bg-gray-50 px-4 py-3 transition-all outline-none focus:bg-white focus:ring-2 ${errors.name ? 'border-danger focus:ring-danger' : 'border-gray-200'}`}
-                placeholder="Örn: Ahmet"
-              />
-              {errors.name && (
-                <span className="text-danger mt-1 ml-1 block text-xs">
-                  {errors.name.message}
-                </span>
-              )}
-            </div>
-            <div className="space-y-1.5">
-              <label className="ml-1 block text-sm font-semibold text-gray-700">
-                Soyad
-              </label>
-              <input
-                type="text"
-                {...register('surname')}
-                className={`focus:ring-primary w-full rounded-xl border bg-gray-50 px-4 py-3 transition-all outline-none focus:bg-white focus:ring-2 ${errors.surname ? 'border-danger focus:ring-danger' : 'border-gray-200'}`}
-                placeholder="Örn: Yılmaz"
-              />
-              {errors.surname && (
-                <span className="text-danger mt-1 ml-1 block text-xs">
-                  {errors.surname.message}
-                </span>
-              )}
-            </div>
+            <FormInput
+              control={control}
+              name="name"
+              label="Ad"
+              isRequired
+              type="text"
+              placeholder="Örn: Ahmet"
+            />
+            <FormInput
+              control={control}
+              name="surname"
+              label="Soyad"
+              type="text"
+              placeholder="Örn: Yılmaz"
+            />
           </div>
 
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-            <div className="space-y-1.5">
-              <label className="ml-1 block text-sm font-semibold text-gray-700">
-                Telefon Numarası
-              </label>
-              <input
-                type="tel"
-                {...register('phone')}
-                className={`focus:ring-primary w-full rounded-xl border bg-gray-50 px-4 py-3 transition-all outline-none focus:bg-white focus:ring-2 ${errors.phone ? 'border-danger focus:ring-danger' : 'border-gray-200'}`}
-                placeholder="0555 555 5555"
-              />
-              {errors.phone && (
-                <span className="text-danger mt-1 ml-1 block text-xs">
-                  {errors.phone.message}
-                </span>
-              )}
-            </div>
-            <div className="space-y-1.5">
-              <label className="ml-1 block text-sm font-semibold text-gray-700">
-                E-posta Adresi
-              </label>
-              <input
-                type="email"
-                {...register('email')}
-                className={`focus:ring-primary w-full rounded-xl border bg-gray-50 px-4 py-3 transition-all outline-none focus:bg-white focus:ring-2 ${errors.email ? 'border-danger focus:ring-danger' : 'border-gray-200'}`}
-                placeholder="ornek@email.com"
-              />
-              {errors.email && (
-                <span className="text-danger mt-1 ml-1 block text-xs">
-                  {errors.email.message}
-                </span>
-              )}
-            </div>
+            <PhoneInput
+              control={control}
+              name="phone"
+              label="Telefon Numarası"
+              placeholder="555 555 55 55"
+            />
+            <FormInput
+              control={control}
+              name="email"
+              label="E-posta Adresi"
+              type="email"
+              placeholder="ornek@email.com"
+            />
           </div>
 
           <div className="border-t border-gray-100 pt-6">
             <h3 className="mb-4 text-sm font-bold text-gray-900">
               Veresiye ve Limit Ayarları
             </h3>
-            <div className="max-w-md space-y-1.5">
-              <label
-                htmlFor="creditLimit"
-                className="ml-1 block text-sm font-semibold text-gray-700">
-                Maksimum Borç Limiti (₺)
-              </label>
-              <div className="relative">
-                <span className="absolute top-1/2 left-4 -translate-y-1/2 font-medium text-gray-400">
-                  ₺
-                </span>
-                <input
-                  id="creditLimit"
-                  type="number"
-                  step="0.01"
-                  {...register('creditLimit', { valueAsNumber: true })}
-                  className={`focus:ring-primary w-full rounded-xl border bg-gray-50 py-3 pr-4 pl-8 transition-all outline-none focus:bg-white focus:ring-2 ${errors.creditLimit ? 'border-danger focus:ring-danger' : 'border-gray-200'}`}
-                  placeholder="0.00"
-                />
-              </div>
-              {errors.creditLimit ? (
-                <span className="text-danger mt-1 ml-1 block text-xs">
-                  {errors.creditLimit.message}
-                </span>
-              ) : (
-                <p className="mt-1 ml-1 text-xs text-gray-500">
-                  Boş bırakılır veya 0 yazılırsa, müşteriye veresiye satış
-                  yapılamaz.
-                </p>
-              )}
-            </div>
+            <FormInput
+              control={control}
+              name="creditLimit"
+              className="max-w-md"
+              label="Maksimum Borç Limiti (₺)"
+              type="number"
+              step="0.01"
+              valueAsNumber
+              placeholder="0.00"
+              hint="Boş bırakılır veya 0 yazılırsa, müşteriye veresiye satış yapılamaz."
+            />
           </div>
 
           <div className="flex justify-end gap-3 pt-4">

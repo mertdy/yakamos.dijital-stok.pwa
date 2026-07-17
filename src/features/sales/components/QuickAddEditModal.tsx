@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
+import { clsx } from 'clsx';
 import {
   Search,
   Package,
@@ -8,9 +9,10 @@ import {
   Minus,
   Plus
 } from 'lucide-react';
-import { Button, Modal, toast } from '@heroui/react';
+import { Button, Input, Modal, toast } from '@heroui/react';
 import { useInventoryStore } from '@/features/inventory';
 import { usePreferencesStore } from '../store/usePreferencesStore';
+import { useAuthStore } from '@/features/auth';
 import { useDebounce } from '@/shared/hooks/useDebounce';
 import {
   DndContext,
@@ -65,7 +67,10 @@ const SortableItem = ({
     <div
       ref={setNodeRef}
       style={style}
-      className={`mb-2 flex items-center gap-3 rounded-xl border bg-white p-3 ${isDragging ? 'border-primary shadow-md' : 'border-gray-100'}`}>
+      className={clsx(
+        'mb-2 flex items-center gap-3 rounded-xl border bg-white p-3',
+        isDragging ? 'border-primary shadow-md' : 'border-gray-100'
+      )}>
       <div
         {...attributes}
         {...listeners}
@@ -104,9 +109,11 @@ export const QuickAddEditModal: React.FC<Props> = ({ isOpen, onClose }) => {
   const { items } = useInventoryStore();
   const {
     quickAddItems: savedItems,
+    quickAddCompanyId,
     saveQuickAddItems,
     isLoading
   } = usePreferencesStore();
+  const activeCompanyId = useAuthStore(state => state.profile?.activeCompanyId);
 
   // Local state for editing before saving
   const [localQuickAddItems, setLocalQuickAddItems] = useState<string[]>([]);
@@ -116,10 +123,13 @@ export const QuickAddEditModal: React.FC<Props> = ({ isOpen, onClose }) => {
   // Initialize local state when modal opens
   useEffect(() => {
     if (isOpen) {
-      setLocalQuickAddItems([...savedItems]);
+      setLocalQuickAddItems(
+        quickAddCompanyId === activeCompanyId ? [...savedItems] : []
+      );
       setSearchQuery('');
     }
-  }, [isOpen, savedItems]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
 
   const searchResults = useMemo(() => {
     if (!debouncedSearch.trim()) return items.slice(0, 50); // Default show 50 items
@@ -201,12 +211,13 @@ export const QuickAddEditModal: React.FC<Props> = ({ isOpen, onClose }) => {
                         className="absolute top-1/2 left-3 -translate-y-1/2 text-gray-400"
                         size={18}
                       />
-                      <input
+                      <Input
                         type="text"
+                        fullWidth
                         placeholder="Envanterde ara..."
                         value={searchQuery}
                         onChange={e => setSearchQuery(e.target.value)}
-                        className="focus:ring-primary w-full rounded-xl border border-gray-200 bg-gray-50 py-2.5 pr-4 pl-10 text-sm transition-all outline-none focus:ring-2"
+                        className="pl-10"
                       />
                     </div>
                   </div>
@@ -246,7 +257,12 @@ export const QuickAddEditModal: React.FC<Props> = ({ isOpen, onClose }) => {
                             <button
                               disabled={isAdded}
                               onClick={() => handleAddItem(item.id)}
-                              className={`flex-shrink-0 rounded-lg p-2 transition-colors ${isAdded ? 'bg-success/10 text-success' : 'bg-primary/10 text-primary hover:bg-primary/20'}`}>
+                              className={clsx(
+                                'flex-shrink-0 rounded-lg p-2 transition-colors',
+                                isAdded
+                                  ? 'bg-success/10 text-success'
+                                  : 'bg-primary/10 text-primary hover:bg-primary/20'
+                              )}>
                               {isAdded ? (
                                 <CheckCircle2 size={18} />
                               ) : (

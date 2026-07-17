@@ -7,11 +7,18 @@ import App from './App.tsx';
 import './index.css';
 
 import { ConfirmDialogProvider } from './shared/contexts/ConfirmDialogContext';
+import { AppErrorBoundary } from './shared/components/AppErrorBoundary';
+import { PWAInstallProvider } from './shared/hooks/usePWAInstall';
 import posthog from 'posthog-js';
 import { FirebaseCrashlytics } from '@capacitor-firebase/crashlytics';
 import { Capacitor } from '@capacitor/core';
 
 import { ENV } from './core/config/env';
+import {
+  corePrefetches,
+  secondaryPrefetches
+} from './core/config/prefetchRegistry';
+import { runPrefetch } from './shared/utils/prefetch';
 
 // 1. PostHog Init
 if (ENV.POSTHOG_KEY && ENV.POSTHOG_HOST) {
@@ -22,7 +29,8 @@ if (ENV.POSTHOG_KEY && ENV.POSTHOG_HOST) {
     capture_heatmaps: true,
     autocapture: true,
     person_profiles: 'identified_only',
-    persistence: 'localStorage'
+    persistence: 'localStorage',
+    debug: false
   });
 }
 
@@ -40,14 +48,22 @@ const initCrashlytics = async () => {
 initCrashlytics();
 
 createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <I18nProvider locale="tr-TR">
-      <ToastProvider />
-      <BrowserRouter>
-        <ConfirmDialogProvider>
-          <App />
-        </ConfirmDialogProvider>
-      </BrowserRouter>
-    </I18nProvider>
-  </StrictMode>
+  <AppErrorBoundary>
+    <StrictMode>
+      <I18nProvider locale="tr-TR">
+        <ToastProvider />
+        <BrowserRouter>
+          <PWAInstallProvider>
+            <ConfirmDialogProvider>
+              <App />
+            </ConfirmDialogProvider>
+          </PWAInstallProvider>
+        </BrowserRouter>
+      </I18nProvider>
+    </StrictMode>
+  </AppErrorBoundary>
 );
+
+// 3. Staggered prefetch of chunks when the browser is idle to support offline usage
+runPrefetch(corePrefetches);
+runPrefetch(secondaryPrefetches, 20000);

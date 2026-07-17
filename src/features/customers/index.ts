@@ -1,11 +1,12 @@
 export { useCustomerStore } from './store/useCustomerStore';
 export { CustomerDrawer } from './components/CustomerDrawer';
 export { PaymentModal } from './components/PaymentModal';
-export { CustomerDetailView } from './views/CustomerDetailView';
-export { CustomerFormView } from './views/CustomerFormView';
-export { CustomerListView } from './views/CustomerListView';
+export { ShareStatementModal } from './components/ShareStatementModal';
 export type {
   Customer,
   Payment,
-  CustomerTransaction
+  PaymentCollector,
+  CustomerTransaction,
+  StatementShare,
+  StatementShareInput
 } from './store/useCustomerStore';

@@ -1,4 +1,13 @@
-import { useState, useMemo } from 'react';
+import {
+  lazy,
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState
+} from 'react';
+import { clsx } from 'clsx';
 import {
   createColumnHelper,
   flexRender,
@@ -19,18 +28,45 @@ import {
   ArrowDown,
   Search,
   CheckSquare,
+  Printer,
   X
 } from 'lucide-react';
-import { Button, Checkbox, Description, Tooltip, toast } from '@heroui/react';
+import {
+  Button,
+  Checkbox,
+  Description,
+  Input,
+  Tooltip,
+  toast
+} from '@heroui/react';
 import { useNavigate } from 'react-router-dom';
+import { ROUTES } from '@/core/config/routes';
 import { useGlobalBarcodeScanner } from '@/shared/hooks/useGlobalBarcodeScanner';
 import { useConfirm } from '@/shared/contexts/ConfirmDialogContext';
+import { useAuthStore } from '@/features/auth';
+import { createInternalBarcode } from '../domain/labelPrinting';
+import { playBarcodeFeedback } from '@/shared/utils/barcodeFeedback';
 
-export const InventoryTable: React.FC = () => {
-  const { items, deleteItem, deleteItems } = useInventoryStore();
+const LabelPrintModal = lazy(() =>
+  import('./LabelPrintModal').then(module => ({
+    default: module.LabelPrintModal
+  }))
+);
+
+interface InventoryTableProps {
+  initialPrintItemId?: string | null;
+}
+
+export const InventoryTable: React.FC<InventoryTableProps> = ({
+  initialPrintItemId = null
+}) => {
+  const { items, deleteItem, deleteItems, updateItem } = useInventoryStore();
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState('');
   const [rowSelection, setRowSelection] = useState<Record<string, boolean>>({});
+  const [isLabelPrintOpen, setIsLabelPrintOpen] = useState(false);
+  const [labelItems, setLabelItems] = useState<InventoryItem[]>([]);
+  const handledInitialPrintId = useRef<string | null>(null);
   const navigate = useNavigate();
   const { confirm } = useConfirm();
 
@@ -40,6 +76,7 @@ export const InventoryTable: React.FC = () => {
         .getState()
         .items.find(i => String(i.barcode) === barcode);
       if (item) {
+        playBarcodeFeedback();
         setGlobalFilter(barcode);
         toast.success(`Ürün bulundu: ${item.name}`);
       } else {
@@ -48,7 +85,7 @@ export const InventoryTable: React.FC = () => {
           actionProps: {
             children: 'Yeni Ürün Ekle',
             onPress: () => {
-              navigate(`/inventory/new?barcode=${encodeURIComponent(barcode)}`);
+              navigate(ROUTES.INVENTORY.NEW_WITH_BARCODE(barcode));
             }
           }
         });
@@ -56,102 +93,174 @@ export const InventoryTable: React.FC = () => {
     }
   });
 
+  const { activeMembership } = useAuthStore();
+  const isOwner = activeMembership?.role === 'OWNER';
+  const hasInventoryPermission =
+    isOwner || activeMembership?.permissions.includes('MANAGE_INVENTORY');
+
+  const openLabelPrint = useCallback(
+    async (selectedItems: InventoryItem[]) => {
+      const itemsWithBarcodes = await Promise.all(
+        selectedItems.map(async item => {
+          if (item.barcode) return item;
+          const barcode = createInternalBarcode(item);
+          await updateItem(item.id, { barcode });
+          return { ...item, barcode };
+        })
+      );
+      setLabelItems(itemsWithBarcodes);
+      setIsLabelPrintOpen(true);
+    },
+    [updateItem]
+  );
+
+  useEffect(() => {
+    if (
+      !initialPrintItemId ||
+      !hasInventoryPermission ||
+      handledInitialPrintId.current === initialPrintItemId
+    )
+      return;
+    const item = items.find(candidate => candidate.id === initialPrintItemId);
+    if (item) {
+      handledInitialPrintId.current = initialPrintItemId;
+      void openLabelPrint([item]);
+    }
+  }, [hasInventoryPermission, initialPrintItemId, items, openLabelPrint]);
+
   const columnHelper = createColumnHelper<InventoryItem>();
 
-  const columns = [
-    columnHelper.display({
-      id: 'selection',
-      header: ({ table }) => (
-        <Checkbox
-          isSelected={table.getIsAllPageRowsSelected()}
-          isIndeterminate={
-            !table.getIsAllPageRowsSelected() &&
-            table.getIsSomePageRowsSelected()
-          }
-          onChange={(val: boolean) => table.toggleAllPageRowsSelected(val)}
-          aria-label="Tümünü seç">
-          <Checkbox.Content>
-            <Checkbox.Control>
-              <Checkbox.Indicator />
-            </Checkbox.Control>
-          </Checkbox.Content>
-        </Checkbox>
-      ),
-      cell: ({ row }) => (
-        <Checkbox
-          isSelected={row.getIsSelected()}
-          onChange={(val: boolean) => row.toggleSelected(val)}
-          aria-label={`${row.original.name} seç`}>
-          <Checkbox.Content>
-            <Checkbox.Control>
-              <Checkbox.Indicator />
-            </Checkbox.Control>
-          </Checkbox.Content>
-        </Checkbox>
-      )
-    }),
-    columnHelper.accessor('name', {
-      header: 'Ürün Adı',
-      cell: info => (
-        <span className="font-medium text-gray-900">{info.getValue()}</span>
-      )
-    }),
-    columnHelper.accessor('barcode', {
-      header: 'Barkod',
-      cell: info => (
-        <span className="text-gray-500">{info.getValue() || '-'}</span>
-      )
-    }),
-    columnHelper.accessor('stock', {
-      header: 'Stok',
-      cell: info => {
-        const val = info.getValue();
-        return (
-          <span
-            className={`rounded-full px-2 py-1 text-xs font-bold ${val < 10 ? 'bg-danger/10 text-danger' : 'bg-success/10 text-success'}`}>
-            {val}
-          </span>
-        );
-      }
-    }),
-    columnHelper.accessor('price', {
-      header: 'Fiyat',
-      cell: info => <span>₺{info.getValue().toFixed(2)}</span>
-    }),
-    columnHelper.display({
-      id: 'actions',
-      header: 'İşlemler',
-      cell: props => (
-        <div className="flex gap-2">
-          <Button
-            variant="tertiary"
-            isIconOnly
-            onPress={() => navigate(`/inventory/edit/${props.row.original.id}`)}
-            aria-label="Düzenle">
-            <Edit className="text-lg" />
-          </Button>
-          <Button
-            variant="ghost"
-            isIconOnly
-            className="text-danger"
-            onPress={async () => {
-              const confirmed = await confirm({
-                title: 'Ürünü Sil',
-                description: 'Bu ürünü silmek istediğinize emin misiniz?',
-                confirmText: 'Sil',
-                variant: 'danger'
-              });
-              if (confirmed) {
-                deleteItem(props.row.original.id);
+  const columns = useMemo(() => {
+    const cols = [];
+
+    if (hasInventoryPermission) {
+      cols.push(
+        columnHelper.display({
+          id: 'selection',
+          header: ({ table }) => (
+            <Checkbox
+              isSelected={table.getIsAllPageRowsSelected()}
+              isIndeterminate={
+                !table.getIsAllPageRowsSelected() &&
+                table.getIsSomePageRowsSelected()
               }
-            }}
-            aria-label="Sil">
-            <Trash2 className="text-lg" />
-          </Button>
-        </div>
-      )
-    })
-  ];
+              onChange={(val: boolean) => table.toggleAllPageRowsSelected(val)}
+              aria-label="Tümünü seç">
+              <Checkbox.Content>
+                <Checkbox.Control>
+                  <Checkbox.Indicator />
+                </Checkbox.Control>
+              </Checkbox.Content>
+            </Checkbox>
+          ),
+          cell: ({ row }) => (
+            <Checkbox
+              isSelected={row.getIsSelected()}
+              onChange={(val: boolean) => row.toggleSelected(val)}
+              aria-label={`${row.original.name} seç`}>
+              <Checkbox.Content>
+                <Checkbox.Control>
+                  <Checkbox.Indicator />
+                </Checkbox.Control>
+              </Checkbox.Content>
+            </Checkbox>
+          )
+        })
+      );
+    }
+
+    cols.push(
+      columnHelper.accessor('name', {
+        header: 'Ürün Adı',
+        cell: info => (
+          <span className="font-medium text-gray-900">{info.getValue()}</span>
+        )
+      }),
+      columnHelper.accessor('barcode', {
+        header: 'Barkod',
+        cell: info => (
+          <span className="text-gray-500">{info.getValue() || '-'}</span>
+        )
+      }),
+      columnHelper.accessor('stock', {
+        header: 'Stok',
+        cell: info => {
+          const val = info.getValue();
+          return (
+            <span
+              className={clsx(
+                'rounded-full px-2 py-1 text-xs font-bold',
+                val < 10
+                  ? 'bg-danger/10 text-danger'
+                  : 'bg-success/10 text-success'
+              )}>
+              {val}
+            </span>
+          );
+        }
+      }),
+      columnHelper.accessor('price', {
+        header: 'Fiyat',
+        cell: info => <span>₺{info.getValue().toFixed(2)}</span>
+      })
+    );
+
+    if (hasInventoryPermission) {
+      cols.push(
+        columnHelper.display({
+          id: 'actions',
+          header: 'İşlemler',
+          cell: props => (
+            <div className="flex gap-2">
+              <Button
+                variant="tertiary"
+                isIconOnly
+                onPress={() =>
+                  navigate(ROUTES.INVENTORY.EDIT(props.row.original.id))
+                }
+                aria-label="Düzenle">
+                <Edit className="text-lg" />
+              </Button>
+              <Button
+                variant="tertiary"
+                isIconOnly
+                onPress={() => void openLabelPrint([props.row.original])}
+                aria-label="Etiket Bas">
+                <Printer className="text-lg" />
+              </Button>
+              <Button
+                variant="ghost"
+                isIconOnly
+                className="text-danger"
+                onPress={async () => {
+                  const confirmed = await confirm({
+                    title: 'Ürünü Sil',
+                    description: 'Bu ürünü silmek istediğinize emin misiniz?',
+                    confirmText: 'Sil',
+                    variant: 'danger'
+                  });
+                  if (confirmed) {
+                    deleteItem(props.row.original.id);
+                  }
+                }}
+                aria-label="Sil">
+                <Trash2 className="text-lg" />
+              </Button>
+            </div>
+          )
+        })
+      );
+    }
+
+    return cols;
+  }, [
+    hasInventoryPermission,
+    columnHelper,
+    navigate,
+    confirm,
+    deleteItem,
+    openLabelPrint
+  ]);
 
   const filteredItems = useMemo(() => {
     return items.filter(
@@ -165,6 +274,7 @@ export const InventoryTable: React.FC = () => {
     return Object.keys(rowSelection).filter(id => rowSelection[id]);
   }, [rowSelection]);
 
+  // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
     data: filteredItems,
     columns,
@@ -199,12 +309,13 @@ export const InventoryTable: React.FC = () => {
             className="absolute top-1/2 left-3 -translate-y-1/2 text-gray-400"
             size={20}
           />
-          <input
+          <Input
             type="text"
+            fullWidth
             placeholder="Ürün adı veya barkod ile ara..."
             value={globalFilter}
             onChange={e => setGlobalFilter(e.target.value)}
-            className="focus:ring-primary w-full rounded-xl border border-gray-200 bg-white py-2.5 pr-4 pl-10 outline-none focus:ring-2"
+            className="pl-10"
           />
         </div>
 
@@ -215,70 +326,87 @@ export const InventoryTable: React.FC = () => {
             </Description>
             <div className="flex items-center gap-1.5">
               <Tooltip delay={0} closeDelay={0}>
-                <Tooltip.Trigger>
-                  <Button
-                    variant="tertiary"
-                    isIconOnly
-                    size="sm"
-                    onPress={() => {
-                      const newSelection: Record<string, boolean> = {};
-                      filteredItems.forEach(item => {
-                        newSelection[item.id] = true;
-                      });
-                      setRowSelection(newSelection);
-                    }}
-                    aria-label="Tümünü Seç">
-                    <CheckSquare size={18} />
-                  </Button>
-                </Tooltip.Trigger>
-                <Tooltip.Content placement="top" showArrow={true}>
+                <Button
+                  variant="tertiary"
+                  isIconOnly
+                  size="sm"
+                  onPress={() =>
+                    void openLabelPrint(
+                      filteredItems.filter(item =>
+                        selectedIds.includes(item.id)
+                      )
+                    )
+                  }
+                  aria-label="Seçili Ürünlere Etiket Bas">
+                  <Printer size={18} />
+                </Button>
+                <Tooltip.Content showArrow>
+                  <Tooltip.Arrow />
+                  Seçili ürünlere etiket bas
+                </Tooltip.Content>
+              </Tooltip>
+              <Tooltip delay={0} closeDelay={0}>
+                <Button
+                  variant="tertiary"
+                  isIconOnly
+                  size="sm"
+                  onPress={() => {
+                    const newSelection: Record<string, boolean> = {};
+                    filteredItems.forEach(item => {
+                      newSelection[item.id] = true;
+                    });
+                    setRowSelection(newSelection);
+                  }}
+                  aria-label="Tümünü Seç">
+                  <CheckSquare size={18} />
+                </Button>
+                <Tooltip.Content showArrow>
+                  <Tooltip.Arrow />
                   Tümünü Seç ({filteredItems.length})
                 </Tooltip.Content>
               </Tooltip>
 
               <Tooltip delay={0} closeDelay={0}>
-                <Tooltip.Trigger>
-                  <Button
-                    variant="ghost"
-                    isIconOnly
-                    size="sm"
-                    onPress={() => setRowSelection({})}
-                    aria-label="Seçimi Temizle">
-                    <X size={18} />
-                  </Button>
-                </Tooltip.Trigger>
-                <Tooltip.Content placement="top" showArrow={true}>
+                <Button
+                  variant="ghost"
+                  isIconOnly
+                  size="sm"
+                  onPress={() => setRowSelection({})}
+                  aria-label="Seçimi Temizle">
+                  <X size={18} />
+                </Button>
+                <Tooltip.Content showArrow>
+                  <Tooltip.Arrow />
                   Seçimi Temizle
                 </Tooltip.Content>
               </Tooltip>
 
               <Tooltip delay={0} closeDelay={0}>
-                <Tooltip.Trigger>
-                  <Button
-                    variant="ghost"
-                    isIconOnly
-                    size="sm"
-                    className="text-danger"
-                    onPress={async () => {
-                      const confirmed = await confirm({
-                        title: 'Seçili Ürünleri Sil',
-                        description: `Seçilen ${selectedIds.length} ürünü silmek istediğinize emin misiniz? Bu işlem geri alınamaz.`,
-                        confirmText: 'Sil',
-                        variant: 'danger'
-                      });
-                      if (confirmed) {
-                        await deleteItems(selectedIds);
-                        setRowSelection({});
-                        toast.success(
-                          `${selectedIds.length} ürün başarıyla silindi.`
-                        );
-                      }
-                    }}
-                    aria-label="Seçimleri Sil">
-                    <Trash2 size={18} />
-                  </Button>
-                </Tooltip.Trigger>
-                <Tooltip.Content placement="top" showArrow={true}>
+                <Button
+                  variant="ghost"
+                  isIconOnly
+                  size="sm"
+                  className="text-danger"
+                  onPress={async () => {
+                    const confirmed = await confirm({
+                      title: 'Seçili Ürünleri Sil',
+                      description: `Seçilen ${selectedIds.length} ürünü silmek istediğinize emin misiniz? Bu işlem geri alınamaz.`,
+                      confirmText: 'Sil',
+                      variant: 'danger'
+                    });
+                    if (confirmed) {
+                      await deleteItems(selectedIds);
+                      setRowSelection({});
+                      toast.success(
+                        `${selectedIds.length} ürün başarıyla silindi.`
+                      );
+                    }
+                  }}
+                  aria-label="Seçimleri Sil">
+                  <Trash2 size={18} />
+                </Button>
+                <Tooltip.Content showArrow>
+                  <Tooltip.Arrow />
                   Seçimleri Sil
                 </Tooltip.Content>
               </Tooltip>
@@ -298,7 +426,12 @@ export const InventoryTable: React.FC = () => {
                   return (
                     <th
                       key={header.id}
-                      className={`${isSelection ? 'w-12 px-4' : 'cursor-pointer px-6 hover:bg-gray-100'} py-4 text-sm font-semibold whitespace-nowrap text-gray-600 transition-colors`}
+                      className={clsx(
+                        isSelection
+                          ? 'w-12 px-4'
+                          : 'cursor-pointer px-6 hover:bg-gray-100',
+                        'py-4 text-sm font-semibold whitespace-nowrap text-gray-600 transition-colors'
+                      )}
                       onClick={
                         isSelection
                           ? undefined
@@ -326,13 +459,19 @@ export const InventoryTable: React.FC = () => {
             {table.getRowModel().rows.map(row => (
               <tr
                 key={row.id}
-                className={`border-b border-gray-100 transition-colors hover:bg-gray-50/50 ${row.getIsSelected() ? 'bg-primary-50/20' : ''}`}>
+                className={clsx(
+                  'border-b border-gray-100 transition-colors hover:bg-gray-50/50',
+                  row.getIsSelected() && 'bg-primary-50/20'
+                )}>
                 {row.getVisibleCells().map(cell => {
                   const isSelection = cell.column.id === 'selection';
                   return (
                     <td
                       key={cell.id}
-                      className={`${isSelection ? 'w-12 px-4' : 'px-6'} py-4 text-sm`}>
+                      className={clsx(
+                        isSelection ? 'w-12 px-4' : 'px-6',
+                        'py-4 text-sm'
+                      )}>
                       {flexRender(
                         cell.column.columnDef.cell,
                         cell.getContext()
@@ -345,6 +484,15 @@ export const InventoryTable: React.FC = () => {
           </tbody>
         </table>
       </div>
+      {isLabelPrintOpen && (
+        <Suspense fallback={null}>
+          <LabelPrintModal
+            isOpen={isLabelPrintOpen}
+            items={labelItems}
+            onClose={() => setIsLabelPrintOpen(false)}
+          />
+        </Suspense>
+      )}
     </div>
   );
 };

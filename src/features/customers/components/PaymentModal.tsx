@@ -1,12 +1,29 @@
 import React, { useState, useEffect } from 'react';
 import { CheckCircle2, Banknote, Loader2, Info } from 'lucide-react';
-import { Button, Modal, toast } from '@heroui/react';
+import {
+  Button,
+  FieldError,
+  Input,
+  Label,
+  Modal,
+  TextField,
+  toast
+} from '@heroui/react';
 import { useCustomerStore } from '../store/useCustomerStore';
 import { useReactToPrint } from 'react-to-print';
 import { Printer } from 'lucide-react';
 import { ReceiptTemplate } from '@/features/sales';
 import { useRef } from 'react';
 import posthog from 'posthog-js';
+import { useForm, useWatch } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+
+const paymentSchema = z.object({
+  amount: z.number().positive('Lütfen geçerli bir tutar girin')
+});
+
+type PaymentFormData = z.infer<typeof paymentSchema>;
 
 interface Props {
   isOpen: boolean;
@@ -23,11 +40,21 @@ export const PaymentModal: React.FC<Props> = ({
   currentDebt,
   onPaymentSuccess
 }) => {
-  const [amount, setAmount] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [modalDebt, setModalDebt] = useState(currentDebt);
   const [paymentId, setPaymentId] = useState<string | null>(null);
   const receiptRef = useRef<HTMLDivElement>(null);
+  const {
+    control,
+    handleSubmit,
+    reset,
+    setValue,
+    formState: { errors }
+  } = useForm<PaymentFormData>({
+    resolver: zodResolver(paymentSchema),
+    mode: 'onChange'
+  });
+  const amount = useWatch({ control, name: 'amount' });
 
   const handlePrint = useReactToPrint({
     contentRef: receiptRef,
@@ -38,20 +65,12 @@ export const PaymentModal: React.FC<Props> = ({
   useEffect(() => {
     if (isOpen) {
       setModalDebt(currentDebt);
-      setAmount('');
+      reset();
       setPaymentId(null);
     }
-  }, [isOpen, currentDebt]);
+  }, [isOpen, currentDebt, reset]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const payAmount = parseFloat(amount);
-
-    if (isNaN(payAmount) || payAmount <= 0) {
-      toast.danger('Lütfen geçerli bir tutar girin');
-      return;
-    }
-
+  const submitPayment = async ({ amount: payAmount }: PaymentFormData) => {
     // Overpayment is allowed, it will result in a negative totalDebt (customer credit)
 
     setIsSubmitting(true);
@@ -65,7 +84,7 @@ export const PaymentModal: React.FC<Props> = ({
       });
 
       const newId = await addPayment(customerId, payAmount);
-      setPaymentId(newId || Date.now().toString());
+      setPaymentId(newId || `payment-${customerId}`);
 
       toast.success('Tahsilat başarıyla kaydedildi');
 
@@ -79,7 +98,10 @@ export const PaymentModal: React.FC<Props> = ({
   };
 
   const handlePayAll = () => {
-    setAmount(modalDebt.toString());
+    setValue('amount', modalDebt, {
+      shouldDirty: true,
+      shouldValidate: true
+    });
   };
 
   return (
@@ -93,7 +115,7 @@ export const PaymentModal: React.FC<Props> = ({
         <Modal.Container>
           <Modal.Dialog className="relative w-full max-w-md overflow-hidden rounded-3xl bg-white shadow-xl outline-none">
             <Modal.CloseTrigger />
-            <form onSubmit={handleSubmit}>
+            <form onSubmit={handleSubmit(submitPayment)}>
               <Modal.Header>
                 <Modal.Icon className="bg-primary/10 text-primary">
                   <Banknote className="size-5" />
@@ -114,7 +136,7 @@ export const PaymentModal: React.FC<Props> = ({
                     sale={{
                       id: paymentId || 'new-payment',
                       createdAt: new Date().toISOString(),
-                      amount: parseFloat(amount || '0')
+                      amount: amount || 0
                     }}
                   />
                 </div>
@@ -132,35 +154,43 @@ export const PaymentModal: React.FC<Props> = ({
                 </div>
 
                 <div className="space-y-4">
-                  <div>
-                    <label className="mb-1 block text-sm font-medium text-gray-700">
-                      Ödenen Tutar (₺)
-                    </label>
+                  <TextField
+                    fullWidth
+                    name="amount"
+                    value={Number.isFinite(amount) ? String(amount) : ''}
+                    onChange={value =>
+                      setValue(
+                        'amount',
+                        value === '' ? Number.NaN : Number(value),
+                        { shouldDirty: true, shouldValidate: true }
+                      )
+                    }
+                    isInvalid={Boolean(errors.amount)}
+                    isRequired>
+                    <Label>Ödenen Tutar (₺)</Label>
                     <div className="relative">
-                      <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
-                        <span className="text-gray-500 sm:text-lg">₺</span>
-                      </div>
-                      <input
+                      <Input
                         type="number"
+                        fullWidth
                         step="0.01"
-                        value={amount}
-                        onChange={e => setAmount(e.target.value)}
-                        className="focus:ring-primary focus:border-primary block w-full rounded-xl border border-gray-200 bg-white py-3 pr-12 pl-8 text-lg transition-all outline-none focus:ring-2"
+                        className="pr-14"
                         placeholder="0.00"
                         autoFocus
                       />
                       <div className="absolute inset-y-0 right-2 flex items-center">
-                        <button
+                        <Button
                           type="button"
-                          onClick={handlePayAll}
-                          className="text-primary hover:text-primary-600 bg-primary/10 hover:bg-primary/20 rounded-lg px-2 py-1 text-xs font-bold transition-colors">
+                          size="sm"
+                          variant="ghost"
+                          onPress={handlePayAll}>
                           TÜMÜ
-                        </button>
+                        </Button>
                       </div>
                     </div>
-                  </div>
+                    <FieldError>{errors.amount?.message}</FieldError>
+                  </TextField>
 
-                  {parseFloat(amount) > modalDebt && modalDebt >= 0 && (
+                  {amount > modalDebt && modalDebt >= 0 && (
                     <div className="mt-4 flex items-start gap-3 rounded-xl border border-blue-100 bg-blue-50 p-3">
                       <Info
                         className="mt-0.5 flex-shrink-0 text-blue-500"
@@ -170,10 +200,9 @@ export const PaymentModal: React.FC<Props> = ({
                         Girdiğiniz tutar mevcut borçtan fazla. Fazla olan{' '}
                         <strong>
                           ₺
-                          {(parseFloat(amount) - modalDebt).toLocaleString(
-                            'tr-TR',
-                            { minimumFractionDigits: 2 }
-                          )}
+                          {(amount - modalDebt).toLocaleString('tr-TR', {
+                            minimumFractionDigits: 2
+                          })}
                         </strong>{' '}
                         tutar, müşterinin alacağı (artı bakiye) olarak
                         kaydedilecek ve sonraki alışverişlerinden otomatik
@@ -207,9 +236,7 @@ export const PaymentModal: React.FC<Props> = ({
                   type="submit"
                   variant="primary"
                   className="flex-1"
-                  isDisabled={
-                    isSubmitting || !amount || parseFloat(amount) <= 0
-                  }>
+                  isDisabled={isSubmitting}>
                   {isSubmitting ? (
                     <Loader2 className="mr-2 animate-spin" size={20} />
                   ) : (

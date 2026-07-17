@@ -1,21 +1,43 @@
-import { useEffect, useState, useCallback } from 'react';
+import {
+  lazy,
+  Suspense,
+  useEffect,
+  useState,
+  useCallback,
+  useRef
+} from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { ROUTES } from '@/core/config/routes';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { useInventoryStore } from '../store/useInventoryStore';
-import { ScannerModal } from '@/features/sales';
+import {
+  useInventoryStore,
+  type InventoryItem
+} from '../store/useInventoryStore';
+const ScannerModal = lazy(
+  () => import('@/features/sales/components/ScannerModal')
+);
 import { Button } from '@heroui/react';
+import { FormInput } from '@/shared/components/FormInput';
 import {
   ArrowLeft,
   Save,
   ScanBarcode,
   Search,
   Image,
-  Loader2
+  Loader2,
+  Printer
 } from 'lucide-react';
 import { toast } from '@heroui/react';
 import posthog from 'posthog-js';
+import { createInternalBarcode } from '../domain/labelPrinting';
+
+const LabelPrintModal = lazy(() =>
+  import('../components/LabelPrintModal').then(module => ({
+    default: module.LabelPrintModal
+  }))
+);
 
 const productSchema = z.object({
   name: z.string().min(2, 'Ürün adı en az 2 karakter olmalıdır'),
@@ -38,8 +60,9 @@ export const ProductFormView: React.FC = () => {
   const [searchParams] = useSearchParams();
   const initialBarcode = searchParams.get('barcode');
 
-  const { items, loadItems, addItem, updateItem } = useInventoryStore();
+  const { items, hasLoadedItems, addItem, updateItem } = useInventoryStore();
   const navigate = useNavigate();
+  const hasRedirectedForMissingItem = useRef(false);
 
   const [isSearching, setIsSearching] = useState(false);
   const [isScannerOpen, setIsScannerOpen] = useState(false);
@@ -47,14 +70,16 @@ export const ProductFormView: React.FC = () => {
     null
   );
   const [isSaving, setIsSaving] = useState(false);
+  const [isLabelPrintOpen, setIsLabelPrintOpen] = useState(false);
+  const [labelItems, setLabelItems] = useState<InventoryItem[]>([]);
 
   const {
-    register,
+    control,
     handleSubmit,
     reset,
     setValue,
     getValues,
-    formState: { errors, isValid }
+    formState: { isValid }
   } = useForm<ProductFormData>({
     resolver: zodResolver(productSchema),
     mode: 'onChange',
@@ -65,12 +90,6 @@ export const ProductFormView: React.FC = () => {
       price: 0
     }
   });
-
-  useEffect(() => {
-    if (items.length === 0) {
-      loadItems();
-    }
-  }, [items.length, loadItems]);
 
   const searchProductByBarcode = useCallback(
     async (barcodeToSearch: string) => {
@@ -116,20 +135,26 @@ export const ProductFormView: React.FC = () => {
   );
 
   useEffect(() => {
-    if (isEditMode && items.length > 0) {
-      const editingItem = items.find(item => item.id === id);
-      if (editingItem) {
-        reset({
-          name: editingItem.name,
-          barcode: editingItem.barcode || '',
-          stock: editingItem.stock,
-          price: editingItem.price
-        });
+    if (!isEditMode || !hasLoadedItems) return;
 
-        setApiProductData(null);
+    const editingItem = items.find(item => item.id === id);
+    if (!editingItem) {
+      if (!hasRedirectedForMissingItem.current) {
+        hasRedirectedForMissingItem.current = true;
+        toast.danger('Ürün bulunamadı veya bu ürünü düzenleme yetkiniz yok.');
+        navigate(-1);
       }
+      return;
     }
-  }, [isEditMode, id, items, reset]);
+
+    reset({
+      name: editingItem.name,
+      barcode: editingItem.barcode || '',
+      stock: editingItem.stock,
+      price: editingItem.price
+    });
+    setApiProductData(null);
+  }, [isEditMode, id, items, hasLoadedItems, navigate, reset]);
 
   useEffect(() => {
     if (!isEditMode) {
@@ -155,8 +180,23 @@ export const ProductFormView: React.FC = () => {
       });
 
       if (isEditMode && id) {
+        const previousPrice = items.find(item => item.id === id)?.price;
         await updateItem(id, data);
-        toast.success('Ürün güncellendi');
+        toast.success(
+          previousPrice !== data.price
+            ? 'Fiyat güncellendi'
+            : 'Ürün güncellendi',
+          previousPrice !== data.price
+            ? {
+                actionProps: {
+                  children: 'Yeni Etiket Bastır',
+                  className: 'bg-primary text-white font-medium',
+                  size: 'sm',
+                  onPress: () => navigate(ROUTES.INVENTORY.PRINT(id))
+                }
+              }
+            : undefined
+        );
       } else {
         if (data.barcode) {
           const existingItem = items.find(
@@ -172,7 +212,7 @@ export const ProductFormView: React.FC = () => {
                   className: 'bg-primary text-white font-medium',
                   size: 'sm',
                   onPress: () => {
-                    navigate(`/inventory/edit/${existingItem.id}`);
+                    navigate(ROUTES.INVENTORY.EDIT(existingItem.id));
                   }
                 }
               }
@@ -196,6 +236,28 @@ export const ProductFormView: React.FC = () => {
     setValue('barcode', barcode, { shouldValidate: true });
     searchProductByBarcode(barcode);
   };
+
+  const openLabelPrint = async () => {
+    const item = items.find(candidate => candidate.id === id);
+    if (!item) return;
+
+    if (item.barcode) {
+      setLabelItems([item]);
+    } else {
+      const barcode = createInternalBarcode(item);
+      await updateItem(item.id, { barcode });
+      setLabelItems([{ ...item, barcode }]);
+    }
+    setIsLabelPrintOpen(true);
+  };
+
+  if (isEditMode && hasLoadedItems === false) {
+    return (
+      <div className="flex min-h-[400px] items-center justify-center">
+        <Loader2 className="text-primary h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-3xl space-y-6 p-4 md:p-8">
@@ -221,66 +283,45 @@ export const ProductFormView: React.FC = () => {
         <form
           onSubmit={handleSubmit(onSubmit)}
           className="space-y-6 p-6 md:p-8">
-          <div>
-            <label
-              htmlFor="name"
-              className="mb-1.5 ml-1 block text-sm font-semibold text-gray-700">
-              Ürün Adı <span className="text-danger">*</span>
-            </label>
-            <input
-              id="name"
-              {...register('name')}
-              className={`focus:ring-primary w-full rounded-2xl border bg-gray-50 px-4 py-3.5 transition-all outline-none focus:bg-white focus:ring-2 ${errors.name ? 'border-danger focus:ring-danger' : 'border-gray-200'}`}
-              placeholder="Örn: Coca Cola 330ml"
-            />
-            {errors.name && (
-              <span className="text-danger mt-1 ml-1 block text-xs">
-                {errors.name.message}
-              </span>
-            )}
-          </div>
+          <FormInput
+            control={control}
+            name="name"
+            label="Ürün Adı"
+            isRequired
+            placeholder="Örn: Coca Cola 330ml"
+          />
 
-          <div>
-            <label
-              htmlFor="barcode"
-              className="mb-1.5 ml-1 block text-sm font-semibold text-gray-700">
-              Barkod (Opsiyonel)
-            </label>
-            <div className="flex gap-2">
-              <input
-                id="barcode"
-                {...register('barcode')}
-                className={`focus:ring-primary w-full rounded-2xl border bg-gray-50 px-4 py-3.5 transition-all outline-none focus:bg-white focus:ring-2 ${errors.barcode ? 'border-danger focus:ring-danger' : 'border-gray-200'}`}
-                placeholder="Barkod okutun veya girin"
-              />
-              <Button
-                type="button"
-                variant="secondary"
-                onPress={() => setIsScannerOpen(true)}
-                aria-label="Kamera ile barkod okut">
-                <ScanBarcode className="text-xl" />
-              </Button>
-              <Button
-                type="button"
-                variant="tertiary"
-                onPress={() =>
-                  searchProductByBarcode(getValues('barcode') || '')
-                }
-                isDisabled={isSearching}
-                aria-label="Barkod ile otomatik doldur">
-                {isSearching ? (
-                  <Loader2 className="animate-spin text-xl" />
-                ) : (
-                  <Search className="text-xl" />
-                )}
-              </Button>
-            </div>
-            {errors.barcode && (
-              <span className="text-danger mt-1 ml-1 block text-xs">
-                {errors.barcode.message}
-              </span>
-            )}
-          </div>
+          <FormInput
+            control={control}
+            name="barcode"
+            label="Barkod (Opsiyonel)"
+            placeholder="Barkod okutun veya girin"
+            endContent={
+              <>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onPress={() => setIsScannerOpen(true)}
+                  aria-label="Kamera ile barkod okut">
+                  <ScanBarcode className="text-xl" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="tertiary"
+                  onPress={() =>
+                    searchProductByBarcode(getValues('barcode') || '')
+                  }
+                  isDisabled={isSearching}
+                  aria-label="Barkod ile otomatik doldur">
+                  {isSearching ? (
+                    <Loader2 className="animate-spin text-xl" />
+                  ) : (
+                    <Search className="text-xl" />
+                  )}
+                </Button>
+              </>
+            }
+          />
 
           {apiProductData && (
             <div className="animate-appearance-in flex items-start gap-4 rounded-xl border border-blue-100 bg-blue-50 p-4">
@@ -322,46 +363,34 @@ export const ProductFormView: React.FC = () => {
           )}
 
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-            <div className="space-y-1.5">
-              <label
-                htmlFor="stock"
-                className="ml-1 block text-sm font-semibold text-gray-700">
-                Stok Miktarı
-              </label>
-              <input
-                id="stock"
-                type="number"
-                {...register('stock', { valueAsNumber: true })}
-                className={`focus:ring-primary w-full rounded-2xl border bg-gray-50 px-4 py-3.5 transition-all outline-none focus:bg-white focus:ring-2 ${errors.stock ? 'border-danger focus:ring-danger' : 'border-gray-200'}`}
-              />
-              {errors.stock && (
-                <span className="text-danger mt-1 ml-1 block text-xs">
-                  {errors.stock.message}
-                </span>
-              )}
-            </div>
-            <div className="space-y-1.5">
-              <label
-                htmlFor="price"
-                className="ml-1 block text-sm font-semibold text-gray-700">
-                Birim Fiyatı (₺) <span className="text-danger">*</span>
-              </label>
-              <input
-                id="price"
-                type="number"
-                step="0.01"
-                {...register('price', { valueAsNumber: true })}
-                className={`focus:ring-primary w-full rounded-2xl border bg-gray-50 px-4 py-3.5 transition-all outline-none focus:bg-white focus:ring-2 ${errors.price ? 'border-danger focus:ring-danger' : 'border-gray-200'}`}
-              />
-              {errors.price && (
-                <span className="text-danger mt-1 ml-1 block text-xs">
-                  {errors.price.message}
-                </span>
-              )}
-            </div>
+            <FormInput
+              control={control}
+              name="stock"
+              label="Stok Miktarı"
+              type="number"
+              valueAsNumber
+            />
+            <FormInput
+              control={control}
+              name="price"
+              label="Birim Fiyatı (₺)"
+              isRequired
+              type="number"
+              step="0.01"
+              valueAsNumber
+            />
           </div>
 
           <div className="flex justify-end gap-3 border-t border-gray-100 pt-4">
+            {isEditMode && (
+              <Button
+                variant="secondary"
+                type="button"
+                onPress={() => void openLabelPrint()}>
+                <Printer className="mr-2" size={18} />
+                Etiket Bas
+              </Button>
+            )}
             <Button variant="ghost" type="button" onPress={() => navigate(-1)}>
               İptal
             </Button>
@@ -380,11 +409,22 @@ export const ProductFormView: React.FC = () => {
           </div>
         </form>
       </div>
-      <ScannerModal
-        isOpen={isScannerOpen}
-        onClose={() => setIsScannerOpen(false)}
-        onScan={handleScan}
-      />
+      <Suspense fallback={null}>
+        <ScannerModal
+          isOpen={isScannerOpen}
+          onClose={() => setIsScannerOpen(false)}
+          onScan={handleScan}
+        />
+      </Suspense>
+      {isEditMode && isLabelPrintOpen && (
+        <Suspense fallback={null}>
+          <LabelPrintModal
+            isOpen={isLabelPrintOpen}
+            items={labelItems}
+            onClose={() => setIsLabelPrintOpen(false)}
+          />
+        </Suspense>
+      )}
     </div>
   );
 };

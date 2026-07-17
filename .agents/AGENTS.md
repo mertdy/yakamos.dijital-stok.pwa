@@ -1,182 +1,112 @@
-# Proje Kapsamındaki Kurallar
+# AGENTS.md
 
-## Plan ve Yapıt (Artifact) Kalıcılığı & Dokümantasyon Güncelliği
+# AI Operating Instructions
 
-Aşağıdaki planlama yapıtlarını oluşturduğunuzda veya güncellediğinizde:
+This file is the only document that should always be loaded.
 
-- `implementation_plan.md`
-- `task.md`
-- `walkthrough.md`
-- `srs.md`
-- `design_document.md`
+## Primary Goal
 
-Bu dosyaların kopyalarını projenin `.agents` dizininde (`/Users/mertdy/Desktop/dijital-stok/.agents`) saklamak ZORUNDASINIZ.
-Sistem dizininizdeki bu yapıtları güncellediğinizde, bu değişiklikleri `.agents` dizinindeki sürümlerle de senkronize etmelisiniz. Kullanıcı bu klasörde görünür ve takip edilebilir olmalarını beklemektedir.
+Produce maintainable, scalable and production-ready code while minimizing unnecessary context usage.
 
-**KRİTİK KURAL:** Projede bundan sonra yapılacak her türlü karar, mimari değişim, yeni özellik (feature) ekleme ve işlevsel kod değişikliklerinde; `.agents/srs.md` (Yazılım Gereksinimleri Şartnamesi) ve `.agents/design_document.md` (Sistem Tasarım Dokümanı) raporlarını da yapılan değişikliklere uygun olarak **otomatik olarak güncellemek ZORUNDASINIZ**. Bu raporlar her zaman kod tabanının güncel durumunu yansıtmalıdır.
+Do not read every documentation file automatically.
 
-
-## Bileşen Testleri
-
-Yeni bir React bileşeni oluşturduğunuzda, onunla birlikte gelen birim testlerini (örn. `BilesenAdi.test.tsx`) aynı dizinde yazmak ZORUNDASINIZ. Bileşenin ana işlevselliğini, uç durumlarını ve erişilebilirlik niteliklerini test edin.
-
-## Özellik Modülü Dışa Aktarmaları (Barrel Imports)
-
-`src/features/` dizini içindeki özelliklerle çalışırken:
-
-- Her özellik klasörü; bileşenlerini, depolarını (stores), hook'larını, görünümlerini ve tiplerini kök dizindeki bir `index.ts` dosyasında (barrel export) dışa aktararak herkese açık bir API tanımlamalıdır.
-- **Özellikler arası içe aktarmalar (Cross-feature imports)**: Belirli bir özellik dizininin dışındaki dosyalar (diğer özellikler, ortak klasörler veya `App.tsx` gibi), özelliğin kök modül yolunu kullanarak içe aktarma yapmalıdır (örn. `import { X } from '@/features/ozellik-adi'`). Dışarıdan özellik alt yollarına (örn. `@/features/ozellik-adi/store/X`) doğrudan derinlemesine yapılan içe aktarmalar kesinlikle yasaktır.
-- **Dahili içe aktarmalar (Internal imports)**: Bir özellik dizini içindeki dosyalar, derleme/çalışma zamanında dairesel bağımlılıkları (circular dependencies) önlemek için *aynı* özelliğin diğer öğelerini relative içe aktarmalar (`./` veya `../`) or belirli alt yollar kullanarak içe aktarmalıdır. Asla kendi barrel yollarından (`@/features/ozellik-adi`) içe aktarma yapmamalıdırlar.
-
-## Path Aliasing & İçe Aktarma (Import) Standartları
-
-- Projede `@/*` path aliasing (`src/*` dizinini işaret edecek şekilde) tanımlanmıştır. 
-- **Mutlak İçe Aktarmalar (Absolute Imports)**: Diğer özelliklerden (features) veya ortak (shared) klasörlerden yapılan tüm içe aktarmalar `@/` takma adı kullanılarak yapılmalıdır (Örn: `import { SalesView } from '@/features/sales'`).
-- **Göreceli İçe Aktarmalar (Relative Imports)**: Sadece aynı özellik/klasör içerisindeki dosyalar birbirini çağırırken relative (`./` veya `../`) yol kullanabilir.
-
-## React Hook & İçe Aktarma (Import) Pratikleri
-
-- React hook'ları (`useCallback`, `useEffect`, `useState`, `useMemo` vb.) kullanılırken `React.useCallback` gibi namespace üzerinden çağrılmamalı, doğrudan `react` paketinden import edilerek (`import { useCallback } from 'react'`) kullanılmalıdır.
-- Eğer dosyada JSX haricinde `React` nesnesine doğrudan bir referans yoksa ve React 19 standartlarına uygunsa, kullanılmayan `import React from 'react'` satırları temizlenmelidir.
-
-## Çevre Değişkenleri & Hassas Veri (Secrets) Yönetimi
-
-- Firebase konfigürasyonları, PostHog anahtarları veya E2E test kullanıcı bilgileri gibi hiçbir hassas kimlik bilgisi (credential) kod içerisine hardcoded (sabit kodlanmış) olarak yazılmamalıdır.
-- Tüm bu değişkenler merkezi `src/core/config/env.ts` dosyası içerisindeki `ENV` nesnesinden tüketilmelidir.
-
-## HeroUI Modal Standartları
-
-- Uygulamada özel modal overlay yapıları yerine HeroUI `<Modal>` bileşenleri kullanılmaktadır. Yeni bir modal eklenirken veya düzenlenirken şu hiyerarşi kesinlikle korunmalıdır:
-  ```tsx
-  <Modal isOpen={isOpen} onOpenChange={...}>
-    <Modal.Backdrop>
-      <Modal.Container>
-        <Modal.Dialog>
-          <Modal.CloseTrigger />
-          <Modal.Header>...</Modal.Header>
-          <Modal.Body>...</Modal.Body>
-          <Modal.Footer>...</Modal.Footer>
-        </Modal.Dialog>
-      </Modal.Container>
-    </Modal.Backdrop>
-  </Modal>
-  ```
-- Kapatma tetikleyicisi (`<Modal.CloseTrigger />`), `<Modal.Dialog>` bileşeninin doğrudan ilk çocuğu (direct child) olarak yerleştirilmelidir.
-- Başlık boyutları tutarlılık açısından `<Modal.Heading className="text-xl">` (veya `text-lg`) olarak ayarlanmalıdır.
-
-## ESLint & Kod Kalitesi Kuralları
-
-- Kod tabanında `// eslint-disable-*` yorum satırları ile kuralları geçici olarak kapatmak kesinlikle yasaktır. 
-- Eğer geçersiz veya gereksiz bir kural bulunuyorsa, bu kural inline olarak kapatılmak yerine projenin kök dizinindeki `eslint.config.js` veya `tsconfig.json` üzerinden devre dışı bırakılmalı ya da kurallara uygun şekilde kod refaktör edilmelidir.
-
-## Kalite Güvencesi (QA) & Doğrulama Döngüsü
-
-Kod tabanının kararlılığını sağlamak, gerilemeleri (regression) önlemek ve katı kod kalitesini zorunlu kılmak için, kod ürettiğinizde, değiştirdiğinizde veya sildiğinizde (değiştirilen dosyalar yalnızca `.agents/` dizini içinde olmadığı sürece) aşağıdaki doğrulama adımlarını uygulamak ZORUNDASINIZ:
-
-1. **Biçimlendirme ve Lint (Hedefli):**
-   - Sadece eklediğiniz veya değiştirdiğiniz dosyalar üzerinde `pnpm prettier --write <dosya-yolu>` komutunu çalıştırın.
-   - Sözdizimi ve stil sorunlarını kontrol etmek için yalnızca değiştirilen dosyalar üzerinde `pnpm eslint <dosya-yolu>` komutunu çalıştırın. Lint hataları bulunursa hemen düzeltin.
-
-2. **Test Döngüsü (Hedefli & Genel):**
-   - **Yeni Özellikler:** Yeni bir özellik, bileşen, hook veya yardımcı araç eklediğinizde, ilgili birim testlerini aynı dizinde yazmak ZORUNDASINIZ ("Bileşen Testleri" kuralında açıklandığı gibi).
-   - **Silinen Özellikler:** Bir özelliği kaldırır veya refaktör ederseniz, ilgili test dosyalarını/bloklarını temizlemeli, refaktör etmeli veya silmelisiniz. Yetim kalmış veya bozuk testler kalmamalıdır.
-   - **Hedefli Test Çalıştırma:** Değişikliklerinizi yerel ve hızlı bir şekilde doğrulamak için önce `pnpm test -- <değiştirilen-test-dosyası-yolu>` komutunu çalıştırın.
-   - **Küresel Test Çalıştırma:** Hedefli testler geçtikten sonra, hiçbir gerileme olmadığından emin olmak için tüm test paketini `pnpm test` ile çalıştırın. Yapılan değişiklikler kritik akışları (POS, Ödemeler vb.) etkiliyorsa Playwright E2E testlerini de çalıştırarak doğrulayın: `pnpm test:e2e`
-
-3. **Derleme (Build) Doğrulaması:**
-   - TypeScript projesini derlemek ve derleme veya paketleme hatası olmadığını doğrulamak için `pnpm build` komutunu çalıştırın.
-
-4. **Kendi Kendine Düzeltme & Yineleme Sınırı:**
-   - Herhangi bir adım (lint, test veya build) başarısız olursa derleyici çıktısını, lint hatalarını veya test hatalarını analiz edin ve kodu düzeltin.
-   - En fazla **3 kendi kendine düzeltme döngüsü** gerçekleştirmenize izin verilir. Eğer proje 3 denemeden sonra hala derlenmiyorsa, lint edilmiyorsa veya testleri geçmiyorsa DURUN ve hata günlükleri ile ne denediğinizi açıklayarak kullanıcıdan yardım isteyin.
-
-5. **Başarı Onayı:**
-   - Tüm adımlar (lint -> test -> build) sıfır hatayla başarıyla tamamlandığında, gerçekleştirilen kontrollerin özetini kullanıcıya sunarak başarıyı onaylayın.
+Only load the documentation that is required for the current task.
 
 ---
 
-# Permanent AI Agent Working Rules
+# Documentation Routing
 
-Every AI agent working on this repository MUST strictly adhere to the following rules:
+Read documents only when necessary.
 
-## 1. Documentation Is Part of the Codebase
-*   Project documentation is considered part of the source code.
-*   No implementation task is complete until all affected documentation has been updated.
-*   Documentation must never become outdated.
+| Task | Read |
+|-------|------|
+| Project overview | README.md |
+| Folder layout | PROJECT_STRUCTURE.md |
+| Architecture decisions | ARCHITECTURE.md |
+| Business requirements | SRS.md |
+| System design | DESIGN_DOCUMENT.md |
+| Feature implementation | FEATURES.md |
+| Database / Firestore | API.md |
+| Coding conventions | CONVENTIONS.md |
+| ADR / reasoning | DECISIONS.md |
+| Future plans | ROADMAP.md |
+| Terminology | GLOSSARY.md |
 
-## 2. Source of Truth
-*   The implementation is always the source of truth.
-*   Never document assumptions. Never invent features.
-*   If documentation conflicts with the implementation, update the documentation.
+Never load every document unless explicitly requested.
 
-## 3. Documentation Loading
-At the beginning of every new session, before making changes, read all relevant documentation.
-*   **Always read:**
-    *   `README.md`
-    *   `docs/AI_CONTEXT.md`
-*   **Additionally, read task-relevant docs as needed:**
-    *   `docs/ARCHITECTURE.md`
-    *   `docs/FEATURES.md`
-    *   `docs/API.md`
-    *   `docs/CONVENTIONS.md`
-    *   `docs/DECISIONS.md`
-    *   `docs/ROADMAP.md`
-    *   `docs/PROJECT_STRUCTURE.md`
-    *   `docs/GLOSSARY.md`
-*   *Tip:* Only load documentation relevant to the current task to minimize unnecessary context usage.
+---
 
-## 4. Automatic Documentation Maintenance
-After every implementation task, determine which documentation files are affected and update them automatically:
-*   **New feature** → Update `docs/FEATURES.md`
-*   **Architecture changes** → Update `docs/ARCHITECTURE.md`
-*   **API / DB Schema changes** → Update `docs/API.md`
-*   **Folder / Catalog changes** → Update `docs/PROJECT_STRUCTURE.md`
-*   **Coding standards / Import rules** → Update `docs/CONVENTIONS.md`
-*   **Important design decisions** → Append new ADR to `docs/DECISIONS.md`
-*   **Roadmap progress** → Update `docs/ROADMAP.md`
-*   **Business terminology changes** → Update `docs/GLOSSARY.md`
-*   **Agent knowledge base updates** → Update `docs/AI_CONTEXT.md`
-*   **Build, setups, scripts, or deployment updates** → Update root `README.md`
+# Required Reading
 
-## 5. Documentation Quality
-Documentation must:
-*   Reflect the current implementation.
-*   Avoid duplication and redundancy.
-*   Explain **WHY** as well as **WHAT**.
-*   Remain concise and link to other documents instead of repeating content.
-*   Use Markdown best practices and Mermaid diagrams where useful.
-*   Stay internally consistent.
+Always read:
 
-## 6. Before Writing Code
-Before implementing anything:
-1.  Understand the existing architecture.
-2.  Search for reusable components.
-3.  Search for existing utilities.
-4.  Search for existing hooks.
-5.  Follow existing conventions.
-6.  Avoid introducing duplicate logic.
+- AI_CONTEXT.md
 
-## 7. Architecture Rules
-*   Prefer consistency over novelty.
-*   Avoid introducing new patterns, new folder structures, unnecessary dependencies, or unnecessary abstractions unless there is a clear, documented technical justification.
+Everything else is optional.
 
-## 8. Architectural Decisions
-*   Whenever an important technical decision is made, append a new entry to `docs/DECISIONS.md`.
-*   Never rewrite or modify historical decisions.
+---
 
-## 9. AI Context Maintenance
-*   Maintain `docs/AI_CONTEXT.md` continuously.
-*   Ensure this document contains the minimum information required for a new AI agent to quickly understand the project.
-*   Whenever project knowledge changes, update this file immediately.
+# Documentation Maintenance
 
-## 10. Repository Awareness
-*   Before making significant changes, inspect the relevant parts of the repository instead of relying on assumptions.
-*   Always prefer existing project patterns over creating new ones.
+Whenever a significant architectural or business change is made:
 
-## 11. Task Completion Checklist
-A task is complete only when:
-*   [ ] The implementation is fully finished and verified.
-*   [ ] The codebase architecture remains consistent without duplicated logic.
-*   [ ] All affected documentation files have been updated and synchronized.
-*   [ ] `docs/AI_CONTEXT.md` has been updated if necessary.
+Update only affected documents.
 
+Never rewrite every document.
+
+Example:
+
+New Firestore Collection
+
+Update:
+
+- API.md
+- DESIGN_DOCUMENT.md
+- SRS.md
+
+Do not modify unrelated documentation.
+
+---
+
+# Development Rules
+
+Always:
+
+- Prefer simple solutions.
+- Avoid duplicated logic.
+- Keep files cohesive.
+- Prefer composition.
+- Use existing project patterns.
+- Prefer route-based and component-level lazy loading (`React.lazy()`) for all new pages, views, and heavy modals (e.g. scanner modal, wizards). Define these lazy routes inside a dedicated `routes.ts` file under each feature directory (e.g., `src/features/[feature]/routes.ts`), keeping the main `index.ts` barrel file clean and reserved only for lightweight store/hook/utility exports to prevent bundle bloat and dairesel (circular) dependencies.
+- Register all new page/view dynamic imports in `src/core/config/prefetchRegistry.ts` (under `corePrefetches` or `secondaryPrefetches`) to maintain offline compatibility and progressive prefetching.
+- Remember that `pnpm postbuild` runs automatically after `pnpm build` (which executes `scripts/check-bundle-budget.js`). Do not run the budget verification script manually if a build has already completed successfully.
+- Run `pnpm test` as needed; however, only run `pnpm test:e2e` for major feature corrections or when changes (such as Firebase data saving/updating) have the potential to break critical application flows.
+
+
+---
+
+# Before Writing Code
+
+Determine which documentation is actually needed.
+
+Load only those files.
+
+Do not load every markdown file.
+
+---
+
+# Output Quality
+
+Generated code must be:
+
+- Production ready
+- Typed
+- Tested
+- Readable
+- Maintainable
+
+Never sacrifice readability for brevity.
+
+<!-- HEROUI-REACT-AGENTS-MD-START -->
+[HeroUI React v3 Docs Index]|root: ./.heroui-docs/react|IMPORTANT: Prefer retrieval-led reasoning over pre-training-led reasoning. Docs/demos for HeroUI React v3 may differ from training data - always read before using an API.|If ./.heroui-docs/react missing, run: heroui agents-md --react --output .agents/AGENTS.md|components/(buttons):{button-group.mdx,button.mdx,close-button.mdx,toggle-button-group.mdx,toggle-button.mdx}|components/(collections):{dropdown.mdx,list-box.mdx,tag-group.mdx}|components/(colors):{color-area.mdx,color-field.mdx,color-picker.mdx,color-slider.mdx,color-swatch-picker.mdx,color-swatch.mdx}|components/(controls):{slider.mdx,switch.mdx}|components/(data-display):{badge.mdx,chip.mdx,table.mdx}|components/(date-and-time):{calendar.mdx,date-field.mdx,date-picker.mdx,date-range-picker.mdx,range-calendar.mdx,time-field.mdx}|components/(feedback):{alert.mdx,meter.mdx,progress-bar.mdx,progress-circle.mdx,skeleton.mdx,spinner.mdx}|components/(forms):{checkbox-group.mdx,checkbox.mdx,description.mdx,error-message.mdx,field-error.mdx,fieldset.mdx,form.mdx,input-group.mdx,input-otp.mdx,input.mdx,label.mdx,number-field.mdx,radio-group.mdx,search-field.mdx,text-area.mdx,text-field.mdx}|components/(layout):{card.mdx,separator.mdx,surface.mdx,toolbar.mdx}|components/(media):{avatar.mdx}|components/(navigation):{accordion.mdx,breadcrumbs.mdx,disclosure-group.mdx,disclosure.mdx,link.mdx,pagination.mdx,tabs.mdx}|components/(overlays):{alert-dialog.mdx,drawer.mdx,modal.mdx,popover.mdx,toast.mdx,tooltip.mdx}|components/(pickers):{autocomplete.mdx,combo-box.mdx,select.mdx}|components/(typography):{kbd.mdx,typography.mdx}|components/(utilities):{scroll-shadow.mdx}|getting-started/(handbook):{animation.mdx,colors.mdx,composition.mdx,dark-mode.mdx,styling.mdx,theming.mdx}|getting-started/(overview):{cli.mdx,design-principles.mdx,frameworks.mdx,quick-start.mdx}|getting-started/(ui-for-agents):{agent-skills.mdx,agents-md.mdx,llms-txt.mdx,mcp-server.mdx}|releases:{v3-0-0-alpha-32.mdx,v3-0-0-alpha-33.mdx,v3-0-0-alpha-34.mdx,v3-0-0-alpha-35.mdx,v3-0-0-beta-1.mdx,v3-0-0-beta-2.mdx,v3-0-0-beta-3.mdx,v3-0-0-beta-4.mdx,v3-0-0-beta-6.mdx,v3-0-0-beta-7.mdx,v3-0-0-beta-8.mdx,v3-0-0-rc-1.mdx,v3-0-0.mdx,v3-0-2.mdx,v3-0-3.mdx,v3-0-4.mdx,v3-0-5.mdx,v3-1-0.mdx,v3-2-0.mdx,v3-2-1.mdx,v3-2-2.mdx}|demos root: ./.heroui-docs/react/demos/{lang}/ where {lang} is en or cn (identical file sets, pick based on project locale)|demos/accordion:{basic.tsx,controlled.tsx,custom-indicator.tsx,custom-render-function.tsx,custom-styles.tsx,disabled.tsx,faq.tsx,multiple.tsx,surface.tsx,without-separator.tsx}|demos/alert-dialog:{backdrop-variants.tsx,close-methods.tsx,controlled.tsx,custom-animations.tsx,custom-backdrop.tsx,custom-icon.tsx,custom-portal.tsx,custom-trigger.tsx,default.tsx,dismiss-behavior.tsx,placements.tsx,sizes.tsx,statuses.tsx,with-close-button.tsx}|demos/alert:{basic.tsx}|demos/autocomplete:{allows-empty-collection.tsx,asynchronous-filtering.tsx,controlled-open-state.tsx,controlled.tsx,custom-indicator.tsx,default.tsx,disabled.tsx,email-recipients.tsx,full-width.tsx,location-search.tsx,multiple-select.tsx,required.tsx,single-select.tsx,tag-group-selection.tsx,user-selection-multiple.tsx,user-selection.tsx,variants.tsx,virtualization.tsx,with-description.tsx,with-disabled-options.tsx,with-sections.tsx}|demos/avatar:{basic.tsx,colors.tsx,custom-styles.tsx,fallback.tsx,group.tsx,sizes.tsx,variants.tsx}|demos/badge:{basic.tsx,colors.tsx,dot.tsx,placements.tsx,sizes.tsx,variants.tsx,with-content.tsx}|demos/breadcrumbs:{basic.tsx,custom-render-function.tsx,custom-separator.tsx,disabled.tsx,level-2.tsx,level-3.tsx}|demos/button-group:{basic.tsx,disabled.tsx,full-width.tsx,orientation.tsx,sizes.tsx,variants.tsx,with-icons.tsx,without-separator.tsx}|demos/button:{basic.tsx,custom-render-function.tsx,custom-variants.tsx,disabled.tsx,full-width.tsx,icon-only.tsx,loading-state.tsx,loading.tsx,outline-variant.tsx,ripple-effect.tsx,sizes.tsx,social.tsx,variants.tsx,with-icons.tsx}|demos/calendar:{basic.tsx,booking-calendar.tsx,controlled.tsx,custom-icons.tsx,custom-styles.tsx,day-view.tsx,default-value.tsx,disabled.tsx,focused-value.tsx,international-calendar.tsx,min-max-dates.tsx,multiple-months.tsx,multiple-selection.tsx,read-only.tsx,unavailable-dates.tsx,week-view.tsx,weeks-in-month.tsx,with-indicators.tsx,year-picker.tsx}|demos/card:{default.tsx,horizontal.tsx,variants.tsx,with-avatar.tsx,with-form.tsx,with-images.tsx}|demos/checkbox-group:{basic.tsx,controlled.tsx,custom-render-function.tsx,disabled.tsx,features-and-addons.tsx,indeterminate.tsx,on-surface.tsx,validation.tsx,with-custom-indicator.tsx}|demos/checkbox:{basic.tsx,controlled.tsx,custom-indicator.tsx,custom-render-function.tsx,custom-styles.tsx,default-selected.tsx,disabled.tsx,external-label.tsx,form.tsx,full-rounded.tsx,indeterminate.tsx,invalid.tsx,render-props.tsx,variants.tsx,with-description.tsx}|demos/chip:{basic.tsx,statuses.tsx,variants.tsx,vibrant-palette.tsx,with-icon.tsx}|demos/close-button:{default.tsx,interactive.tsx,variants.tsx,with-custom-icon.tsx}|demos/color-area:{basic.tsx,controlled.tsx,custom-render-function.tsx,disabled.tsx,space-and-channels.tsx,with-dots.tsx}|demos/color-field:{basic.tsx,channel-editing.tsx,controlled.tsx,custom-render-function.tsx,disabled.tsx,form-example.tsx,full-width.tsx,invalid.tsx,on-surface.tsx,required.tsx,variants.tsx,with-description.tsx}|demos/color-picker:{basic.tsx,controlled.tsx,with-fields.tsx,with-sliders.tsx,with-swatches.tsx}|demos/color-slider:{alpha-channel.tsx,basic.tsx,channels.tsx,controlled.tsx,custom-render-function.tsx,disabled.tsx,rgb-channels.tsx,vertical.tsx}|demos/color-swatch-picker:{basic.tsx,controlled.tsx,custom-indicator.tsx,custom-render-function.tsx,default-value.tsx,disabled.tsx,sizes.tsx,stack-layout.tsx,variants.tsx}|demos/color-swatch:{accessibility.tsx,basic.tsx,custom-render-function.tsx,custom-styles.tsx,shapes.tsx,sizes.tsx,transparency.tsx}|demos/combo-box:{allows-custom-value.tsx,asynchronous-loading.tsx,controlled-input-value.tsx,controlled.tsx,custom-filtering.tsx,custom-indicator.tsx,custom-render-function.tsx,custom-value.tsx,default-selected-key.tsx,default.tsx,disabled.tsx,full-width.tsx,menu-trigger.tsx,on-surface.tsx,required.tsx,with-description.tsx,with-disabled-options.tsx,with-sections.tsx}|demos/date-field:{basic.tsx,controlled.tsx,custom-render-function.tsx,disabled.tsx,form-example.tsx,full-width.tsx,granularity.tsx,invalid.tsx,on-surface.tsx,required.tsx,variants.tsx,with-description.tsx,with-prefix-and-suffix.tsx,with-prefix-icon.tsx,with-suffix-icon.tsx,with-validation.tsx}|demos/date-picker:{basic.tsx,controlled.tsx,custom-render-function.tsx,disabled.tsx,form-example.tsx,format-options-no-ssr.tsx,format-options.tsx,international-calendar.tsx,with-custom-indicator.tsx,with-validation.tsx}|demos/date-range-picker:{basic.tsx,controlled.tsx,custom-render-function.tsx,disabled.tsx,form-example.tsx,format-options-no-ssr.tsx,format-options.tsx,input-container.tsx,international-calendar.tsx,with-custom-indicator.tsx,with-validation.tsx}|demos/description:{basic.tsx}|demos/disclosure-group:{basic.tsx,controlled.tsx}|demos/disclosure:{basic.tsx,custom-render-function.tsx}|demos/drawer:{backdrop-variants.tsx,basic.tsx,controlled.tsx,navigation.tsx,non-dismissable.tsx,placements.tsx,scrollable-content.tsx,with-form.tsx}|demos/dropdown:{controlled-open-state.tsx,controlled.tsx,custom-trigger.tsx,default.tsx,long-press-trigger.tsx,single-with-custom-indicator.tsx,with-custom-submenu-indicator.tsx,with-descriptions.tsx,with-disabled-items.tsx,with-icons.tsx,with-keyboard-shortcuts.tsx,with-multiple-selection.tsx,with-section-level-selection.tsx,with-sections.tsx,with-single-selection.tsx,with-submenus.tsx}|demos/error-message:{basic.tsx,with-tag-group.tsx}|demos/field-error:{basic.tsx}|demos/fieldset:{basic.tsx,on-surface.tsx}|demos/form:{basic.tsx,custom-render-function.tsx}|demos/input-group:{default.tsx,disabled.tsx,full-width.tsx,invalid.tsx,on-surface.tsx,password-with-toggle.tsx,required.tsx,variants.tsx,with-badge-suffix.tsx,with-copy-suffix.tsx,with-icon-prefix-and-copy-suffix.tsx,with-icon-prefix-and-text-suffix.tsx,with-keyboard-shortcut.tsx,with-loading-suffix.tsx,with-prefix-and-suffix.tsx,with-prefix-icon.tsx,with-suffix-icon.tsx,with-text-prefix.tsx,with-text-suffix.tsx,with-textarea.tsx}|demos/input-otp:{basic.tsx,controlled.tsx,disabled.tsx,form-example.tsx,four-digits.tsx,on-complete.tsx,on-surface.tsx,variants.tsx,with-pattern.tsx,with-validation.tsx}|demos/input:{basic.tsx,controlled.tsx,full-width.tsx,on-surface.tsx,types.tsx,variants.tsx}|demos/kbd:{basic.tsx,inline.tsx,instructional.tsx,navigation.tsx,special.tsx,variants.tsx}|demos/label:{basic.tsx}|demos/link:{basic.tsx,custom-icon.tsx,custom-render-function.tsx,icon-placement.tsx,underline-and-offset.tsx,underline-offset.tsx,underline-variants.tsx}|demos/list-box:{controlled.tsx,custom-check-icon.tsx,custom-render-function.tsx,default.tsx,multi-select.tsx,scrollbar-modes.tsx,virtualization.tsx,with-disabled-items.tsx,with-sections.tsx}|demos/meter:{basic.tsx,colors.tsx,custom-value.tsx,sizes.tsx,without-label.tsx}|demos/modal:{backdrop-variants.tsx,close-methods.tsx,controlled.tsx,custom-animations.tsx,custom-backdrop.tsx,custom-portal.tsx,custom-trigger.tsx,default.tsx,dismiss-behavior.tsx,placements.tsx,scroll-comparison.tsx,sizes.tsx,with-form.tsx}|demos/number-field:{basic.tsx,controlled.tsx,custom-icons.tsx,custom-render-function.tsx,disabled.tsx,form-example.tsx,full-width.tsx,on-surface.tsx,required.tsx,validation.tsx,variants.tsx,with-chevrons.tsx,with-description.tsx,with-format-options.tsx,with-step.tsx,with-validation.tsx}|demos/pagination:{basic.tsx,controlled.tsx,custom-icons.tsx,disabled.tsx,simple-prev-next.tsx,sizes.tsx,with-ellipsis.tsx,with-summary.tsx}|demos/popover:{basic.tsx,custom-render-function.tsx,interactive.tsx,placement.tsx,with-arrow.tsx}|demos/progress-bar:{basic.tsx,colors.tsx,custom-value.tsx,indeterminate.tsx,sizes.tsx,without-label.tsx}|demos/progress-circle:{basic.tsx,colors.tsx,custom-svg.tsx,indeterminate.tsx,sizes.tsx,with-label.tsx}|demos/radio-group:{basic.tsx,controlled.tsx,custom-indicator.tsx,custom-render-function.tsx,delivery-and-payment.tsx,disabled.tsx,horizontal.tsx,on-surface.tsx,uncontrolled.tsx,validation.tsx,variants.tsx}|demos/range-calendar:{allows-non-contiguous-ranges.tsx,anchor-unavailable-dates.tsx,basic.tsx,booking-calendar.tsx,controlled.tsx,day-view.tsx,default-value.tsx,disabled.tsx,focused-value.tsx,international-calendar.tsx,invalid.tsx,min-max-dates.tsx,multiple-months.tsx,read-only.tsx,three-months.tsx,unavailable-dates.tsx,week-view.tsx,weeks-in-month.tsx,with-indicators.tsx,year-picker.tsx}|demos/scroll-shadow:{custom-size.tsx,default.tsx,hide-scroll-bar.tsx,orientation.tsx,visibility-change.tsx,with-card.tsx}|demos/search-field:{basic.tsx,controlled.tsx,custom-icons.tsx,custom-render-function.tsx,disabled.tsx,form-example.tsx,full-width.tsx,on-surface.tsx,required.tsx,validation.tsx,variants.tsx,with-description.tsx,with-keyboard-shortcut.tsx,with-validation.tsx}|demos/select:{asynchronous-loading.tsx,controlled-multiple.tsx,controlled-open-state.tsx,controlled.tsx,custom-indicator.tsx,custom-render-function.tsx,custom-value-multiple.tsx,custom-value.tsx,default.tsx,disabled.tsx,full-width.tsx,multiple-select.tsx,on-surface.tsx,required.tsx,variants.tsx,with-description.tsx,with-disabled-options.tsx,with-sections.tsx}|demos/separator:{basic.tsx,custom-render-function.tsx,manual-variant-override.tsx,variants.tsx,vertical.tsx,with-content.tsx,with-surface.tsx}|demos/skeleton:{animation-types.tsx,basic.tsx,card.tsx,grid.tsx,list.tsx,single-shimmer.tsx,text-content.tsx,user-profile.tsx}|demos/slider:{custom-render-function.tsx,default.tsx,disabled.tsx,range.tsx,vertical.tsx}|demos/spinner:{basic.tsx,colors.tsx,sizes.tsx}|demos/surface:{variants.tsx}|demos/switch:{basic.tsx,controlled.tsx,custom-render-function.tsx,custom-styles.tsx,default-selected.tsx,disabled.tsx,form.tsx,group-horizontal.tsx,group.tsx,label-position.tsx,render-props.tsx,sizes.tsx,with-description.tsx,with-icons.tsx,without-label.tsx}|demos/table:{async-loading.tsx,basic.tsx,column-resizing.tsx,custom-cells.tsx,empty-state.tsx,expandable-rows.tsx,pagination.tsx,secondary-variant.tsx,selection.tsx,sorting.tsx,tanstack-table.tsx,virtualization.tsx}|demos/tabs:{basic.tsx,custom-render-function.tsx,custom-styles.tsx,disabled.tsx,overflow.tsx,secondary-vertical.tsx,secondary.tsx,vertical.tsx,with-separator.tsx}|demos/tag-group:{basic.tsx,controlled.tsx,custom-render-function.tsx,disabled.tsx,selection-modes.tsx,sizes.tsx,variants.tsx,with-error-message.tsx,with-list-data.tsx,with-prefix.tsx,with-remove-button.tsx}|demos/textarea:{basic.tsx,controlled.tsx,full-width.tsx,on-surface.tsx,rows.tsx,variants.tsx}|demos/textfield:{basic.tsx,controlled.tsx,custom-render-function.tsx,disabled.tsx,full-width.tsx,input-types.tsx,on-surface.tsx,required.tsx,textarea.tsx,validation.tsx,with-description.tsx,with-error.tsx}|demos/time-field:{basic.tsx,controlled.tsx,custom-render-function.tsx,disabled.tsx,form-example.tsx,full-width.tsx,invalid.tsx,on-surface.tsx,required.tsx,with-description.tsx,with-prefix-and-suffix.tsx,with-prefix-icon.tsx,with-suffix-icon.tsx,with-validation.tsx}|demos/toast:{callbacks.tsx,custom-indicator.tsx,custom-queue.tsx,custom-toast.tsx,default.tsx,placements.tsx,promise.tsx,simple.tsx,variants.tsx}|demos/toggle-button-group:{attached.tsx,basic.tsx,controlled.tsx,disabled.tsx,full-width.tsx,orientation.tsx,selection-mode.tsx,sizes.tsx,without-separator.tsx}|demos/toggle-button:{basic.tsx,controlled.tsx,disabled.tsx,icon-only.tsx,sizes.tsx,variants.tsx}|demos/toolbar:{basic.tsx,custom-styles.tsx,vertical.tsx,with-button-group.tsx}|demos/tooltip:{basic.tsx,custom-render-function.tsx,custom-trigger.tsx,placement.tsx,with-arrow.tsx}|demos/typography:{default.tsx,primitives.tsx,prose.tsx,render-props.tsx,typography-scale.tsx}
+<!-- HEROUI-REACT-AGENTS-MD-END -->

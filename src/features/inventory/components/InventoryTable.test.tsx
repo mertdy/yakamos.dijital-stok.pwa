@@ -4,6 +4,7 @@ import { InventoryTable } from './InventoryTable';
 import { useInventoryStore } from '../store/useInventoryStore';
 import { useConfirm } from '@/shared/contexts/ConfirmDialogContext';
 import { useNavigate } from 'react-router-dom';
+import { ROUTES } from '@/core/config/routes';
 
 vi.mock('lucide-react', () => ({
   Edit: () => <div data-testid="icon-edit" />,
@@ -12,6 +13,7 @@ vi.mock('lucide-react', () => ({
   ArrowUp: () => <div data-testid="icon-arrow-up" />,
   ArrowDown: () => <div data-testid="icon-arrow-down" />,
   Search: () => <div data-testid="icon-search" />,
+  Printer: () => <div data-testid="icon-printer" />,
   CheckSquare: () => <div data-testid="icon-check-square" />,
   X: () => <div data-testid="icon-x" />
 }));
@@ -24,6 +26,19 @@ vi.mock('../store/useInventoryStore');
 vi.mock('@/shared/contexts/ConfirmDialogContext');
 vi.mock('@/shared/hooks/useGlobalBarcodeScanner', () => ({
   useGlobalBarcodeScanner: vi.fn()
+}));
+
+vi.mock('@/features/auth', () => ({
+  useAuthStore: Object.assign(
+    () => ({
+      activeMembership: { role: 'OWNER', permissions: [] }
+    }),
+    {
+      getState: () => ({
+        activeMembership: { role: 'OWNER', permissions: [] }
+      })
+    }
+  )
 }));
 
 vi.mock('@heroui/react', async importOriginal => {
@@ -63,6 +78,7 @@ describe('InventoryTable', () => {
   const confirmMock = vi.fn();
   const deleteItemMock = vi.fn();
   const deleteItemsMock = vi.fn();
+  const updateItemMock = vi.fn();
 
   const mockItems = [
     { id: '1', name: 'Apple', barcode: '111', stock: 5, price: 1.2 },
@@ -78,7 +94,8 @@ describe('InventoryTable', () => {
     mockUseInventoryStore.mockReturnValue({
       items: mockItems,
       deleteItem: deleteItemMock,
-      deleteItems: deleteItemsMock
+      deleteItems: deleteItemsMock,
+      updateItem: updateItemMock
     });
   });
 
@@ -86,7 +103,8 @@ describe('InventoryTable', () => {
     mockUseInventoryStore.mockReturnValue({
       items: [],
       deleteItem: deleteItemMock,
-      deleteItems: deleteItemsMock
+      deleteItems: deleteItemsMock,
+      updateItem: updateItemMock
     });
 
     render(<InventoryTable />);
@@ -130,7 +148,7 @@ describe('InventoryTable', () => {
     const editBtns = screen.getAllByRole('button', { name: 'Düzenle' });
     fireEvent.click(editBtns[0]); // Apple edit
 
-    expect(navigateMock).toHaveBeenCalledWith('/inventory/edit/1');
+    expect(navigateMock).toHaveBeenCalledWith(ROUTES.INVENTORY.EDIT('1'));
   });
 
   it('asks for confirmation and deletes item when confirm resolves true', async () => {

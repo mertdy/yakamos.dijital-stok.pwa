@@ -1,10 +1,11 @@
 import { test, expect } from '@playwright/test';
 import { ENV } from '../src/core/config/env';
+import { ROUTES } from '../src/core/config/routes';
 
 test.describe('Inventory Flow', () => {
   test.beforeEach(async ({ page }) => {
     // Log in before each test
-    await page.goto('/login');
+    await page.goto(ROUTES.LOGIN);
     await page.locator('#login-email').fill(ENV.TEST_USER_EMAIL);
     await page.locator('#login-password').fill(ENV.TEST_USER_PASSWORD);
     await page.click('#login-submit-btn');
@@ -12,11 +13,11 @@ test.describe('Inventory Flow', () => {
   });
 
   test('should perform full product CRUD cycle', async ({ page }) => {
-    await page.goto('/inventory');
+    await page.goto(ROUTES.INVENTORY.INDEX);
     await expect(page.getByText('Envanter Yönetimi')).toBeVisible();
 
     // 1. Create Product
-    await page.click('button:has-text("Yeni Ürün Ekle")');
+    await page.click('button:has-text("Yeni Ürün")');
     await expect(
       page.getByRole('heading', { name: 'Yeni Ürün Ekle' })
     ).toBeVisible();

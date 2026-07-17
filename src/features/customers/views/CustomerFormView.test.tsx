@@ -74,9 +74,11 @@ describe('CustomerFormView', () => {
 
     // Wait for the useEffect to populate the form
     waitFor(() => {
-      const nameInput = screen.getByLabelText(/Ad/i) as HTMLInputElement;
+      const nameInput = screen.getByLabelText(/^Ad$/i) as HTMLInputElement;
       expect(nameInput.value).toBe('John');
-      const surnameInput = screen.getByLabelText(/Soyad/i) as HTMLInputElement;
+      const surnameInput = screen.getByLabelText(
+        /^Soyad$/i
+      ) as HTMLInputElement;
       expect(surnameInput.value).toBe('Doe');
     });
   });
@@ -86,7 +88,7 @@ describe('CustomerFormView', () => {
 
     // The submit button is disabled by default if the form is invalid based on mode: "onChange"
     // So we need to type invalid data to trigger errors.
-    const nameInput = screen.getByLabelText(/Ad/i);
+    const nameInput = screen.getByLabelText(/^Ad$/i);
     fireEvent.change(nameInput, { target: { value: 'A' } }); // Min 2 chars
 
     // Form button is disabled since it's not valid
@@ -105,7 +107,7 @@ describe('CustomerFormView', () => {
     addCustomerMock.mockResolvedValue('new-c1');
     render(<CustomerFormView />);
 
-    const nameInput = screen.getByLabelText(/Ad/i);
+    const nameInput = screen.getByLabelText(/^Ad$/i);
     fireEvent.change(nameInput, { target: { value: 'Ahmet' } });
 
     const limitInput = screen.getByLabelText(/Maksimum Borç Limiti/i);

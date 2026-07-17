@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
+import { clsx } from 'clsx';
 import { useSalesStore, type PaymentMethod } from '../store/useSalesStore';
 import { useCustomerStore } from '@/features/customers';
-import { toast } from '@heroui/react';
+import { Input, toast } from '@heroui/react';
 import {
   UserPlus,
   Tag,
@@ -172,7 +173,12 @@ export const InvoicePanel: React.FC<Props> = ({
                 onClick={() =>
                   setDiscount('amount', Number(discountValue) || 0)
                 }
-                className={`px-3 text-xs font-bold transition-colors ${discountType === 'amount' ? 'bg-primary text-white' : 'text-gray-500 hover:bg-gray-100'}`}>
+                className={clsx(
+                  'px-3 text-xs font-bold transition-colors',
+                  discountType === 'amount'
+                    ? 'bg-primary text-white'
+                    : 'text-gray-500 hover:bg-gray-100'
+                )}>
                 ₺ Tutar
               </button>
               <button
@@ -182,21 +188,26 @@ export const InvoicePanel: React.FC<Props> = ({
                   if (newVal < -100) newVal = -100;
                   setDiscount('percentage', newVal);
                 }}
-                className={`px-3 text-xs font-bold transition-colors ${discountType === 'percentage' ? 'bg-primary text-white' : 'text-gray-500 hover:bg-gray-100'}`}>
+                className={clsx(
+                  'px-3 text-xs font-bold transition-colors',
+                  discountType === 'percentage'
+                    ? 'bg-primary text-white'
+                    : 'text-gray-500 hover:bg-gray-100'
+                )}>
                 % Yüzde
               </button>
             </div>
-            <div className="relative flex-1">
+            <div className="relative w-40">
               <Tag
                 className="absolute top-1/2 left-2.5 -translate-y-1/2 text-gray-400"
                 size={14}
               />
-              <input
+              <Input
                 type="number"
                 placeholder="İndirim Miktarı"
                 value={discountValue === 0 ? '' : discountValue}
                 onChange={handleDiscountChange}
-                className="focus:ring-primary h-8 w-full rounded-lg border border-gray-200 bg-gray-50 py-1.5 pr-2 pl-8 text-xs outline-none focus:ring-2"
+                className="h-8 w-full pl-8 text-xs"
               />
             </div>
           </div>
@@ -206,7 +217,10 @@ export const InvoicePanel: React.FC<Props> = ({
               <span>{discountAmount < 0 ? 'Fiyat Artırımı' : 'İndirim'}</span>
               <div className="flex items-center gap-1">
                 <span
-                  className={`font-semibold ${discountAmount < 0 ? 'text-primary' : 'text-danger'}`}>
+                  className={clsx(
+                    'font-semibold',
+                    discountAmount < 0 ? 'text-primary' : 'text-danger'
+                  )}>
                   {discountAmount < 0 ? '+' : '-'}₺
                   {Math.abs(discountAmount).toFixed(2)}
                 </span>
@@ -255,13 +269,14 @@ export const InvoicePanel: React.FC<Props> = ({
                     });
                     setPaymentMethod(method.id as PaymentMethod);
                   }}
-                  className={`flex h-full w-full flex-col items-center justify-center rounded-xl border py-2 transition-all ${
+                  className={clsx(
+                    'flex h-full w-full flex-col items-center justify-center rounded-xl border py-2 transition-all',
                     isDisabled
                       ? 'pointer-events-none cursor-not-allowed border-gray-100 bg-gray-50 text-gray-300'
                       : paymentMethod === method.id
                         ? 'border-primary bg-primary/5 text-primary shadow-sm'
                         : 'border-gray-200 bg-white text-gray-500 hover:bg-gray-50'
-                  }`}>
+                  )}>
                   <method.icon size={18} className="mb-1" />
                   <span className="text-[10px] font-semibold">
                     {method.label}
@@ -278,12 +293,13 @@ export const InvoicePanel: React.FC<Props> = ({
 
                 return (
                   <Tooltip key={method.id} delay={0} closeDelay={0}>
-                    <Tooltip.Trigger>
+                    <Tooltip.Trigger aria-label={tooltipMsg}>
                       <div className="flex h-full w-full cursor-not-allowed">
                         {btn}
                       </div>
                     </Tooltip.Trigger>
-                    <Tooltip.Content placement="top" showArrow={true}>
+                    <Tooltip.Content showArrow>
+                      <Tooltip.Arrow />
                       {tooltipMsg}
                     </Tooltip.Content>
                   </Tooltip>
@@ -306,29 +322,32 @@ export const InvoicePanel: React.FC<Props> = ({
                 <button
                   key={amt}
                   onClick={() => setGivenAmount(amt)}
-                  className={`flex h-full w-full flex-col items-center justify-center rounded-xl border py-2 transition-all ${
+                  className={clsx(
+                    'flex h-full w-full flex-col items-center justify-center rounded-xl border py-2 transition-all',
                     givenAmount === amt
                       ? 'border-primary bg-primary/5 text-primary shadow-sm'
                       : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
-                  }`}>
+                  )}>
                   <span className="text-sm font-black">₺{amt}</span>
                 </button>
               ))}
 
               <div
-                className={`relative flex flex-col items-center justify-center overflow-hidden rounded-xl border py-0 transition-all ${
+                className={clsx(
+                  'relative flex flex-col items-center justify-center overflow-hidden rounded-xl border py-0 transition-all',
                   isCustomAmountFocused ||
-                  (givenAmount !== '' && ![50, 100, 200].includes(givenAmount))
+                    (givenAmount !== '' &&
+                      ![50, 100, 200].includes(givenAmount))
                     ? 'border-primary bg-primary/5 text-primary shadow-sm'
                     : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
-                }`}>
+                )}>
                 <span className="pointer-events-none absolute left-2 z-10 text-xs font-bold opacity-50">
                   ₺
                 </span>
-                <input
+                <Input
                   type="number"
                   placeholder="Diğer"
-                  className="absolute inset-0 h-full w-full appearance-none bg-transparent pr-1 pl-4 text-center text-sm font-black outline-none focus:ring-0 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                  className="absolute inset-0 h-full w-full pr-1 pl-4 text-center text-sm font-black"
                   value={givenAmount === '' ? '' : givenAmount}
                   onFocus={() => {
                     setIsCustomAmountFocused(true);
@@ -349,7 +368,12 @@ export const InvoicePanel: React.FC<Props> = ({
                   Para Üstü
                 </span>
                 <span
-                  className={`text-xl font-black tracking-tight ${givenAmount < totalPayable ? 'text-danger' : 'text-[#2E7D32]'}`}>
+                  className={clsx(
+                    'text-xl font-black tracking-tight',
+                    givenAmount < totalPayable
+                      ? 'text-danger'
+                      : 'text-[#2E7D32]'
+                  )}>
                   {givenAmount < totalPayable
                     ? 'Yetersiz Bakiye'
                     : `₺${(givenAmount - totalPayable).toFixed(2)}`}

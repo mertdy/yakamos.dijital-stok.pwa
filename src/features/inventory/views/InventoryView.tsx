@@ -1,31 +1,43 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useLayoutEffect, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
+import { ROUTES } from '@/core/config/routes';
 import { InventoryTable } from '../components/InventoryTable';
-import { useInventoryStore } from '../store/useInventoryStore';
 import { Plus } from 'lucide-react';
 import { Button } from '@heroui/react';
 import posthog from 'posthog-js';
 
+import { useAuthStore } from '@/features/auth/store/useAuthStore';
+
 export const InventoryView: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { loadItems } = useInventoryStore();
+  const { activeMembership } = useAuthStore();
+  const [printItemId, setPrintItemId] = useState<string | null>(null);
+  const isOwner = activeMembership?.role === 'OWNER';
+  const hasInventoryPermission =
+    isOwner || activeMembership?.permissions.includes('MANAGE_INVENTORY');
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     posthog.capture('inventory_viewed', {
       view_source: 'navigation'
     });
-    loadItems();
-
     // Check if we need to auto-open the form with a barcode
     const addBarcode = searchParams.get('add');
-    if (addBarcode) {
+    if (addBarcode && hasInventoryPermission) {
       // Remove query param from current view and navigate to new form
       searchParams.delete('add');
       setSearchParams(searchParams, { replace: true });
-      navigate(`/inventory/new?barcode=${addBarcode}`);
+      navigate(ROUTES.INVENTORY.NEW_WITH_BARCODE(addBarcode));
     }
-  }, [loadItems, searchParams, setSearchParams, navigate]);
+  }, [searchParams, setSearchParams, navigate, hasInventoryPermission]);
+
+  useEffect(() => {
+    const itemId = searchParams.get('print');
+    if (!itemId || !hasInventoryPermission) return;
+    setPrintItemId(itemId);
+    searchParams.delete('print');
+    setSearchParams(searchParams, { replace: true });
+  }, [hasInventoryPermission, searchParams, setSearchParams]);
 
   return (
     <div className="mx-auto flex h-full max-w-7xl flex-col p-4 md:p-6">
@@ -39,13 +51,17 @@ export const InventoryView: React.FC = () => {
           </p>
         </div>
 
-        <Button onPress={() => navigate('/inventory/new')} variant="primary">
-          <Plus className="mr-2 text-xl" /> Yeni Ürün Ekle
-        </Button>
+        {hasInventoryPermission && (
+          <Button
+            onPress={() => navigate(ROUTES.INVENTORY.NEW)}
+            variant="primary">
+            <Plus className="mr-2 text-xl" /> Yeni Ürün
+          </Button>
+        )}
       </div>
 
       <div className="min-h-0 flex-1">
-        <InventoryTable />
+        <InventoryTable initialPrintItemId={printItemId} />
       </div>
     </div>
   );

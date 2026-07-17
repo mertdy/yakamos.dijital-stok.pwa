@@ -1,5 +1,7 @@
 import { useEffect, useState, useCallback, Fragment } from 'react';
+import { clsx } from 'clsx';
 import { useParams, useNavigate } from 'react-router-dom';
+import { ROUTES } from '@/core/config/routes';
 import {
   ArrowLeft,
   User,
@@ -11,7 +13,9 @@ import {
   ReceiptText,
   ChevronDown,
   ChevronUp,
-  Package
+  Package,
+  MessageCircle,
+  PhoneCall
 } from 'lucide-react';
 import { Button } from '@heroui/react';
 import {
@@ -19,26 +23,33 @@ import {
   type CustomerTransaction
 } from '../store/useCustomerStore';
 import { PaymentModal } from '../components/PaymentModal';
+import { ShareStatementModal } from '../components/ShareStatementModal';
+import { useAuthStore } from '@/features/auth';
 import posthog from 'posthog-js';
+import { normalizeWhatsAppPhone } from '../domain/customerStatement';
 
 export const CustomerDetailView: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { customers, getCustomerTransactions, loadCustomers, isLoading } =
+  const { customers, getCustomerTransactions, isLoading, hasLoadedCustomers } =
     useCustomerStore();
+  const { activeMembership } = useAuthStore();
+  const isOwner = activeMembership?.role === 'OWNER';
+  const hasPaymentPermission =
+    isOwner || activeMembership?.permissions.includes('TAKE_PAYMENT');
+  const hasStatementSharePermission =
+    isOwner ||
+    activeMembership?.permissions.includes('SHARE_CUSTOMER_STATEMENT');
 
   const [transactions, setTransactions] = useState<CustomerTransaction[]>([]);
   const [isLoadingTx, setIsLoadingTx] = useState(true);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [isStatementModalOpen, setIsStatementModalOpen] = useState(false);
   const [expandedTxId, setExpandedTxId] = useState<string | null>(null);
 
   const toggleExpand = (txId: string) => {
     setExpandedTxId(prev => (prev === txId ? null : txId));
   };
-
-  useEffect(() => {
-    loadCustomers();
-  }, [loadCustomers]);
 
   const customer = customers.find(c => c.id === id);
 
@@ -71,7 +82,7 @@ export const CustomerDetailView: React.FC = () => {
     }
   }, [id, loadTransactions]);
 
-  if (isLoading) {
+  if (isLoading || hasLoadedCustomers === false) {
     return (
       <div className="flex h-full min-h-[400px] items-center justify-center">
         <div className="flex animate-pulse flex-col items-center">
@@ -88,7 +99,7 @@ export const CustomerDetailView: React.FC = () => {
         <User className="mb-4 text-6xl opacity-30" />
         <p className="text-lg font-medium text-gray-700">Müşteri bulunamadı.</p>
         <Button
-          onPress={() => navigate('/customers')}
+          onPress={() => navigate(ROUTES.CUSTOMERS.INDEX)}
           className="mt-4"
           variant="secondary">
           Listeye Dön
@@ -101,13 +112,14 @@ export const CustomerDetailView: React.FC = () => {
   const limit = customer.creditLimit || 0;
   const isExceeded = limit > 0 && debt >= limit;
   const percentage = limit > 0 ? Math.min((debt / limit) * 100, 100) : 0;
+  const hasValidWhatsAppPhone = Boolean(normalizeWhatsAppPhone(customer.phone));
 
   return (
     <div className="mx-auto flex h-full max-w-7xl flex-col space-y-6 p-4 md:p-6">
       {/* Header */}
       <div className="flex items-center gap-4">
         <button
-          onClick={() => navigate('/customers')}
+          onClick={() => navigate(ROUTES.CUSTOMERS.INDEX)}
           className="flex h-10 w-10 items-center justify-center rounded-full text-gray-600 transition-colors hover:bg-gray-200">
           <ArrowLeft size={24} />
         </button>
@@ -160,7 +172,14 @@ export const CustomerDetailView: React.FC = () => {
             </div>
           </div>
           <div
-            className={`text-4xl font-black ${debt > 0 ? 'text-orange-600' : debt < 0 ? 'text-blue-600' : 'text-gray-900'}`}>
+            className={clsx(
+              'text-4xl font-black',
+              debt > 0
+                ? 'text-orange-600'
+                : debt < 0
+                  ? 'text-blue-600'
+                  : 'text-gray-900'
+            )}>
             {debt < 0 ? '+' : ''}₺
             {Math.abs(debt).toLocaleString('tr-TR', {
               minimumFractionDigits: 2
@@ -177,7 +196,12 @@ export const CustomerDetailView: React.FC = () => {
             </div>
             {limit > 0 ? (
               <span
-                className={`rounded-md px-2 py-0.5 text-[10px] font-bold ${isExceeded ? 'bg-danger/10 text-danger' : 'bg-gray-100 text-gray-500'}`}>
+                className={clsx(
+                  'rounded-md px-2 py-0.5 text-[10px] font-bold',
+                  isExceeded
+                    ? 'bg-danger/10 text-danger'
+                    : 'bg-gray-100 text-gray-500'
+                )}>
                 %{percentage.toFixed(0)} Dolu
               </span>
             ) : (
@@ -194,7 +218,14 @@ export const CustomerDetailView: React.FC = () => {
           {limit > 0 && (
             <div className="h-2 w-full overflow-hidden rounded-full bg-gray-100">
               <div
-                className={`h-full rounded-full transition-all duration-500 ${isExceeded ? 'bg-danger' : percentage > 80 ? 'bg-orange-500' : 'bg-success'}`}
+                className={clsx(
+                  'h-full rounded-full transition-all duration-500',
+                  isExceeded
+                    ? 'bg-danger'
+                    : percentage > 80
+                      ? 'bg-orange-500'
+                      : 'bg-success'
+                )}
                 style={{ width: `${percentage}%` }}
               />
             </div>
@@ -203,14 +234,36 @@ export const CustomerDetailView: React.FC = () => {
       </div>
 
       {/* Actions */}
-      <div className="flex gap-4">
-        <Button
-          variant="primary"
-          className="flex-1 border-none bg-[#2E7D32] py-4 text-lg shadow-md hover:bg-[#1B5E20]"
-          onClick={() => setIsPaymentModalOpen(true)}>
-          Tahsilat Al
-        </Button>
-      </div>
+      {(hasPaymentPermission || hasStatementSharePermission) && (
+        <div className="flex flex-col gap-3 sm:flex-row">
+          {hasPaymentPermission && (
+            <Button
+              variant="primary"
+              className="flex-1 border-none bg-[#2E7D32] py-4 text-lg shadow-md hover:bg-[#1B5E20]"
+              onClick={() => setIsPaymentModalOpen(true)}>
+              Tahsilat Al
+            </Button>
+          )}
+          {hasStatementSharePermission &&
+            (hasValidWhatsAppPhone ? (
+              <Button
+                variant="primary"
+                className="flex-1 border-none bg-[#25D366] py-4 text-lg text-white shadow-md hover:bg-[#1DB954]"
+                onPress={() => setIsStatementModalOpen(true)}>
+                <MessageCircle className="mr-2" size={20} />
+                WhatsApp Ekstresi
+              </Button>
+            ) : (
+              <Button
+                variant="secondary"
+                className="flex-1 border border-amber-200 bg-amber-50 py-4 text-amber-800"
+                onPress={() => navigate(ROUTES.CUSTOMERS.EDIT(customer.id))}>
+                <PhoneCall className="mr-2" size={20} />
+                Telefon Ekle / Düzelt
+              </Button>
+            ))}
+        </div>
+      )}
 
       {/* Transactions History */}
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[28px] border-none bg-white shadow-sm">
@@ -222,12 +275,13 @@ export const CustomerDetailView: React.FC = () => {
         </div>
 
         <div className="flex-1 overflow-x-auto p-2">
-          <table className="w-full min-w-[600px] border-collapse text-left">
+          <table className="w-full min-w-[720px] border-collapse text-left">
             <thead>
               <tr className="text-xs tracking-wider text-gray-400 uppercase">
                 <th className="px-6 py-4 font-semibold">Tarih</th>
                 <th className="px-6 py-4 font-semibold">İşlem Tipi</th>
                 <th className="px-6 py-4 font-semibold">Açıklama</th>
+                <th className="px-6 py-4 font-semibold">Tahsilatı Alan</th>
                 <th className="px-6 py-4 text-right font-semibold">Tutar</th>
               </tr>
             </thead>
@@ -235,7 +289,7 @@ export const CustomerDetailView: React.FC = () => {
               {isLoadingTx ? (
                 <tr>
                   <td
-                    colSpan={4}
+                    colSpan={5}
                     className="px-6 py-8 text-center text-gray-500">
                     <div className="flex animate-pulse flex-col items-center">
                       <div className="mb-4 h-8 w-8 rounded-full bg-gray-200"></div>
@@ -246,7 +300,7 @@ export const CustomerDetailView: React.FC = () => {
               ) : transactions.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={4}
+                    colSpan={5}
                     className="px-6 py-16 text-center text-gray-500">
                     <ReceiptText className="mx-auto mb-3 text-4xl opacity-20" />
                     <p>Henüz hesap hareketi bulunmuyor.</p>
@@ -256,7 +310,10 @@ export const CustomerDetailView: React.FC = () => {
                 transactions.map(tx => (
                   <Fragment key={tx.id}>
                     <tr
-                      className={`border-b border-gray-50 transition-colors hover:bg-gray-50/30 ${tx.type === 'SALE' ? 'cursor-pointer' : ''}`}
+                      className={clsx(
+                        'border-b border-gray-50 transition-colors hover:bg-gray-50/30',
+                        tx.type === 'SALE' && 'cursor-pointer'
+                      )}
                       onClick={() => tx.type === 'SALE' && toggleExpand(tx.id)}>
                       <td className="px-6 py-4 text-sm text-gray-600">
                         {new Date(tx.date).toLocaleDateString('tr-TR', {
@@ -292,8 +349,40 @@ export const CustomerDetailView: React.FC = () => {
                       <td className="px-6 py-4 text-sm text-gray-700">
                         {tx.description}
                       </td>
+                      <td className="px-6 py-4 text-sm">
+                        {tx.type === 'PAYMENT' ? (
+                          tx.collectedBy ? (
+                            <div className="flex min-w-[150px] items-center gap-2">
+                              <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-gray-100 text-gray-500">
+                                <User size={14} />
+                              </span>
+                              <span className="min-w-0">
+                                <span className="block truncate font-medium text-gray-700">
+                                  {tx.collectedBy.displayName}
+                                </span>
+                                {tx.collectedBy.email && (
+                                  <span className="block truncate text-xs text-gray-400">
+                                    {tx.collectedBy.email}
+                                  </span>
+                                )}
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="text-xs text-gray-400">
+                              Kullanıcı bilgisi yok
+                            </span>
+                          )
+                        ) : (
+                          <span className="text-gray-300">—</span>
+                        )}
+                      </td>
                       <td
-                        className={`px-6 py-4 text-right text-sm font-bold ${tx.type === 'SALE' ? 'text-orange-600' : 'text-success'}`}>
+                        className={clsx(
+                          'px-6 py-4 text-right text-sm font-bold',
+                          tx.type === 'SALE'
+                            ? 'text-orange-600'
+                            : 'text-success'
+                        )}>
                         {tx.type === 'SALE' ? '-' : '+'}₺
                         {tx.amount.toLocaleString('tr-TR', {
                           minimumFractionDigits: 2
@@ -304,7 +393,7 @@ export const CustomerDetailView: React.FC = () => {
                     {/* Expanded Sale Details */}
                     {tx.type === 'SALE' && expandedTxId === tx.id && (
                       <tr className="border-b border-gray-100 bg-gray-50/50">
-                        <td colSpan={4} className="px-6 py-4">
+                        <td colSpan={5} className="px-6 py-4">
                           <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
                             <h4 className="mb-3 flex items-center gap-2 text-sm font-semibold text-gray-900">
                               <Package size={16} className="text-primary" />
@@ -413,6 +502,12 @@ export const CustomerDetailView: React.FC = () => {
         customerId={customer.id}
         currentDebt={debt}
         onPaymentSuccess={loadTransactions}
+      />
+      <ShareStatementModal
+        isOpen={isStatementModalOpen}
+        onClose={() => setIsStatementModalOpen(false)}
+        customer={customer}
+        transactions={transactions}
       />
     </div>
   );

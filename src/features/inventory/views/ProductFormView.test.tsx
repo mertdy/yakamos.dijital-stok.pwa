@@ -11,7 +11,8 @@ vi.mock('lucide-react', () => ({
   ScanBarcode: () => <div data-testid="icon-scan" />,
   Search: () => <div data-testid="icon-search" />,
   Image: () => <div data-testid="icon-image" />,
-  Loader2: () => <div data-testid="icon-loader2" />
+  Loader2: () => <div data-testid="icon-loader2" />,
+  Printer: () => <div data-testid="icon-printer" />
 }));
 
 vi.mock('react-router-dom', () => ({
@@ -66,6 +67,7 @@ describe('ProductFormView', () => {
           price: 15.5
         }
       ],
+      hasLoadedItems: true,
       loadItems: loadItemsMock,
       addItem: addItemMock,
       updateItem: updateItemMock
@@ -106,6 +108,18 @@ describe('ProductFormView', () => {
         /Birim Fiyatı/i
       ) as HTMLInputElement;
       expect(priceInput.value).toBe('15.5');
+    });
+  });
+
+  it('returns to the previous page and shows an error for an unknown product', async () => {
+    mockUseParams.mockReturnValue({ id: 'unknown-product' });
+    render(<ProductFormView />);
+
+    await waitFor(() => {
+      expect(toast.danger).toHaveBeenCalledWith(
+        'Ürün bulunamadı veya bu ürünü düzenleme yetkiniz yok.'
+      );
+      expect(navigateMock).toHaveBeenCalledWith(-1);
     });
   });
 

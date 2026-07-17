@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { getSingletonStore } from '@/shared/utils/getSingletonStore';
 import {
   collection,
   doc,
@@ -12,7 +13,11 @@ import {
   getDocs
 } from 'firebase/firestore';
 import { db, auth } from '@/core/firebase/config';
+import { useAuthStore } from '@/features/auth/store/useAuthStore';
 import posthog from 'posthog-js';
+import { normalizeWhatsAppPhone } from '../domain/customerStatement';
+import { trackPendingSyncOperation } from '@/shared/utils/pendingSyncOperations';
+import { getFieldChangeDetails } from '@/shared/utils/formatFieldChanges';
 
 export interface Customer {
   id: string;
@@ -23,6 +28,7 @@ export interface Customer {
   creditLimit?: number;
   totalDebt?: number;
   userId?: string;
+  companyId?: string;
   createdAt: string;
 }
 
@@ -30,8 +36,16 @@ export interface Payment {
   id: string;
   customerId: string;
   userId: string;
+  companyId: string;
   amount: number;
   createdAt: string;
+  collectedBy: PaymentCollector;
+}
+
+export interface PaymentCollector {
+  userId: string;
+  displayName: string;
+  email: string | null;
 }
 
 export interface CustomerTransaction {
@@ -45,14 +59,43 @@ export interface CustomerTransaction {
   discountValue?: number;
   subtotal?: number;
   invoiceNumber?: string;
+  status?: 'completed' | 'cancelled';
+  collectedBy?: PaymentCollector;
 }
+
+export interface StatementShareInput {
+  customerId: string;
+  periodStart: string;
+  periodEnd: string;
+  openingBalanceMinor: number;
+  closingBalanceMinor: number;
+  transactionCount: number;
+  includedTransactions: boolean;
+  messageCharacterCount: number;
+}
+
+export interface StatementShare extends StatementShareInput {
+  id: string;
+  companyId: string;
+  createdBy: string;
+  channel: 'WHATSAPP';
+  mode: 'CLICK_TO_CHAT';
+  status: 'OPENED';
+  createdAt: string;
+}
+
 interface CustomerState {
   customers: Customer[];
   isLoading: boolean;
+  hasLoadedCustomers: boolean;
+  subscriptionCompanyId: string | null;
   unsubscribeSnapshot: (() => void) | null;
-  loadCustomers: () => void;
+  loadCustomers: (options?: { force?: boolean }) => void;
   addCustomer: (
-    customer: Omit<Customer, 'id' | 'createdAt' | 'userId' | 'totalDebt'>
+    customer: Omit<
+      Customer,
+      'id' | 'createdAt' | 'userId' | 'companyId' | 'totalDebt'
+    >
   ) => Promise<string>;
   updateCustomer: (
     id: string,
@@ -65,242 +108,421 @@ interface CustomerState {
   getCustomerTransactions: (
     customerId: string
   ) => Promise<CustomerTransaction[]>;
+  recordStatementShare: (input: StatementShareInput) => Promise<string>;
   clearCustomers: () => void;
 }
 
-export const useCustomerStore = create<CustomerState>((set, get) => ({
-  customers: [],
-  isLoading: false,
-  unsubscribeSnapshot: null,
+export const useCustomerStore = getSingletonStore('customers', () =>
+  create<CustomerState>((set, get) => ({
+    customers: [],
+    isLoading: false,
+    hasLoadedCustomers: false,
+    subscriptionCompanyId: null,
+    unsubscribeSnapshot: null,
 
-  loadCustomers: () => {
-    const user = auth.currentUser;
-    if (!user) return;
+    loadCustomers: ({ force = false } = {}) => {
+      const profile = useAuthStore.getState().profile;
+      const companyId = profile?.activeCompanyId;
+      if (!companyId) return;
 
-    const { unsubscribeSnapshot } = get();
-    if (unsubscribeSnapshot) {
-      unsubscribeSnapshot();
-    }
-
-    set({ isLoading: true });
-
-    const q = query(
-      collection(db, 'customers'),
-      where('userId', '==', user.uid)
-    );
-
-    const unsubscribe = onSnapshot(
-      q,
-      snapshot => {
-        const customers: Customer[] = [];
-        snapshot.forEach(doc => {
-          customers.push({ id: doc.id, ...doc.data() } as Customer);
-        });
-        set({ customers, isLoading: false });
-      },
-      error => {
-        console.error('Firestore snapshot error:', error);
-        set({ isLoading: false });
+      const { unsubscribeSnapshot, subscriptionCompanyId } = get();
+      if (
+        !force &&
+        subscriptionCompanyId === companyId &&
+        unsubscribeSnapshot
+      ) {
+        return;
       }
-    );
 
-    set({ unsubscribeSnapshot: unsubscribe });
-  },
+      if (unsubscribeSnapshot) {
+        unsubscribeSnapshot();
+      }
 
-  addCustomer: async newCustomerData => {
-    const user = auth.currentUser;
-    if (!user) throw new Error('User not authenticated');
-
-    const id = crypto.randomUUID();
-    const createdAt = new Date().toISOString();
-    const newCustomer: Customer = {
-      id,
-      ...newCustomerData,
-      totalDebt: 0,
-      createdAt,
-      userId: user.uid
-    };
-
-    // Firestore will automatically cache this write and sync when online
-    setDoc(doc(db, 'customers', id), newCustomer).catch(err => {
-      console.error('Firestore background sync failed', err);
-      posthog.captureException(err, {
-        context: 'customer_add',
-        customer_id: id
-      });
-    });
-
-    posthog.capture('customer_created', {
-      customer_id: id,
-      has_email: Boolean(newCustomer.email),
-      has_phone: Boolean(newCustomer.phone),
-      credit_limit: newCustomer.creditLimit ?? 0
-    });
-
-    return id;
-  },
-
-  updateCustomer: async (
-    id: string,
-    customerData: Partial<Omit<Customer, 'id' | 'createdAt'>>
-  ) => {
-    const user = auth.currentUser;
-    if (!user) {
-      console.error('User not authenticated');
-      return;
-    }
-
-    set({ isLoading: true });
-    try {
-      const customerRef = doc(db, 'customers', id);
-      await updateDoc(customerRef, {
-        ...customerData,
-        updatedAt: new Date().toISOString()
+      set({
+        customers: subscriptionCompanyId === companyId ? get().customers : [],
+        isLoading: true,
+        hasLoadedCustomers: false,
+        subscriptionCompanyId: companyId
       });
 
-      set(state => ({
-        customers: state.customers.map(c =>
-          c.id === id ? { ...c, ...customerData } : c
-        ),
-        isLoading: false
-      }));
-
-      posthog.capture('customer_updated', {
-        customer_id: id,
-        updated_fields: Object.keys(customerData)
-      });
-    } catch (error) {
-      console.error('Error updating customer:', error);
-      posthog.captureException(error, {
-        context: 'customer_update',
-        customer_id: id
-      });
-      set({ isLoading: false });
-      throw error;
-    }
-  },
-
-  addPayment: async (customerId: string, amount: number) => {
-    const user = auth.currentUser;
-    if (!user) {
-      console.error('User not authenticated');
-      return;
-    }
-
-    set({ isLoading: true });
-    try {
-      const paymentId = crypto.randomUUID();
-      const createdAt = new Date().toISOString();
-      const batch = writeBatch(db);
-
-      // Add to payments collection
-      const paymentRef = doc(collection(db, 'payments'), paymentId);
-      batch.set(paymentRef, {
-        id: paymentId,
-        customerId,
-        userId: user.uid,
-        amount,
-        createdAt
-      });
-
-      // Update customer totalDebt
-      const customerRef = doc(db, 'customers', customerId);
-      batch.update(customerRef, {
-        totalDebt: increment(-amount)
-      });
-
-      await batch.commit();
-      posthog.capture('customer_payment_recorded', {
-        customer_id: customerId,
-        payment_id: paymentId,
-        amount
-      });
-      set({ isLoading: false });
-      return paymentId;
-    } catch (error) {
-      console.error('Error adding payment:', error);
-      posthog.captureException(error, {
-        context: 'customer_add_payment',
-        customer_id: customerId
-      });
-      set({ isLoading: false });
-      throw error;
-    }
-  },
-
-  getCustomerTransactions: async (
-    customerId: string
-  ): Promise<CustomerTransaction[]> => {
-    const user = auth.currentUser;
-    if (!user) {
-      console.error('User not authenticated');
-      return [];
-    }
-
-    try {
-      // 1. Get Sales (Credit)
-      const salesQuery = query(
-        collection(db, 'sales'),
-        where('customerId', '==', customerId),
-        where('paymentMethod', '==', 'Credit')
+      const q = query(
+        collection(db, 'customers'),
+        where('companyId', '==', companyId)
       );
-      const salesSnapshot = await getDocs(salesQuery);
-      const salesTransactions: CustomerTransaction[] = salesSnapshot.docs.map(
-        doc => {
-          const data = doc.data();
-          return {
-            id: doc.id,
-            type: 'SALE',
-            amount: data.totalAmount || 0,
-            date: data.createdAt,
-            description: data.invoiceNumber
-              ? `Fatura: ${data.invoiceNumber}`
-              : 'Veresiye Satış',
-            cart: data.cart || [],
-            discountType: data.discountType,
-            discountValue: data.discountValue,
-            subtotal: data.subtotal,
-            invoiceNumber: data.invoiceNumber
-          };
+
+      const unsubscribe = onSnapshot(
+        q,
+        snapshot => {
+          const customers: Customer[] = [];
+          snapshot.forEach(doc => {
+            customers.push({ id: doc.id, ...doc.data() } as Customer);
+          });
+          if (get().subscriptionCompanyId !== companyId) return;
+          set({ customers, isLoading: false, hasLoadedCustomers: true });
+        },
+        error => {
+          console.error('Firestore snapshot error:', error);
+          if (get().subscriptionCompanyId !== companyId) return;
+          set({ isLoading: false, hasLoadedCustomers: true });
         }
       );
 
-      // 2. Get Payments
-      const paymentsQuery = query(
-        collection(db, 'payments'),
-        where('customerId', '==', customerId)
-      );
-      const paymentsSnapshot = await getDocs(paymentsQuery);
-      const paymentsTransactions: CustomerTransaction[] =
-        paymentsSnapshot.docs.map(doc => {
-          const data = doc.data();
-          return {
-            id: doc.id,
-            type: 'PAYMENT',
-            amount: data.amount || 0,
-            date: data.createdAt,
-            description: 'Tahsilat'
-          };
+      set({ unsubscribeSnapshot: unsubscribe });
+    },
+
+    addCustomer: async newCustomerData => {
+      const profile = useAuthStore.getState().profile;
+      if (!profile?.activeCompanyId)
+        throw new Error('No active company selected');
+
+      const user = auth.currentUser;
+      if (!user) throw new Error('User not authenticated');
+
+      const id = crypto.randomUUID();
+      const createdAt = new Date().toISOString();
+      const normalizedPhone = newCustomerData.phone?.trim()
+        ? normalizeWhatsAppPhone(newCustomerData.phone)
+        : '';
+      if (newCustomerData.phone?.trim() && !normalizedPhone) {
+        throw new Error('Invalid customer phone number');
+      }
+      const newCustomer: Customer = {
+        id,
+        ...newCustomerData,
+        phone: normalizedPhone || '',
+        totalDebt: 0,
+        createdAt,
+        userId: user.uid,
+        companyId: profile.activeCompanyId
+      };
+
+      const saveCustomer = setDoc(doc(db, 'customers', id), newCustomer);
+      trackPendingSyncOperation({
+        kind: 'customer',
+        title: newCustomer.name,
+        details: ['Müşteri eklendi'],
+        target: { type: 'customer', id }
+      });
+      saveCustomer.catch(err => {
+        console.error('Firestore background sync failed', err);
+        posthog.captureException(err, {
+          context: 'customer_add',
+          customer_id: id
+        });
+      });
+
+      posthog.capture('customer_created', {
+        customer_id: id,
+        has_email: Boolean(newCustomer.email),
+        has_phone: Boolean(newCustomer.phone),
+        credit_limit: newCustomer.creditLimit ?? 0
+      });
+
+      return id;
+    },
+
+    updateCustomer: async (id, customerData) => {
+      const user = auth.currentUser;
+      if (!user) {
+        console.error('User not authenticated');
+        return;
+      }
+
+      set({ isLoading: true });
+      try {
+        const normalizedPhone = customerData.phone?.trim()
+          ? normalizeWhatsAppPhone(customerData.phone)
+          : customerData.phone;
+        if (customerData.phone?.trim() && !normalizedPhone) {
+          throw new Error('Invalid customer phone number');
+        }
+        const normalizedCustomerData =
+          customerData.phone === undefined
+            ? customerData
+            : { ...customerData, phone: normalizedPhone || '' };
+        const customerRef = doc(db, 'customers', id);
+        const saveCustomer = updateDoc(customerRef, {
+          ...normalizedCustomerData,
+          updatedAt: new Date().toISOString()
+        });
+        const customerName =
+          get().customers.find(customer => customer.id === id)?.name ?? id;
+        const currentCustomer = get().customers.find(
+          customer => customer.id === id
+        );
+        const changedFields = getFieldChangeDetails(
+          (currentCustomer ?? {}) as Record<string, unknown>,
+          normalizedCustomerData as Record<string, unknown>,
+          {
+            name: 'Ad',
+            surname: 'Soyad',
+            phone: 'Telefon',
+            email: 'E-posta',
+            address: 'Adres',
+            creditLimit: 'Kredi limiti',
+            notes: 'Notlar'
+          },
+          {
+            creditLimit: value =>
+              typeof value === 'number'
+                ? `${value.toLocaleString('tr-TR')} ₺`
+                : value === undefined || value === null
+                  ? '—'
+                  : String(value)
+          }
+        );
+        trackPendingSyncOperation({
+          kind: 'customer',
+          title: customerName,
+          details:
+            changedFields.length > 0 ? changedFields : ['Müşteri güncellendi'],
+          target: { type: 'customer', id }
+        });
+        if (navigator.onLine) {
+          await saveCustomer;
+        } else {
+          // Firestore keeps the write in its offline queue. Do not leave the
+          // edit form in a loading state while waiting for connectivity.
+          void saveCustomer.catch(error => {
+            console.error('Offline customer update sync failed:', error);
+            posthog.captureException(error, {
+              context: 'customer_update_offline_sync',
+              customer_id: id
+            });
+          });
+        }
+
+        set(state => ({
+          customers: state.customers.map(c =>
+            c.id === id ? { ...c, ...normalizedCustomerData } : c
+          ),
+          isLoading: false
+        }));
+
+        posthog.capture('customer_updated', {
+          customer_id: id,
+          updated_fields: Object.keys(normalizedCustomerData)
+        });
+      } catch (error) {
+        console.error('Error updating customer:', error);
+        posthog.captureException(error, {
+          context: 'customer_update',
+          customer_id: id
+        });
+        set({ isLoading: false });
+        throw error;
+      }
+    },
+
+    addPayment: async (customerId, amount) => {
+      const profile = useAuthStore.getState().profile;
+      const membership = useAuthStore.getState().activeMembership;
+      if (!profile?.activeCompanyId)
+        throw new Error('No active company selected');
+
+      const canTakePayment =
+        membership?.role === 'OWNER' ||
+        membership?.permissions.includes('TAKE_PAYMENT');
+      if (!canTakePayment) {
+        throw new Error('Missing payment permission');
+      }
+
+      const user = auth.currentUser;
+      if (!user) {
+        console.error('User not authenticated');
+        return;
+      }
+
+      set({ isLoading: true });
+      try {
+        const paymentId = crypto.randomUUID();
+        const createdAt = new Date().toISOString();
+        const collectedBy: PaymentCollector = {
+          userId: user.uid,
+          displayName:
+            user.displayName?.trim() || user.email || 'Bilinmeyen Kullanıcı',
+          email: user.email ?? null
+        };
+        const batch = writeBatch(db);
+
+        const paymentRef = doc(collection(db, 'payments'), paymentId);
+        batch.set(paymentRef, {
+          id: paymentId,
+          customerId,
+          userId: user.uid,
+          companyId: profile.activeCompanyId,
+          amount,
+          createdAt,
+          collectedBy
         });
 
-      // Combine and sort by date descending (newest first)
-      const allTransactions = [...salesTransactions, ...paymentsTransactions];
-      allTransactions.sort(
-        (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-      );
+        const customerRef = doc(db, 'customers', customerId);
+        batch.update(customerRef, {
+          totalDebt: increment(-amount)
+        });
 
-      return allTransactions;
-    } catch (error) {
-      console.error('Error fetching customer transactions:', error);
-      return [];
-    }
-  },
+        const savePayment = batch.commit();
+        const customerName =
+          get().customers.find(customer => customer.id === customerId)?.name ??
+          customerId;
+        trackPendingSyncOperation({
+          kind: 'payment',
+          title: customerName,
+          details: [`Tahsilat: ${amount.toLocaleString('tr-TR')} ₺`],
+          target: { type: 'customer', id: customerId }
+        });
+        await savePayment;
+        posthog.capture('customer_payment_recorded', {
+          customer_id: customerId,
+          payment_id: paymentId,
+          amount
+        });
+        set({ isLoading: false });
+        return paymentId;
+      } catch (error) {
+        console.error('Error adding payment:', error);
+        posthog.captureException(error, {
+          context: 'customer_add_payment',
+          customer_id: customerId
+        });
+        set({ isLoading: false });
+        throw error;
+      }
+    },
 
-  clearCustomers: () => {
-    const { unsubscribeSnapshot } = get();
-    if (unsubscribeSnapshot) {
-      unsubscribeSnapshot();
+    getCustomerTransactions: async customerId => {
+      const user = auth.currentUser;
+      if (!user) {
+        console.error('User not authenticated');
+        return [];
+      }
+
+      const profile = useAuthStore.getState().profile;
+      if (!profile?.activeCompanyId) {
+        console.error('No active company selected');
+        return [];
+      }
+
+      try {
+        const salesQuery = query(
+          collection(db, 'sales'),
+          where('companyId', '==', profile.activeCompanyId),
+          where('customerId', '==', customerId),
+          where('paymentMethod', '==', 'Credit')
+        );
+        const salesSnapshot = await getDocs(salesQuery);
+        const salesTransactions: CustomerTransaction[] = salesSnapshot.docs
+          .map<CustomerTransaction>(doc => {
+            const data = doc.data();
+            return {
+              id: doc.id,
+              type: 'SALE',
+              amount: data.totalAmount || 0,
+              date: data.createdAt,
+              description: data.invoiceNumber
+                ? `Fatura: ${data.invoiceNumber}`
+                : 'Veresiye Satış',
+              cart: data.cart || [],
+              discountType: data.discountType,
+              discountValue: data.discountValue,
+              subtotal: data.subtotal,
+              invoiceNumber: data.invoiceNumber,
+              status:
+                String(data.status).toLowerCase() === 'cancelled'
+                  ? 'cancelled'
+                  : 'completed'
+            };
+          })
+          .filter(transaction => transaction.status !== 'cancelled');
+
+        const paymentsQuery = query(
+          collection(db, 'payments'),
+          where('companyId', '==', profile.activeCompanyId),
+          where('customerId', '==', customerId)
+        );
+        const paymentsSnapshot = await getDocs(paymentsQuery);
+        const paymentsTransactions: CustomerTransaction[] =
+          paymentsSnapshot.docs.map(doc => {
+            const data = doc.data();
+            return {
+              id: doc.id,
+              type: 'PAYMENT',
+              amount: data.amount || 0,
+              date: data.createdAt,
+              description: 'Tahsilat',
+              collectedBy: data.collectedBy
+                ? {
+                    userId: data.collectedBy.userId || data.userId || '',
+                    displayName:
+                      data.collectedBy.displayName || 'Kullanıcı bilgisi yok',
+                    email: data.collectedBy.email || null
+                  }
+                : undefined
+            };
+          });
+
+        const allTransactions = [...salesTransactions, ...paymentsTransactions];
+        allTransactions.sort(
+          (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+        );
+
+        return allTransactions;
+      } catch (error) {
+        console.error('Error fetching customer transactions:', error);
+        return [];
+      }
+    },
+
+    recordStatementShare: async input => {
+      const profile = useAuthStore.getState().profile;
+      const membership = useAuthStore.getState().activeMembership;
+      if (!profile?.activeCompanyId) {
+        throw new Error('No active company selected');
+      }
+
+      const user = auth.currentUser;
+      if (!user) throw new Error('User not authenticated');
+
+      const canShare =
+        membership?.role === 'OWNER' ||
+        membership?.permissions.includes('SHARE_CUSTOMER_STATEMENT');
+      if (!canShare) throw new Error('Missing statement share permission');
+
+      const id = crypto.randomUUID();
+      const share: StatementShare = {
+        id,
+        ...input,
+        companyId: profile.activeCompanyId,
+        createdBy: user.uid,
+        channel: 'WHATSAPP',
+        mode: 'CLICK_TO_CHAT',
+        status: 'OPENED',
+        createdAt: new Date().toISOString()
+      };
+
+      await setDoc(doc(db, 'statementShares', id), share);
+      posthog.capture('customer_statement_opened', {
+        customer_id: input.customerId,
+        statement_share_id: id,
+        transaction_count: input.transactionCount,
+        included_transactions: input.includedTransactions,
+        message_character_count: input.messageCharacterCount
+      });
+      return id;
+    },
+
+    clearCustomers: () => {
+      const { unsubscribeSnapshot } = get();
+      if (unsubscribeSnapshot) {
+        unsubscribeSnapshot();
+      }
+      set({
+        customers: [],
+        isLoading: false,
+        hasLoadedCustomers: false,
+        subscriptionCompanyId: null,
+        unsubscribeSnapshot: null
+      });
     }
-    set({ customers: [], unsubscribeSnapshot: null });
-  }
-}));
+  }))
+);

@@ -4,23 +4,28 @@ import { useInventoryStore } from '@/features/inventory';
 import { useSalesStore } from '../store/useSalesStore';
 import { usePreferencesStore } from '../store/usePreferencesStore';
 import { QuickAddEditModal } from './QuickAddEditModal';
+import { useAuthStore } from '@/features/auth';
 
 export const ProductList: React.FC = () => {
-  const { items, loadItems } = useInventoryStore();
+  const { items } = useInventoryStore();
   const { addToCart } = useSalesStore();
-  const { quickAddItems, loadPreferences } = usePreferencesStore();
+  const { quickAddItems, quickAddCompanyId, loadPreferences } =
+    usePreferencesStore();
+  const activeCompanyId = useAuthStore(state => state.profile?.activeCompanyId);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   useEffect(() => {
-    loadItems();
-    loadPreferences();
-  }, [loadItems, loadPreferences]);
+    loadPreferences(activeCompanyId);
+  }, [activeCompanyId, loadPreferences]);
 
   const shortcutItems = useMemo(() => {
-    return quickAddItems
+    const activeQuickAddItems =
+      quickAddCompanyId === activeCompanyId ? quickAddItems : [];
+
+    return activeQuickAddItems
       .map(id => items.find(i => i.id === id))
       .filter(Boolean);
-  }, [items, quickAddItems]);
+  }, [items, quickAddItems, quickAddCompanyId, activeCompanyId]);
 
   return (
     <div className="flex h-full flex-col overflow-hidden rounded-3xl border border-gray-100 bg-white shadow-sm">

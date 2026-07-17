@@ -1,10 +1,11 @@
-import React, { useState, Suspense } from 'react';
+import React, { useEffect, useState, Suspense } from 'react';
 import { ProductList } from '../components/ProductList';
 import { OrderDetailsPanel } from '../components/OrderDetailsPanel';
 import { InvoicePanel } from '../components/InvoicePanel';
 import { CustomerDrawer } from '@/features/customers';
 import { HeldSalesDrawer } from '../components/HeldSalesDrawer';
 import { GlobalProductSearch } from '../components/GlobalProductSearch';
+import { preloadBarcodeFeedback } from '@/shared/utils/barcodeFeedback';
 
 // Lazy load Scanner Modal
 const ScannerModal = React.lazy(() => import('../components/ScannerModal'));
@@ -13,6 +14,10 @@ export const SalesView: React.FC = () => {
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [isCustomerDrawerOpen, setIsCustomerDrawerOpen] = useState(false);
   const [isHeldSalesDrawerOpen, setIsHeldSalesDrawerOpen] = useState(false);
+
+  useEffect(() => {
+    preloadBarcodeFeedback();
+  }, []);
 
   return (
     <div className="flex h-auto flex-col gap-4 overflow-y-auto p-4 lg:h-full lg:flex-row lg:overflow-hidden">

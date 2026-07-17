@@ -4,6 +4,7 @@ import { CustomerDrawer } from './CustomerDrawer';
 import { useCustomerStore } from '../store/useCustomerStore';
 import { useSalesStore } from '@/features/sales';
 import { useNavigate } from 'react-router-dom';
+import { ROUTES } from '@/core/config/routes';
 
 vi.mock('lucide-react', () => ({
   X: () => <div data-testid="icon-x" />,
@@ -63,10 +64,10 @@ describe('CustomerDrawer', () => {
     vi.clearAllMocks();
   });
 
-  it('renders correctly and loads customers on open', () => {
+  it('renders customers from the central subscription on open', () => {
     render(<CustomerDrawer isOpen={true} onClose={onCloseMock} />);
 
-    expect(loadCustomersMock).toHaveBeenCalled();
+    expect(loadCustomersMock).not.toHaveBeenCalled();
     expect(screen.getByText('Müşteri Seçimi')).toBeInTheDocument();
     expect(screen.getByText('John Doe')).toBeInTheDocument();
     expect(screen.getByText('Jane Smith')).toBeInTheDocument();
@@ -99,6 +100,6 @@ describe('CustomerDrawer', () => {
     fireEvent.click(addBtn);
 
     expect(onCloseMock).toHaveBeenCalled();
-    expect(navigateMock).toHaveBeenCalledWith('/customers/new');
+    expect(navigateMock).toHaveBeenCalledWith(ROUTES.CUSTOMERS.NEW);
   });
 });
