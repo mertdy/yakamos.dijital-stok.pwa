@@ -126,6 +126,7 @@ interface AuthState {
   unsubscribeProfile: (() => void) | null;
   unsubscribeMemberships: (() => void) | null;
   unsubscribeActiveCompany: (() => void) | null;
+  activeCompanySubscriptionId: string | null;
 }
 
 const checkAndMigrateLegacyUser = async (user: User): Promise<UserProfile> => {
@@ -231,6 +232,7 @@ export const useAuthStore = getSingletonStore('auth', () =>
     unsubscribeProfile: null,
     unsubscribeMemberships: null,
     unsubscribeActiveCompany: null,
+    activeCompanySubscriptionId: null,
 
     setUser: async user => {
       const {
@@ -245,7 +247,8 @@ export const useAuthStore = getSingletonStore('auth', () =>
       set({
         unsubscribeProfile: null,
         unsubscribeMemberships: null,
-        unsubscribeActiveCompany: null
+        unsubscribeActiveCompany: null,
+        activeCompanySubscriptionId: null
       });
 
       if (!user) {
@@ -295,6 +298,12 @@ export const useAuthStore = getSingletonStore('auth', () =>
               memberships.find(
                 m => m.companyId === normalizedProfile.activeCompanyId
               ) || null;
+            const activeCompanyChanged =
+              get().profile?.activeCompanyId !==
+              normalizedProfile.activeCompanyId;
+            const needsActiveCompanySubscription =
+              get().activeCompanySubscriptionId !==
+              normalizedProfile.activeCompanyId;
 
             if (normalizedProfile !== profileData) {
               updateDoc(doc(db, 'users', user.uid), {
@@ -307,10 +316,17 @@ export const useAuthStore = getSingletonStore('auth', () =>
             set({
               profile: normalizedProfile,
               activeMembership,
-              activeCompany: null
+              // switchCompany already fetches the selected company immediately.
+              // Clearing it again when the profile listener receives the same
+              // update causes the switcher and offline-preparation indicator to
+              // briefly return to their loading states a second time.
+              ...(activeCompanyChanged ? { activeCompany: null } : {})
             });
 
-            if (normalizedProfile.activeCompanyId) {
+            if (
+              normalizedProfile.activeCompanyId &&
+              needsActiveCompanySubscription
+            ) {
               const { unsubscribeActiveCompany: oldSubCompany } = get();
               if (oldSubCompany) oldSubCompany();
 
@@ -330,9 +346,15 @@ export const useAuthStore = getSingletonStore('auth', () =>
                   }
                 }
               );
-              set({ unsubscribeActiveCompany: subCompany });
-            } else {
-              set({ activeCompany: null });
+              set({
+                unsubscribeActiveCompany: subCompany,
+                activeCompanySubscriptionId: normalizedProfile.activeCompanyId
+              });
+            } else if (needsActiveCompanySubscription) {
+              set({
+                activeCompany: null,
+                activeCompanySubscriptionId: null
+              });
             }
           }
         );
@@ -378,7 +400,8 @@ export const useAuthStore = getSingletonStore('auth', () =>
             set({
               profile: { ...profile, activeCompanyId: nextActiveCompanyId },
               activeCompany: null,
-              unsubscribeActiveCompany: null
+              unsubscribeActiveCompany: null,
+              activeCompanySubscriptionId: null
             });
             updateDoc(doc(db, 'users', user.uid), {
               activeCompanyId: nextActiveCompanyId

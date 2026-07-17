@@ -218,9 +218,7 @@ export const useSalesHistoryStore = getSingletonStore('sales-history', () =>
       const user = auth.currentUser;
       if (!user) return;
 
-      const profile = useAuthStore.getState().profile;
-      const activeMembership = useAuthStore.getState().activeMembership;
-      const companyId = profile?.activeCompanyId;
+      const companyId = useAuthStore.getState().profile?.activeCompanyId;
       if (!companyId) return;
 
       const state = get();
@@ -257,6 +255,14 @@ export const useSalesHistoryStore = getSingletonStore('sales-history', () =>
             pendingBackupCount: doc.metadata?.hasPendingWrites ? 1 : 0
           })) as SaleTransaction[];
 
+          // A company switch updates the profile first, while the membership
+          // listener can still briefly expose the previous company's role.
+          // Read the membership after the sales request resolves so an owner
+          // entering another company never gets that stale employee-only
+          // filter on the initial render.
+          const currentAuthState = useAuthStore.getState();
+          const activeMembership = currentAuthState.activeMembership;
+          const profile = currentAuthState.profile;
           const isOwner = activeMembership?.role === 'OWNER';
           if (
             !isOwner &&
@@ -299,7 +305,7 @@ export const useSalesHistoryStore = getSingletonStore('sales-history', () =>
               );
               const currentUserName =
                 activeMembership?.employeeName?.trim() ||
-                profile.name?.trim() ||
+                profile?.name?.trim() ||
                 user.displayName?.trim() ||
                 user.email?.split('@')[0];
               const userIdsMissingName = [

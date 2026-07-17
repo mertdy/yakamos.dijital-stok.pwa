@@ -1,11 +1,17 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { getDocs, writeBatch } from 'firebase/firestore';
 
-const { batchMock } = vi.hoisted(() => ({
+const { batchMock, authState } = vi.hoisted(() => ({
   batchMock: {
     set: vi.fn(),
     update: vi.fn(),
     commit: vi.fn().mockResolvedValue(undefined)
+  },
+  authState: {
+    value: {
+      profile: { activeCompanyId: 'test-company-id', name: 'Test Sahibi' },
+      activeMembership: { role: 'OWNER', permissions: ['VIEW_SALES_HISTORY'] }
+    }
   }
 }));
 
@@ -33,10 +39,7 @@ vi.mock('@/core/firebase/config', () => ({
 
 vi.mock('@/features/auth/store/useAuthStore', () => ({
   useAuthStore: {
-    getState: () => ({
-      profile: { activeCompanyId: 'test-company-id', name: 'Test Sahibi' },
-      activeMembership: { role: 'OWNER', permissions: ['VIEW_SALES_HISTORY'] }
-    })
+    getState: () => authState.value
   }
 }));
 
@@ -49,6 +52,10 @@ describe('useSalesHistoryStore', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
     batchMock.commit.mockResolvedValue(undefined);
+    authState.value = {
+      profile: { activeCompanyId: 'test-company-id', name: 'Test Sahibi' },
+      activeMembership: { role: 'OWNER', permissions: ['VIEW_SALES_HISTORY'] }
+    };
     const store = await buildStore();
     store.setState({
       sales: [],
@@ -231,6 +238,66 @@ describe('useSalesHistoryStore', () => {
     await Promise.all([firstRequest, secondRequest]);
 
     expect(store.getState().loadedCompanyId).toBe('test-company-id');
+  });
+
+  it('uses the current company membership when a switch completes mid-request', async () => {
+    let resolveSales: (value: unknown) => void;
+    vi.mocked(getDocs).mockReturnValueOnce(
+      new Promise(resolve => {
+        resolveSales = resolve;
+      }) as any
+    );
+    authState.value = {
+      profile: { activeCompanyId: 'test-company-id', name: 'Test Sahibi' },
+      activeMembership: { role: 'EMPLOYEE', permissions: [] }
+    };
+
+    const store = await buildStore();
+    const pendingRequest = store.getState().fetchSales();
+
+    authState.value = {
+      profile: { activeCompanyId: 'test-company-id', name: 'Test Sahibi' },
+      activeMembership: { role: 'OWNER', permissions: ['VIEW_SALES_HISTORY'] }
+    };
+    resolveSales!({
+      docs: [
+        {
+          id: 'own-sale',
+          data: () => ({
+            userId: 'test-user-id',
+            sellerName: 'Test Sahibi',
+            companyId: 'test-company-id',
+            invoiceNumber: 'INV-OWN',
+            customerId: null,
+            subtotal: 100,
+            discount: 0,
+            totalAmount: 100,
+            paymentMethod: 'Cash',
+            createdAt: '2026-07-10T01:00:00Z',
+            cart: []
+          })
+        },
+        {
+          id: 'employee-sale',
+          data: () => ({
+            userId: 'employee-id',
+            sellerName: 'Çalışan',
+            companyId: 'test-company-id',
+            invoiceNumber: 'INV-EMPLOYEE',
+            customerId: null,
+            subtotal: 200,
+            discount: 0,
+            totalAmount: 200,
+            paymentMethod: 'Cash',
+            createdAt: '2026-07-10T02:00:00Z',
+            cart: []
+          })
+        }
+      ]
+    });
+    await pendingRequest;
+
+    expect(store.getState().sales).toHaveLength(2);
   });
 
   it('setFilters updates the visible sales without fetching again', async () => {
