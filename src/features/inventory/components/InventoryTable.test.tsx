@@ -4,6 +4,7 @@ import { InventoryTable } from './InventoryTable';
 import { useInventoryStore } from '../store/useInventoryStore';
 import { useConfirm } from '@/shared/contexts/ConfirmDialogContext';
 import { useNavigate } from 'react-router-dom';
+import { ROUTES } from '@/core/config/routes';
 
 vi.mock('lucide-react', () => ({
   Edit: () => <div data-testid="icon-edit" />,
@@ -147,7 +148,7 @@ describe('InventoryTable', () => {
     const editBtns = screen.getAllByRole('button', { name: 'Düzenle' });
     fireEvent.click(editBtns[0]); // Apple edit
 
-    expect(navigateMock).toHaveBeenCalledWith('/inventory/edit/1');
+    expect(navigateMock).toHaveBeenCalledWith(ROUTES.INVENTORY.EDIT('1'));
   });
 
   it('asks for confirmation and deletes item when confirm resolves true', async () => {

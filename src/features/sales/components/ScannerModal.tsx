@@ -10,6 +10,7 @@ import { useInventoryStore } from '@/features/inventory';
 import { toast, Button, Modal } from '@heroui/react';
 import { useSalesStore } from '../store/useSalesStore';
 import { useNavigate } from 'react-router-dom';
+import { ROUTES } from '@/core/config/routes';
 import posthog from 'posthog-js';
 import { playBarcodeFeedback } from '@/shared/utils/barcodeFeedback';
 
@@ -141,7 +142,7 @@ const ScannerModal: React.FC<ScannerModalProps> = ({
                 stopScan();
               }
               onClose();
-              navigate(`/inventory/new?barcode=${encodeURIComponent(barcode)}`);
+              navigate(ROUTES.INVENTORY.NEW_WITH_BARCODE(barcode));
             }
           }
         });

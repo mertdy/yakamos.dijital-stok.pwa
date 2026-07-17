@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { ROUTES } from '../src/core/config/routes';
 import {
   addProductToCart,
   createProduct,
@@ -11,7 +12,7 @@ async function addQuickAddShortcut(
   page: import('@playwright/test').Page,
   productName: string
 ) {
-  await page.goto('/sales');
+  await page.goto(ROUTES.SALES);
   await page.getByRole('button', { name: 'Düzenle' }).click();
   const dialog = page.getByRole('dialog');
   await dialog
@@ -93,7 +94,7 @@ test.describe('Online sales composition @online', () => {
     await login(page);
     await createProduct(page, { name: productName, stock: 8, price: 25 });
 
-    await page.goto('/sales');
+    await page.goto(ROUTES.SALES);
     await page.getByRole('button', { name: 'Düzenle' }).click();
     const dialog = page.getByRole('dialog');
     await expect(

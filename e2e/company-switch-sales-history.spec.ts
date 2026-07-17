@@ -1,5 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 import { ENV } from '../src/core/config/env';
+import { ROUTES } from '../src/core/config/routes';
 import { login, loginWithCredentials, uniqueName } from './support/app';
 
 async function switchCompany(page: Page, companyName: string) {
@@ -49,14 +50,14 @@ test.describe('Company switch sales history @online', () => {
       await switchCompany(page, 'Test E2E Sirketi');
       hostCompanyName = 'Test E2E Sirketi';
     }
-    await page.goto('/sales-history');
+    await page.goto(ROUTES.SALES_HISTORY);
     const invoiceCells = page.locator('tbody tr td:nth-child(2)');
     await expect(invoiceCells).not.toHaveCount(0);
     const hostInvoiceNumber = (await invoiceCells.nth(0).innerText()).trim();
 
     // Seed the cross-company relationship for this test run. It grants the
     // permission needed to view all of the host company's sales.
-    await page.goto('/company-settings');
+    await page.goto(ROUTES.COMPANY_SETTINGS);
     await page.getByRole('button', { name: 'Personel Davet Et' }).click();
     const inviteDialog = page.getByRole('dialog');
     await inviteDialog
@@ -78,7 +79,7 @@ test.describe('Company switch sales history @online', () => {
       ENV.TEST_USER_2_EMAIL,
       ENV.TEST_USER_2_PASSWORD
     );
-    await employeePage.goto('/account-settings');
+    await employeePage.goto(ROUTES.ACCOUNT_SETTINGS);
     const invitationCard = employeePage
       .getByText(hostCompanyName, { exact: true })
       .locator('xpath=../..');
@@ -135,7 +136,7 @@ test.describe('Company switch sales history @online', () => {
       ).toBeVisible();
     }
 
-    await employeePage.goto('/sales-history');
+    await employeePage.goto(ROUTES.SALES_HISTORY);
     await expect(
       employeePage.getByRole('heading', { name: 'Satış Geçmişi' })
     ).toBeVisible();

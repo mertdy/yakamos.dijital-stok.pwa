@@ -4,6 +4,7 @@ import { CustomerDrawer } from './CustomerDrawer';
 import { useCustomerStore } from '../store/useCustomerStore';
 import { useSalesStore } from '@/features/sales';
 import { useNavigate } from 'react-router-dom';
+import { ROUTES } from '@/core/config/routes';
 
 vi.mock('lucide-react', () => ({
   X: () => <div data-testid="icon-x" />,
@@ -99,6 +100,6 @@ describe('CustomerDrawer', () => {
     fireEvent.click(addBtn);
 
     expect(onCloseMock).toHaveBeenCalled();
-    expect(navigateMock).toHaveBeenCalledWith('/customers/new');
+    expect(navigateMock).toHaveBeenCalledWith(ROUTES.CUSTOMERS.NEW);
   });
 });

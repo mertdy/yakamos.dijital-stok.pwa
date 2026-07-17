@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { Button, Tooltip } from '@heroui/react';
 import { useNavigate } from 'react-router-dom';
+import { ROUTES } from '@/core/config/routes';
 import { useConfirm } from '@/shared/contexts/ConfirmDialogContext';
 import { useAuthStore } from '@/features/auth';
 
@@ -252,7 +253,9 @@ export const SalesHistoryList: React.FC = () => {
                                         onClick={e => {
                                           e.stopPropagation();
                                           navigate(
-                                            `/inventory/edit/${item.inventoryId}`
+                                            ROUTES.INVENTORY.EDIT(
+                                              item.inventoryId
+                                            )
                                           );
                                         }}>
                                         {item.name}

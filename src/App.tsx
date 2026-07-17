@@ -31,6 +31,7 @@ import { useSalesHistoryStore } from '@/features/sales-history';
 
 import { usePWAUpdate } from './shared/hooks/usePWAUpdate';
 import { LazyRouteErrorBoundary } from './shared/components/LazyRouteErrorBoundary';
+import { ROUTES } from '@/core/config/routes';
 
 function App() {
   usePWAUpdate();
@@ -74,7 +75,6 @@ function App() {
   }
 
   const hasNoCompany = user && (!profile || !profile.activeCompanyId);
-  const noCompanyRoute = '/onboarding';
   const isOwner = activeMembership?.role === 'OWNER';
   const isEmployee = activeMembership?.role === 'EMPLOYEE';
   const hasInventoryPermission =
@@ -97,38 +97,40 @@ function App() {
       <Routes>
         {/* Public Route */}
         <Route
-          path="/login"
+          path={ROUTES.LOGIN}
           element={
             !user ? (
               <LazyRouteErrorBoundary>
                 <LoginView />
               </LazyRouteErrorBoundary>
             ) : (
-              <Navigate to="/" replace />
+              <Navigate to={ROUTES.DASHBOARD} replace />
             )
           }
         />
 
         {/* Onboarding Route */}
         <Route
-          path="/onboarding"
+          path={ROUTES.ONBOARDING}
           element={
             user ? (
               !hasNoCompany ? (
-                <Navigate to="/" replace />
+                <Navigate to={ROUTES.DASHBOARD} replace />
               ) : (
                 <LazyRouteErrorBoundary>
                   <OnboardingView />
                 </LazyRouteErrorBoundary>
               )
             ) : (
-              <Navigate to="/login" replace />
+              <Navigate to={ROUTES.LOGIN} replace />
             )
           }
         />
         <Route
           path="/welcome"
-          element={<Navigate to={user ? noCompanyRoute : '/login'} replace />}
+          element={
+            <Navigate to={user ? ROUTES.ONBOARDING : ROUTES.LOGIN} replace />
+          }
         />
 
         {/* Protected Routes */}
@@ -137,70 +139,70 @@ function App() {
             user && !hasNoCompany ? (
               <MainLayout />
             ) : (
-              <Navigate to={user ? noCompanyRoute : '/login'} replace />
+              <Navigate to={user ? ROUTES.ONBOARDING : ROUTES.LOGIN} replace />
             )
           }>
-          <Route path="/" element={<DashboardView />} />
-          <Route path="/sales" element={<SalesView />} />
-          <Route path="/sales-history" element={<SalesHistoryView />} />
+          <Route path={ROUTES.DASHBOARD} element={<DashboardView />} />
+          <Route path={ROUTES.SALES} element={<SalesView />} />
+          <Route path={ROUTES.SALES_HISTORY} element={<SalesHistoryView />} />
           <Route
-            path="/company-settings"
+            path={ROUTES.COMPANY_SETTINGS}
             element={
               activeMembership?.role === 'OWNER' ? (
                 <CompanySettingsView />
               ) : (
-                <Navigate to="/" replace />
+                <Navigate to={ROUTES.DASHBOARD} replace />
               )
             }
           />
-          <Route path="/account-settings" element={<AccountSettingsView />} />
           <Route
-            path="/planlar-ve-fiyatlandirma"
-            element={<PricingPlansView />}
+            path={ROUTES.ACCOUNT_SETTINGS}
+            element={<AccountSettingsView />}
           />
-          <Route path="/customers" element={<CustomerListView />} />
+          <Route path={ROUTES.PRICING_PLANS} element={<PricingPlansView />} />
+          <Route path={ROUTES.CUSTOMERS.INDEX} element={<CustomerListView />} />
           <Route
-            path="/customers/new"
+            path={ROUTES.CUSTOMERS.NEW}
             element={
               hasCustomerPermission ? (
                 <CustomerFormView />
               ) : (
-                <Navigate to="/customers" replace />
+                <Navigate to={ROUTES.CUSTOMERS.INDEX} replace />
               )
             }
           />
           <Route
-            path="/customers/edit/:id"
+            path={ROUTES.CUSTOMERS.EDIT_ROUTE}
             element={
               hasCustomerPermission ? (
                 <CustomerFormView />
               ) : (
-                <Navigate to="/customers" replace />
+                <Navigate to={ROUTES.CUSTOMERS.INDEX} replace />
               )
             }
           />
           <Route
-            path="/customers/details/:id"
+            path={ROUTES.CUSTOMERS.DETAILS_ROUTE}
             element={<CustomerDetailView />}
           />
-          <Route path="/inventory" element={<InventoryView />} />
+          <Route path={ROUTES.INVENTORY.INDEX} element={<InventoryView />} />
           <Route
-            path="/inventory/new"
+            path={ROUTES.INVENTORY.NEW}
             element={
               hasInventoryPermission ? (
                 <ProductFormView />
               ) : (
-                <Navigate to="/inventory" replace />
+                <Navigate to={ROUTES.INVENTORY.INDEX} replace />
               )
             }
           />
           <Route
-            path="/inventory/edit/:id"
+            path={ROUTES.INVENTORY.EDIT_ROUTE}
             element={
               hasInventoryPermission ? (
                 <ProductFormView />
               ) : (
-                <Navigate to="/inventory" replace />
+                <Navigate to={ROUTES.INVENTORY.INDEX} replace />
               )
             }
           />
@@ -211,7 +213,13 @@ function App() {
           path="*"
           element={
             <Navigate
-              to={user ? (hasNoCompany ? noCompanyRoute : '/') : '/login'}
+              to={
+                user
+                  ? hasNoCompany
+                    ? ROUTES.ONBOARDING
+                    : ROUTES.DASHBOARD
+                  : ROUTES.LOGIN
+              }
               replace
             />
           }

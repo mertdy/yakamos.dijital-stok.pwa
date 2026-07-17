@@ -1,5 +1,6 @@
 import React, { useEffect, useLayoutEffect, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
+import { ROUTES } from '@/core/config/routes';
 import { InventoryTable } from '../components/InventoryTable';
 import { Plus } from 'lucide-react';
 import { Button } from '@heroui/react';
@@ -26,7 +27,7 @@ export const InventoryView: React.FC = () => {
       // Remove query param from current view and navigate to new form
       searchParams.delete('add');
       setSearchParams(searchParams, { replace: true });
-      navigate(`/inventory/new?barcode=${addBarcode}`);
+      navigate(ROUTES.INVENTORY.NEW_WITH_BARCODE(addBarcode));
     }
   }, [searchParams, setSearchParams, navigate, hasInventoryPermission]);
 
@@ -51,7 +52,9 @@ export const InventoryView: React.FC = () => {
         </div>
 
         {hasInventoryPermission && (
-          <Button onPress={() => navigate('/inventory/new')} variant="primary">
+          <Button
+            onPress={() => navigate(ROUTES.INVENTORY.NEW)}
+            variant="primary">
             <Plus className="mr-2 text-xl" /> Yeni Ürün
           </Button>
         )}

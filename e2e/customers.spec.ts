@@ -1,9 +1,10 @@
 import { test, expect } from '@playwright/test';
 import { ENV } from '../src/core/config/env';
+import { ROUTES } from '../src/core/config/routes';
 
 test.describe('Customer Management Flow', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/login');
+    await page.goto(ROUTES.LOGIN);
     await page.locator('#login-email').fill(ENV.TEST_USER_EMAIL);
     await page.locator('#login-password').fill(ENV.TEST_USER_PASSWORD);
     await page.click('#login-submit-btn');
@@ -13,7 +14,7 @@ test.describe('Customer Management Flow', () => {
   test('should create customer, navigate to details, and record a payment', async ({
     page
   }) => {
-    await page.goto('/customers');
+    await page.goto(ROUTES.CUSTOMERS.INDEX);
     await expect(
       page.getByRole('heading', { name: 'Müşteriler' })
     ).toBeVisible();

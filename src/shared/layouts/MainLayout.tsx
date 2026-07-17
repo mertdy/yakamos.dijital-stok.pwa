@@ -2,6 +2,7 @@ import React, { Suspense, useState, useEffect } from 'react';
 import { clsx } from 'clsx';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { SyncIndicator } from '@/shared/components/SyncIndicator';
+import { ROUTES } from '@/core/config/routes';
 import { PWAInstallButton } from '@/shared/components/PWAInstallButton';
 import { LazyRouteErrorBoundary } from '@/shared/components/LazyRouteErrorBoundary';
 import { useAppHotkeys } from '@/shared/hooks/useAppHotkeys';
@@ -141,7 +142,7 @@ export const MainLayout: React.FC = () => {
 
   // Auto collapse on sales screen
   useEffect(() => {
-    if (location.pathname === '/sales') {
+    if (location.pathname === ROUTES.SALES) {
       setIsCollapsed(true);
     } else {
       setIsCollapsed(false);
@@ -193,12 +194,12 @@ export const MainLayout: React.FC = () => {
   useEffect(() => {
     const isOwner = activeMembership?.role === 'OWNER';
     if (
-      location.pathname === '/' &&
+      location.pathname === ROUTES.DASHBOARD &&
       !isOwner &&
       activeMembership?.role === 'EMPLOYEE' &&
       !activeMembership.permissions.includes('VIEW_DASHBOARD')
     ) {
-      navigate('/sales');
+      navigate(ROUTES.SALES);
     }
   }, [location.pathname, activeMembership, navigate]);
 
@@ -246,10 +247,10 @@ export const MainLayout: React.FC = () => {
         variant: 'danger',
         status: 'warning',
         secondaryAction:
-          location.pathname !== '/sales'
+          location.pathname !== ROUTES.SALES
             ? {
                 text: 'Sepete Git',
-                onPress: () => navigate('/sales')
+                onPress: () => navigate(ROUTES.SALES)
               }
             : undefined
       });
@@ -265,11 +266,11 @@ export const MainLayout: React.FC = () => {
 
   const handleProfileMenuAction = (key: React.Key) => {
     if (key === 'account-settings') {
-      navigate('/account-settings');
+      navigate(ROUTES.ACCOUNT_SETTINGS);
     }
 
     if (key === 'plans') {
-      navigate('/planlar-ve-fiyatlandirma');
+      navigate(ROUTES.PRICING_PLANS);
     }
 
     if (key === 'support') {
@@ -300,12 +301,16 @@ export const MainLayout: React.FC = () => {
     }
   };
 
-  const baseNavItems = [
-    { name: 'Anasayfa', path: '/', icon: LayoutDashboard },
-    { name: 'Satış', path: '/sales', icon: MonitorCheck },
-    { name: 'Satış Geçmişi', path: '/sales-history', icon: History },
-    { name: 'Müşteriler', path: '/customers', icon: Users },
-    { name: 'Envanter', path: '/inventory', icon: Package }
+  const baseNavItems: Array<{
+    name: string;
+    path: string;
+    icon: React.ComponentType<any>;
+  }> = [
+    { name: 'Anasayfa', path: ROUTES.DASHBOARD, icon: LayoutDashboard },
+    { name: 'Satış', path: ROUTES.SALES, icon: MonitorCheck },
+    { name: 'Satış Geçmişi', path: ROUTES.SALES_HISTORY, icon: History },
+    { name: 'Müşteriler', path: ROUTES.CUSTOMERS.INDEX, icon: Users },
+    { name: 'Envanter', path: ROUTES.INVENTORY.INDEX, icon: Package }
   ];
 
   let filteredNavItems = baseNavItems;
@@ -315,19 +320,21 @@ export const MainLayout: React.FC = () => {
     activeMembership?.role === 'EMPLOYEE' &&
     !activeMembership.permissions.includes('VIEW_DASHBOARD')
   ) {
-    filteredNavItems = baseNavItems.filter(item => item.path !== '/');
+    filteredNavItems = baseNavItems.filter(
+      item => item.path !== ROUTES.DASHBOARD
+    );
   }
 
   if (activeMembership?.role === 'OWNER') {
     filteredNavItems = [
       ...filteredNavItems,
-      { name: 'Şirket Ayarları', path: '/company-settings', icon: Settings }
+      { name: 'Şirket Ayarları', path: ROUTES.COMPANY_SETTINGS, icon: Settings }
     ];
   }
 
   filteredNavItems = [
     ...filteredNavItems,
-    { name: 'Hesap Ayarları', path: '/account-settings', icon: User }
+    { name: 'Hesap Ayarları', path: ROUTES.ACCOUNT_SETTINGS, icon: User }
   ];
 
   const sidebarToggleButton = (
@@ -758,7 +765,7 @@ export const MainLayout: React.FC = () => {
       {/* Mobile Bottom Navigation */}
       <nav className="pb-safe fixed right-0 bottom-0 left-0 z-50 flex h-16 items-center justify-around border-t border-gray-200/50 bg-white px-2 md:hidden">
         {filteredNavItems
-          .filter(item => item.path !== '/company-settings')
+          .filter(item => item.path !== ROUTES.COMPANY_SETTINGS)
           .map(item => (
             <NavLink
               key={item.path}

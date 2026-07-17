@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { login } from './support/app';
+import { ROUTES } from '../src/core/config/routes';
 
 test.describe('Online navigation and page availability @online', () => {
   test('navigates through every primary application page without losing the shell', async ({
@@ -8,11 +9,11 @@ test.describe('Online navigation and page availability @online', () => {
     await login(page);
 
     const pages = [
-      ['/sales', 'Sipariş Detayları'],
-      ['/sales-history', 'Satış Geçmişi'],
-      ['/customers', 'Müşteriler'],
-      ['/inventory', 'Envanter Yönetimi'],
-      ['/account-settings', 'Hesap Ayarları']
+      [ROUTES.SALES, 'Sipariş Detayları'],
+      [ROUTES.SALES_HISTORY, 'Satış Geçmişi'],
+      [ROUTES.CUSTOMERS.INDEX, 'Müşteriler'],
+      [ROUTES.INVENTORY.INDEX, 'Envanter Yönetimi'],
+      [ROUTES.ACCOUNT_SETTINGS, 'Hesap Ayarları']
     ] as const;
 
     for (const [path, heading] of pages) {

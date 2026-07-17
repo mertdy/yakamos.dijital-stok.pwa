@@ -1,11 +1,12 @@
 import { test, expect } from '@playwright/test';
 import { ENV } from '../src/core/config/env';
+import { ROUTES } from '../src/core/config/routes';
 
 test.describe('Authentication Flow', () => {
   test('should successfully log in and redirect to dashboard', async ({
     page
   }) => {
-    await page.goto('/login');
+    await page.goto(ROUTES.LOGIN);
     await expect(
       page.getByRole('heading', { name: 'Dijital Stok' })
     ).toBeVisible();
@@ -21,7 +22,7 @@ test.describe('Authentication Flow', () => {
   test('should show error message for invalid credentials', async ({
     page
   }) => {
-    await page.goto('/login');
+    await page.goto(ROUTES.LOGIN);
     await page.locator('#login-email').fill('wrong@dijitalstok.com');
     await page.locator('#login-password').fill('wrongpass');
     await page.click('#login-submit-btn');

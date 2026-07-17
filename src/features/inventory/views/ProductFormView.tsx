@@ -7,6 +7,7 @@ import {
   useRef
 } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { ROUTES } from '@/core/config/routes';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -191,7 +192,7 @@ export const ProductFormView: React.FC = () => {
                   children: 'Yeni Etiket Bastır',
                   className: 'bg-primary text-white font-medium',
                   size: 'sm',
-                  onPress: () => navigate(`/inventory?print=${id}`)
+                  onPress: () => navigate(ROUTES.INVENTORY.PRINT(id))
                 }
               }
             : undefined
@@ -211,7 +212,7 @@ export const ProductFormView: React.FC = () => {
                   className: 'bg-primary text-white font-medium',
                   size: 'sm',
                   onPress: () => {
-                    navigate(`/inventory/edit/${existingItem.id}`);
+                    navigate(ROUTES.INVENTORY.EDIT(existingItem.id));
                   }
                 }
               }

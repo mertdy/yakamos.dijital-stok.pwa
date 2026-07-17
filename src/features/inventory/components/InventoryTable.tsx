@@ -40,6 +40,7 @@ import {
   toast
 } from '@heroui/react';
 import { useNavigate } from 'react-router-dom';
+import { ROUTES } from '@/core/config/routes';
 import { useGlobalBarcodeScanner } from '@/shared/hooks/useGlobalBarcodeScanner';
 import { useConfirm } from '@/shared/contexts/ConfirmDialogContext';
 import { useAuthStore } from '@/features/auth';
@@ -84,7 +85,7 @@ export const InventoryTable: React.FC<InventoryTableProps> = ({
           actionProps: {
             children: 'Yeni Ürün Ekle',
             onPress: () => {
-              navigate(`/inventory/new?barcode=${encodeURIComponent(barcode)}`);
+              navigate(ROUTES.INVENTORY.NEW_WITH_BARCODE(barcode));
             }
           }
         });
@@ -215,7 +216,7 @@ export const InventoryTable: React.FC<InventoryTableProps> = ({
                 variant="tertiary"
                 isIconOnly
                 onPress={() =>
-                  navigate(`/inventory/edit/${props.row.original.id}`)
+                  navigate(ROUTES.INVENTORY.EDIT(props.row.original.id))
                 }
                 aria-label="Düzenle">
                 <Edit className="text-lg" />

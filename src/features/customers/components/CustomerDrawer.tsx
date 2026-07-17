@@ -7,6 +7,7 @@ import { X, Search, UserPlus, CheckCircle2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import posthog from 'posthog-js';
+import { ROUTES } from '@/core/config/routes';
 
 interface Props {
   isOpen: boolean;
@@ -96,7 +97,7 @@ export const CustomerDrawer: React.FC<Props> = ({ isOpen, onClose }) => {
                   className="mt-3 w-full rounded-xl border-dashed"
                   onPress={() => {
                     onClose();
-                    navigate('/customers/new');
+                    navigate(ROUTES.CUSTOMERS.NEW);
                   }}>
                   <UserPlus size={18} className="mr-2" />
                   Yeni Müşteri Ekle

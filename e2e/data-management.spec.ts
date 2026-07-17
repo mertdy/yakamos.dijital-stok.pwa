@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { login, uniqueName } from './support/app';
+import { ROUTES } from '../src/core/config/routes';
 
 test.describe('Data management workflows @online', () => {
   test('imports an inventory CSV with suggested column mappings and exports the selected data', async ({
@@ -8,7 +9,7 @@ test.describe('Data management workflows @online', () => {
     const importedName = uniqueName('İçe-Aktarım');
     const barcode = `869${Date.now().toString().slice(-10)}`;
     await login(page);
-    await page.goto('/company-settings');
+    await page.goto(ROUTES.COMPANY_SETTINGS);
     await expect(
       page.getByRole('heading', { name: 'Şirket Ayarları' })
     ).toBeVisible();

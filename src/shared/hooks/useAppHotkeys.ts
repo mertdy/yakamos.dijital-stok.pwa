@@ -1,6 +1,7 @@
 import { useHotkeys } from 'react-hotkeys-hook';
 import { useNavigate } from 'react-router-dom';
 import { useSalesStore } from '@/features/sales';
+import { ROUTES } from '@/core/config/routes';
 
 export const useAppHotkeys = () => {
   const navigate = useNavigate();
@@ -11,7 +12,7 @@ export const useAppHotkeys = () => {
     'f1',
     e => {
       e.preventDefault();
-      navigate('/sales');
+      navigate(ROUTES.SALES);
     },
     { enableOnFormTags: true }
   );
@@ -22,7 +23,7 @@ export const useAppHotkeys = () => {
     e => {
       e.preventDefault();
       clearCart();
-      navigate('/sales');
+      navigate(ROUTES.SALES);
     },
     { enableOnFormTags: true }
   );
@@ -32,7 +33,7 @@ export const useAppHotkeys = () => {
     'f3',
     e => {
       e.preventDefault();
-      navigate('/customers');
+      navigate(ROUTES.CUSTOMERS.INDEX);
     },
     { enableOnFormTags: true }
   );
@@ -42,7 +43,7 @@ export const useAppHotkeys = () => {
     'f4',
     e => {
       e.preventDefault();
-      navigate('/inventory');
+      navigate(ROUTES.INVENTORY.INDEX);
     },
     { enableOnFormTags: true }
   );

@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { login } from './support/app';
+import { ROUTES } from '../src/core/config/routes';
 
 test.describe('Dashboard and account surfaces @online', () => {
   test('switches dashboard analytics and reaches account and pricing pages through navigation', async ({
@@ -14,7 +15,7 @@ test.describe('Dashboard and account surfaces @online', () => {
       page.getByText('Kritik Stok Seviyesindeki Ürünler')
     ).toBeVisible();
 
-    await page.goto('/account-settings');
+    await page.goto(ROUTES.ACCOUNT_SETTINGS);
     await expect(
       page.getByRole('heading', { name: 'Hesap Ayarları' })
     ).toBeVisible();

@@ -1,5 +1,6 @@
 import { expect, type BrowserContext, type Page } from '@playwright/test';
 import { ENV } from '../../src/core/config/env';
+import { ROUTES } from '../../src/core/config/routes';
 
 export const runId = `E2E-${Date.now().toString().slice(-6)}`;
 
@@ -17,7 +18,7 @@ export async function loginWithCredentials(
   email: string,
   password: string
 ) {
-  await page.goto('/login');
+  await page.goto(ROUTES.LOGIN);
   await page.locator('#login-email').fill(email);
   await page.locator('#login-password').fill(password);
   await page.locator('#login-submit-btn').click();
@@ -31,7 +32,7 @@ export async function createProduct(
   page: Page,
   product: { name: string; stock?: number; price?: number; barcode?: string }
 ) {
-  await page.goto('/inventory');
+  await page.goto(ROUTES.INVENTORY.INDEX);
   await page.getByRole('button', { name: 'Yeni Ürün' }).click();
   await expect(
     page.getByRole('heading', { name: 'Yeni Ürün Ekle' })
@@ -55,7 +56,7 @@ export async function createCustomer(
     phone?: string;
   }
 ) {
-  await page.goto('/customers');
+  await page.goto(ROUTES.CUSTOMERS.INDEX);
   await page.getByRole('button', { name: 'Yeni Müşteri' }).click();
   await expect(
     page.getByRole('heading', { name: 'Yeni Müşteri Ekle' })
@@ -77,7 +78,7 @@ export async function createCustomer(
 }
 
 export async function addProductToCart(page: Page, name: string) {
-  await page.goto('/sales');
+  await page.goto(ROUTES.SALES);
   const search = page.locator('input[placeholder="Ürün veya barkod ara..."]');
   await search.fill(name);
   await page.getByRole('button', { name }).click();
@@ -85,7 +86,7 @@ export async function addProductToCart(page: Page, name: string) {
 }
 
 export async function deleteProduct(page: Page, name: string) {
-  await page.goto('/inventory');
+  await page.goto(ROUTES.INVENTORY.INDEX);
   await page
     .locator('input[placeholder="Ürün adı veya barkod ile ara..."]')
     .fill(name);
