@@ -5,6 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Badge, Button, Card, Tabs, toast } from '@heroui/react';
 import { useAuthStore } from '../store/useAuthStore';
+import { useSecureLogout } from '@/shared/hooks/useSecureLogout';
 import { db } from '@/core/firebase/config';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import type { Invitation } from '@/core/types/tenant';
@@ -37,8 +38,9 @@ const onboardingSchema = z.object({
 type OnboardingFormData = z.infer<typeof onboardingSchema>;
 
 export const OnboardingView = () => {
-  const { user, createCompany, acceptInvitation, declineInvitation, logout } =
+  const { user, createCompany, acceptInvitation, declineInvitation } =
     useAuthStore();
+  const logout = useSecureLogout();
   const navigate = useNavigate();
   const [invitations, setInvitations] = useState<Invitation[]>([]);
   const [isCheckingInvites, setIsCheckingInvites] = useState(true);

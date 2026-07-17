@@ -10,6 +10,11 @@ import {
 } from 'firebase/auth';
 import { getDocs, updateDoc, writeBatch } from 'firebase/firestore';
 import {
+  clearFirestorePersistence,
+  clearUserLocalStorage,
+  notifyOtherTabsOfLogout
+} from '@/shared/utils/sessionCleanup';
+import {
   getAuthErrorMessage,
   getAvailableActiveCompanyId
 } from './useAuthStore';
@@ -130,6 +135,13 @@ vi.mock('@/core/firebase/config', () => ({
   db: {},
   auth: {},
   googleProvider: {}
+}));
+
+vi.mock('@/shared/utils/sessionCleanup', () => ({
+  clearFirestorePersistence: vi.fn().mockResolvedValue(true),
+  clearUserLocalStorage: vi.fn(),
+  notifyOtherTabsOfLogout: vi.fn().mockResolvedValue(undefined),
+  releaseFirestoreClient: vi.fn().mockResolvedValue(undefined)
 }));
 
 vi.mock('@/features/inventory', () => ({
@@ -513,6 +525,9 @@ describe('useAuthStore', () => {
     expect(clearHeldSales).toHaveBeenCalled();
     expect(clearSales).toHaveBeenCalled();
     expect(clearPreferences).toHaveBeenCalled();
+    expect(notifyOtherTabsOfLogout).toHaveBeenCalled();
+    expect(clearUserLocalStorage).toHaveBeenCalled();
+    expect(clearFirestorePersistence).toHaveBeenCalled();
     expect(store.getState().isLoading).toBe(false);
   });
 });

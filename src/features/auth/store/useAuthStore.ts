@@ -25,6 +25,12 @@ import {
   writeBatch
 } from 'firebase/firestore';
 import { auth, googleProvider, db } from '@/core/firebase/config';
+import {
+  clearFirestorePersistence,
+  clearUserLocalStorage,
+  notifyOtherTabsOfLogout,
+  releaseFirestoreClient
+} from '@/shared/utils/sessionCleanup';
 import { useInventoryStore } from '@/features/inventory';
 import { useCustomerStore } from '@/features/customers';
 import { useSalesStore, usePreferencesStore } from '@/features/sales';
@@ -94,7 +100,11 @@ interface AuthState {
   registerWithEmail: (email: string, password: string) => Promise<void>;
   updateDisplayName: (displayName: string) => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
-  logout: () => Promise<void>;
+  logout: (options?: {
+    notifyTabs?: boolean;
+    clearPersistence?: boolean;
+    releaseClient?: boolean;
+  }) => Promise<void>;
 
   createCompany: (
     name: string,
@@ -516,7 +526,11 @@ export const useAuthStore = getSingletonStore('auth', () =>
       }
     },
 
-    logout: async () => {
+    logout: async ({
+      notifyTabs = true,
+      clearPersistence = true,
+      releaseClient = false
+    } = {}) => {
       set({ isLoading: true });
       try {
         const currentUser = auth.currentUser;
@@ -525,6 +539,7 @@ export const useAuthStore = getSingletonStore('auth', () =>
             had_verified_email: currentUser.emailVerified
           });
         }
+        if (notifyTabs) await notifyOtherTabsOfLogout();
         await signOut(auth);
         posthog.reset();
         useInventoryStore.getState().clearItems();
@@ -533,6 +548,16 @@ export const useAuthStore = getSingletonStore('auth', () =>
         useSalesStore.getState().clearHeldSales();
         useSalesHistoryStore.getState().clearSales();
         usePreferencesStore.getState().clearPreferences();
+        clearUserLocalStorage();
+        if (clearPersistence) {
+          await clearFirestorePersistence();
+          // `terminate(db)` makes the singleton unusable. Start a fresh client
+          // on the login page regardless of whether another tab delayed cache
+          // deletion; the retry marker preserves that state.
+          window.location.replace('/login');
+        } else if (releaseClient) {
+          await releaseFirestoreClient();
+        }
       } catch (error) {
         console.error('Logout failed:', error);
         posthog.captureException(error, {

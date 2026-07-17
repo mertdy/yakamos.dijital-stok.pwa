@@ -1,11 +1,11 @@
 import { Button, Card } from '@heroui/react';
 import { Building2, Mail, LogOut } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { useAuthStore } from '../store/useAuthStore';
+import { useSecureLogout } from '@/shared/hooks/useSecureLogout';
 
 export const NoCompanyView = () => {
   const navigate = useNavigate();
-  const { logout } = useAuthStore();
+  const logout = useSecureLogout();
   return (
     <main className="flex min-h-screen items-center justify-center bg-gray-50 p-4">
       <Card className="w-full max-w-xl rounded-3xl p-8 text-center shadow-xl">

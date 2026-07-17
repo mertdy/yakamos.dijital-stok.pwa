@@ -6,6 +6,7 @@ import { ROUTES } from '@/core/config/routes';
 import { PWAInstallButton } from '@/shared/components/PWAInstallButton';
 import { LazyRouteErrorBoundary } from '@/shared/components/LazyRouteErrorBoundary';
 import { useAppHotkeys } from '@/shared/hooks/useAppHotkeys';
+import { useSecureLogout } from '@/shared/hooks/useSecureLogout';
 import { useSalesStore } from '@/features/sales';
 import { useConfirm } from '@/shared/contexts/ConfirmDialogContext';
 import {
@@ -13,7 +14,6 @@ import {
   MonitorCheck,
   Package,
   Users,
-  User,
   LogOut,
   PanelLeftClose,
   PanelLeftOpen,
@@ -103,13 +103,13 @@ export const MainLayout: React.FC = () => {
     activeCompany,
     memberships,
     switchCompany,
-    createCompany,
-    logout
+    createCompany
   } = useAuthStore();
   const location = useLocation();
   const navigate = useNavigate();
   const { cart, clearCart } = useSalesStore();
   const { confirm } = useConfirm();
+  const logout = useSecureLogout();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isSidebarHovered, setIsSidebarHovered] = useState(false);
   const [newCompanyModalOpen, setNewCompanyModalOpen] = useState(false);
@@ -331,11 +331,6 @@ export const MainLayout: React.FC = () => {
       { name: 'Şirket Ayarları', path: ROUTES.COMPANY_SETTINGS, icon: Settings }
     ];
   }
-
-  filteredNavItems = [
-    ...filteredNavItems,
-    { name: 'Hesap Ayarları', path: ROUTES.ACCOUNT_SETTINGS, icon: User }
-  ];
 
   const sidebarToggleButton = (
     <Button

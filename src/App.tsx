@@ -32,6 +32,7 @@ import { useSalesHistoryStore } from '@/features/sales-history';
 import { usePWAUpdate } from './shared/hooks/usePWAUpdate';
 import { LazyRouteErrorBoundary } from './shared/components/LazyRouteErrorBoundary';
 import { ROUTES } from '@/core/config/routes';
+import { listenForRemoteLogout } from '@/shared/utils/sessionCleanup';
 
 function App() {
   usePWAUpdate();
@@ -44,6 +45,19 @@ function App() {
     });
     return () => unsubscribe();
   }, [setUser]);
+
+  useEffect(
+    () =>
+      listenForRemoteLogout(async () => {
+        await useAuthStore.getState().logout({
+          notifyTabs: false,
+          clearPersistence: false,
+          releaseClient: true
+        });
+        window.location.replace(ROUTES.LOGIN);
+      }),
+    []
+  );
 
   const activeCompanyId = profile?.activeCompanyId;
 
