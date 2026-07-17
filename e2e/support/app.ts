@@ -1,12 +1,15 @@
 import { expect, type BrowserContext, type Page } from '@playwright/test';
 import { ENV } from '../../src/core/config/env';
 
-export const runId = `E2E-${Date.now()}`;
+export const runId = `E2E-${Date.now().toString().slice(-6)}`;
 
-export const uniqueName = (kind: string) => `${runId}-${kind}-${Date.now()}`;
+let nameCounter = 0;
+export const uniqueName = (kind: string) => `${runId}-${kind}-${++nameCounter}`;
 
 export async function login(page: Page) {
   await loginWithCredentials(page, ENV.TEST_USER_EMAIL, ENV.TEST_USER_PASSWORD);
+  await page.goto('/');
+  await expect(page.getByRole('heading', { name: 'Anasayfa' })).toBeVisible();
 }
 
 export async function loginWithCredentials(

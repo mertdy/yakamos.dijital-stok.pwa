@@ -19,6 +19,7 @@ test.describe('Sales (POS) Flow', () => {
     await page.locator('input[name="stock"]').fill('50');
     await page.locator('input[name="price"]').fill('20.00');
     await page.click('button:has-text("Ürünü Kaydet")');
+    await expect(page.getByText('Yeni ürün eklendi')).toBeVisible();
   });
 
   test('should add product to cart, apply discount, and complete checkout', async ({

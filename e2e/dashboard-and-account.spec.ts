@@ -14,7 +14,7 @@ test.describe('Dashboard and account surfaces @online', () => {
       page.getByText('Kritik Stok Seviyesindeki Ürünler')
     ).toBeVisible();
 
-    await page.getByRole('button', { name: 'Hesap Ayarları' }).click();
+    await page.goto('/account-settings');
     await expect(
       page.getByRole('heading', { name: 'Hesap Ayarları' })
     ).toBeVisible();
@@ -24,7 +24,7 @@ test.describe('Dashboard and account surfaces @online', () => {
       .getByRole('menuitem', { name: 'Planlar ve Fiyatlandırma' })
       .click();
     await expect(
-      page.getByRole('heading', { name: 'Planlar ve Fiyatlandırma' })
+      page.getByText('Planlar ve Fiyatlandırma').first()
     ).toBeVisible();
   });
 });

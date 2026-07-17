@@ -238,7 +238,8 @@ export const parseImportFile = async (file: File) => {
   const XLSX = await import('xlsx');
   const workbook = XLSX.read(await file.arrayBuffer(), {
     type: 'array',
-    sheetRows: 5001
+    sheetRows: 5001,
+    codepage: 65001
   });
   const sheetName = workbook.SheetNames[0];
   const values = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], {

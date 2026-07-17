@@ -8,7 +8,7 @@ test.describe('Data management workflows @online', () => {
     const importedName = uniqueName('İçe-Aktarım');
     const barcode = `869${Date.now().toString().slice(-10)}`;
     await login(page);
-    await page.getByRole('button', { name: 'Şirket Ayarları' }).click();
+    await page.goto('/company-settings');
     await expect(
       page.getByRole('heading', { name: 'Şirket Ayarları' })
     ).toBeVisible();
@@ -22,7 +22,7 @@ test.describe('Data management workflows @online', () => {
       name: 'envanter.csv',
       mimeType: 'text/csv',
       buffer: Buffer.from(
-        `Ürün Adı,Barkod No,Stok,Fiyat (KDV Hariç, TL)\n${importedName},${barcode},7,19.5\n`
+        `Ürün Adı,Barkod No,Stok,"Fiyat (KDV Hariç, TL)"\n${importedName},${barcode},7,19.5\n`
       )
     });
     await expect(importDialog.getByText('1 satır bulundu.')).toBeVisible();
@@ -36,14 +36,14 @@ test.describe('Data management workflows @online', () => {
     ).toBeVisible();
     await importDialog.getByRole('button', { name: 'Kapat' }).click();
 
-    await page.getByRole('button', { name: 'Envanter' }).click();
+    await page.getByRole('link', { name: 'Envanter' }).click();
     const search = page.locator(
       'input[placeholder="Ürün adı veya barkod ile ara..."]'
     );
     await search.fill(importedName);
     await expect(page.getByText(importedName)).toBeVisible();
 
-    await page.getByRole('button', { name: 'Şirket Ayarları' }).click();
+    await page.getByRole('link', { name: 'Şirket Ayarları' }).click();
     await page
       .getByRole('button', { name: 'Dışa Aktarma Seçenekleri' })
       .click();

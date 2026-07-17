@@ -126,13 +126,28 @@ export const useInventoryStore = getSingletonStore('inventory', () =>
         items: [...state.items.filter(item => item.id !== id), newItem]
       }));
 
-      setDoc(doc(db, 'inventory', id), newItem).catch(err => {
+      const saveItem = setDoc(doc(db, 'inventory', id), newItem);
+      const reportSaveError = (err: unknown) => {
         console.error('Firestore background sync failed', err);
         posthog.captureException(err, {
           context: 'inventory_add_item',
           inventory_id: id
         });
-      });
+      };
+
+      // Online callers can safely wait for the write before presenting a
+      // successful creation state. Offline writes remain queued in Firestore
+      // and continue without blocking the sales flow.
+      if (navigator.onLine) {
+        try {
+          await saveItem;
+        } catch (error) {
+          reportSaveError(error);
+          throw error;
+        }
+      } else {
+        saveItem.catch(reportSaveError);
+      }
 
       posthog.capture('inventory_item_created', {
         inventory_id: id,

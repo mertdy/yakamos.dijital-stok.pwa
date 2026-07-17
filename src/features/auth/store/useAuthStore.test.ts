@@ -30,12 +30,35 @@ vi.mock('firebase/firestore', () => ({
   doc: vi.fn(() => ({ id: 'mock-doc-id' })),
   getDoc: vi.fn().mockResolvedValue({ exists: () => false }),
   setDoc: vi.fn().mockResolvedValue(undefined),
-  onSnapshot: vi.fn(() => vi.fn()),
+  onSnapshot: vi.fn((_ref, callback) => {
+    if (typeof callback === 'function') {
+      callback({
+        exists: () => true,
+        data: () => ({
+          activeCompanyId: 'company-a',
+          id: 'company-a',
+          name: 'Test Company'
+        }),
+        forEach: (cb: any) => {
+          cb({
+            data: () => ({
+              id: 'membership-a',
+              companyId: 'company-a',
+              companyName: 'Test Company',
+              role: 'OWNER',
+              permissions: []
+            })
+          });
+        }
+      });
+    }
+    return vi.fn();
+  }),
   collection: vi.fn(),
   query: vi.fn(),
   where: vi.fn(),
   updateDoc: vi.fn().mockResolvedValue(undefined),
-  getDocs: vi.fn(),
+  getDocs: vi.fn().mockResolvedValue({ empty: true, docs: [] }),
   writeBatch: vi.fn()
 }));
 

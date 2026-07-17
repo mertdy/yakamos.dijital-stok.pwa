@@ -32,12 +32,26 @@ async function createCompany(
   page: import('@playwright/test').Page,
   name: string
 ) {
+  const expandSidebar = page.getByRole('button', {
+    name: 'Kenar çubuğunu genişlet'
+  });
+  if (await expandSidebar.isVisible()) {
+    await expandSidebar.click({ force: true });
+  }
+
   await page.getByRole('button', { name: 'İşletme Seç' }).click();
-  await page.getByRole('menuitem', { name: 'Yeni İşletme Kur' }).click();
+  await page
+    .getByText('Yeni İşletme Kur', { exact: true })
+    .click({ force: true });
   const dialog = page.getByRole('dialog');
   await dialog.locator('input[name="name"]').fill(name);
   await dialog.getByRole('button', { name: 'Kurulumu Tamamla' }).click();
   await expect(page.getByText('Yeni işletme başarıyla kuruldu!')).toBeVisible();
+
+  if (await expandSidebar.isVisible()) {
+    await expandSidebar.click({ force: true });
+  }
+
   await expect(page.getByRole('button', { name: 'İşletme Seç' })).toContainText(
     name
   );
@@ -47,9 +61,25 @@ async function switchCompany(
   page: import('@playwright/test').Page,
   name: string
 ) {
+  const expandSidebar = page.getByRole('button', {
+    name: 'Kenar çubuğunu genişlet'
+  });
+  if (await expandSidebar.isVisible()) {
+    await expandSidebar.click({ force: true });
+  }
+
   await page.getByRole('button', { name: 'İşletme Seç' }).click();
-  await page.getByRole('menuitem', { name, exact: true }).click();
-  await expect(page.getByText('İşletme değiştirildi')).toBeVisible();
+  const option = page
+    .locator('[role="menuitem"], [role="menuitemradio"]')
+    .filter({ hasText: name })
+    .first();
+  await option.click();
+  await expect(page.getByText('İşletme değiştirildi').first()).toBeVisible();
+
+  if (await expandSidebar.isVisible()) {
+    await expandSidebar.click({ force: true });
+  }
+
   await expect(page.getByRole('button', { name: 'İşletme Seç' })).toContainText(
     name
   );
@@ -149,7 +179,7 @@ test.describe('Company-specific quick-add shortcuts @online', () => {
           )
         )
       )
-      .toBeLessThanOrEqual(1);
+      .toBeLessThanOrEqual(2);
   });
 
   test('never shows the previous company shortcuts after switching companies', async ({

@@ -12,13 +12,18 @@ async function switchCompany(page: Page, companyName: string) {
   await page
     .getByRole('button', { name: 'İşletme Seç' })
     .click({ force: true });
-  const companyOption = page.getByRole('menuitem', {
-    name: companyName,
-    exact: true
-  });
-  await expect(companyOption).toHaveCount(1, { timeout: 10_000 });
+  const companyOption = page
+    .locator('[role="menuitem"], [role="menuitemradio"]')
+    .filter({ hasText: companyName })
+    .first();
+  await expect(companyOption).toBeVisible({ timeout: 10_000 });
   await companyOption.click();
-  await expect(page.getByText('İşletme değiştirildi')).toBeVisible();
+  await expect(page.getByText('İşletme değiştirildi').first()).toBeVisible();
+
+  if (await expandSidebar.isVisible()) {
+    await expandSidebar.click({ force: true });
+  }
+
   await expect(page.getByRole('button', { name: 'İşletme Seç' })).toContainText(
     companyName
   );
@@ -89,17 +94,23 @@ test.describe('Company switch sales history @online', () => {
       .getByRole('button', { name: 'İşletme Seç' })
       .click({ force: true });
     const companyItems = employeePage
-      .getByRole('menuitem')
+      .locator('[role="menuitem"], [role="menuitemradio"]')
       .filter({ hasNotText: 'Yeni İşletme Kur' });
     const companyLabels = await companyItems.allTextContents();
     let ownCompanyName = companyLabels
-      .map(label => label.trim())
+      .map(label =>
+        label
+          .trim()
+          .split(/\s{2,}/)[0]
+          .replace(/ Çevrim dışı kullanıma hazır$/, '')
+          .trim()
+      ) // remove status strings
       .find(label => label && label !== hostCompanyName);
     if (!ownCompanyName) {
       ownCompanyName = uniqueName('İkinci-Kullanıcı-İşletmesi');
       await employeePage
-        .getByRole('menuitem', { name: 'Yeni İşletme Kur' })
-        .click();
+        .getByText('Yeni İşletme Kur', { exact: true })
+        .click({ force: true });
       const newCompanyDialog = employeePage.getByRole('dialog');
       await newCompanyDialog.locator('input[name="name"]').fill(ownCompanyName);
       await newCompanyDialog
@@ -109,11 +120,13 @@ test.describe('Company switch sales history @online', () => {
         employeePage.getByText('Yeni işletme başarıyla kuruldu!')
       ).toBeVisible();
     } else {
-      await employeePage
-        .getByRole('menuitem', { name: ownCompanyName, exact: true })
-        .click();
+      const option = employeePage
+        .locator('[role="menuitem"], [role="menuitemradio"]')
+        .filter({ hasText: ownCompanyName })
+        .first();
+      await option.click();
       await expect(
-        employeePage.getByText('İşletme değiştirildi')
+        employeePage.getByText('İşletme değiştirildi').first()
       ).toBeVisible();
     }
 

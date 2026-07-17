@@ -8,15 +8,15 @@ test.describe('Online navigation and page availability @online', () => {
     await login(page);
 
     const pages = [
-      ['Satış', 'Sipariş Detayları'],
-      ['Satış Geçmişi', 'Satış Geçmişi'],
-      ['Müşteriler', 'Müşteriler'],
-      ['Envanter', 'Envanter Yönetimi'],
-      ['Hesap Ayarları', 'Hesap Ayarları']
+      ['/sales', 'Sipariş Detayları'],
+      ['/sales-history', 'Satış Geçmişi'],
+      ['/customers', 'Müşteriler'],
+      ['/inventory', 'Envanter Yönetimi'],
+      ['/account-settings', 'Hesap Ayarları']
     ] as const;
 
-    for (const [navigationLabel, heading] of pages) {
-      await page.getByRole('button', { name: navigationLabel }).first().click();
+    for (const [path, heading] of pages) {
+      await page.goto(path);
       await expect(page.getByRole('heading', { name: heading })).toBeVisible();
       await expect(page.getByRole('navigation')).toBeVisible();
     }

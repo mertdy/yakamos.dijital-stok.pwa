@@ -34,6 +34,7 @@ test.describe('Kritik Para Akışı (Money Flow)', () => {
     await page.locator('input[name="stock"]').fill('10');
     await page.locator('input[name="price"]').fill('15.00');
     await page.click('button:has-text("Ürünü Kaydet")');
+    await expect(page.getByText('Yeni ürün eklendi')).toBeVisible();
 
     // Go back to POS
     await page.goto('/sales');
