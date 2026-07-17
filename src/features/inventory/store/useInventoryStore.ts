@@ -12,6 +12,7 @@ import {
 } from 'firebase/firestore';
 import { db, auth } from '@/core/firebase/config';
 import { useAuthStore } from '@/features/auth/store/useAuthStore';
+import { usePreferencesStore } from '@/features/sales/store/usePreferencesStore';
 import posthog from 'posthog-js';
 
 export interface InventoryItem {
@@ -31,8 +32,9 @@ interface InventoryState {
   items: InventoryItem[];
   isLoading: boolean;
   hasLoadedItems: boolean;
+  subscriptionCompanyId: string | null;
   unsubscribeSnapshot: (() => void) | null;
-  loadItems: () => void;
+  loadItems: (options?: { force?: boolean }) => void;
   addItem: (
     item: Omit<InventoryItem, 'id' | 'updatedAt' | 'userId' | 'companyId'>
   ) => Promise<void>;
@@ -47,22 +49,37 @@ export const useInventoryStore = getSingletonStore('inventory', () =>
     items: [],
     isLoading: false,
     hasLoadedItems: false,
+    subscriptionCompanyId: null,
     unsubscribeSnapshot: null,
 
-    loadItems: () => {
+    loadItems: ({ force = false } = {}) => {
       const profile = useAuthStore.getState().profile;
-      if (!profile?.activeCompanyId) return;
+      const companyId = profile?.activeCompanyId;
+      if (!companyId) return;
 
-      const { unsubscribeSnapshot } = get();
+      const { unsubscribeSnapshot, subscriptionCompanyId } = get();
+      if (
+        !force &&
+        subscriptionCompanyId === companyId &&
+        unsubscribeSnapshot
+      ) {
+        return;
+      }
+
       if (unsubscribeSnapshot) {
         unsubscribeSnapshot();
       }
 
-      set({ isLoading: true, hasLoadedItems: false });
+      set({
+        items: subscriptionCompanyId === companyId ? get().items : [],
+        isLoading: true,
+        hasLoadedItems: false,
+        subscriptionCompanyId: companyId
+      });
 
       const q = query(
         collection(db, 'inventory'),
-        where('companyId', '==', profile.activeCompanyId)
+        where('companyId', '==', companyId)
       );
 
       const unsubscribe = onSnapshot(
@@ -72,10 +89,12 @@ export const useInventoryStore = getSingletonStore('inventory', () =>
           snapshot.forEach(doc => {
             items.push({ id: doc.id, ...doc.data() } as InventoryItem);
           });
+          if (get().subscriptionCompanyId !== companyId) return;
           set({ items, isLoading: false, hasLoadedItems: true });
         },
         error => {
           console.error('Firestore snapshot error:', error);
+          if (get().subscriptionCompanyId !== companyId) return;
           set({ isLoading: false, hasLoadedItems: true });
         }
       );
@@ -101,13 +120,35 @@ export const useInventoryStore = getSingletonStore('inventory', () =>
         companyId: profile.activeCompanyId
       };
 
-      setDoc(doc(db, 'inventory', id), newItem).catch(err => {
+      // The Firestore write is deliberately queued for offline support. Keep
+      // the local list in sync immediately so a newly created product can be
+      // selected in Sales without waiting for the snapshot round trip.
+      set(state => ({
+        items: [...state.items.filter(item => item.id !== id), newItem]
+      }));
+
+      const saveItem = setDoc(doc(db, 'inventory', id), newItem);
+      const reportSaveError = (err: unknown) => {
         console.error('Firestore background sync failed', err);
         posthog.captureException(err, {
           context: 'inventory_add_item',
           inventory_id: id
         });
-      });
+      };
+
+      // Online callers can safely wait for the write before presenting a
+      // successful creation state. Offline writes remain queued in Firestore
+      // and continue without blocking the sales flow.
+      if (navigator.onLine) {
+        try {
+          await saveItem;
+        } catch (error) {
+          reportSaveError(error);
+          throw error;
+        }
+      } else {
+        saveItem.catch(reportSaveError);
+      }
 
       posthog.capture('inventory_item_created', {
         inventory_id: id,
@@ -161,6 +202,8 @@ export const useInventoryStore = getSingletonStore('inventory', () =>
         });
       });
 
+      usePreferencesStore.getState().removeQuickAddItems([id]);
+
       posthog.capture('inventory_item_deleted', {
         inventory_id: id
       });
@@ -183,6 +226,8 @@ export const useInventoryStore = getSingletonStore('inventory', () =>
         });
       });
 
+      await usePreferencesStore.getState().removeQuickAddItems(ids);
+
       posthog.capture('inventory_items_deleted', {
         count: ids.length,
         inventory_ids: ids
@@ -194,7 +239,13 @@ export const useInventoryStore = getSingletonStore('inventory', () =>
       if (unsubscribeSnapshot) {
         unsubscribeSnapshot();
       }
-      set({ items: [], hasLoadedItems: false, unsubscribeSnapshot: null });
+      set({
+        items: [],
+        isLoading: false,
+        hasLoadedItems: false,
+        subscriptionCompanyId: null,
+        unsubscribeSnapshot: null
+      });
     }
   }))
 );

@@ -7,10 +7,12 @@ import {
   ChevronDown,
   ChevronUp,
   Package,
-  AlertCircle
+  AlertCircle,
+  CloudUpload
 } from 'lucide-react';
-import { Button } from '@heroui/react';
+import { Button, Tooltip } from '@heroui/react';
 import { useNavigate } from 'react-router-dom';
+import { ROUTES } from '@/core/config/routes';
 import { useConfirm } from '@/shared/contexts/ConfirmDialogContext';
 import { useAuthStore } from '@/features/auth';
 
@@ -71,12 +73,13 @@ export const SalesHistoryList: React.FC = () => {
 
   return (
     <div className="flex-1 overflow-x-auto p-2">
-      <table className="w-full min-w-[800px] border-collapse text-left">
+      <table className="w-full min-w-[920px] border-collapse text-left">
         <thead>
           <tr className="border-b border-gray-100 text-xs tracking-wider text-gray-400 uppercase">
             <th className="px-6 py-4 font-semibold">Tarih</th>
             <th className="px-6 py-4 font-semibold">Fatura No</th>
             <th className="px-6 py-4 font-semibold">Müşteri</th>
+            <th className="px-6 py-4 font-semibold">Satışı Yapan</th>
             <th className="px-6 py-4 font-semibold">Ödeme Yöntemi</th>
             <th className="px-6 py-4 font-semibold">Durum</th>
             <th className="px-6 py-4 text-right font-semibold">Tutar</th>
@@ -85,7 +88,7 @@ export const SalesHistoryList: React.FC = () => {
         <tbody>
           {sales.length === 0 ? (
             <tr>
-              <td colSpan={6} className="px-6 py-16 text-center text-gray-500">
+              <td colSpan={7} className="px-6 py-16 text-center text-gray-500">
                 <ReceiptText className="mx-auto mb-3 text-4xl opacity-20" />
                 <p>Belirlenen kriterlere uygun satış bulunamadı.</p>
               </td>
@@ -117,12 +120,42 @@ export const SalesHistoryList: React.FC = () => {
                     {getCustomerName(sale.customerId)}
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-700">
+                    {sale.sellerName || 'Bilinmeyen çalışan'}
+                  </td>
+                  <td className="px-6 py-4 text-sm text-gray-700">
                     <span className="inline-flex items-center rounded-md bg-gray-100 px-2 py-1 text-xs font-semibold text-gray-600">
                       {getPaymentMethodLabel(sale.paymentMethod)}
                     </span>
                   </td>
                   <td className="px-6 py-4 text-sm">
-                    {sale.status === 'cancelled' ? (
+                    {sale.syncStatus === 'pending' ||
+                    sale.syncStatus === 'failed' ? (
+                      <Tooltip delay={0} closeDelay={0}>
+                        <Tooltip.Trigger
+                          aria-label={
+                            sale.syncStatus === 'pending'
+                              ? 'İşlem cihazınıza kaydedildi; internet bağlantısı geldiğinde buluta yedeklenecek.'
+                              : 'İşlem buluta yedeklenemedi. İnternet bağlantınızı kontrol edin.'
+                          }>
+                          <span className="bg-warning/10 text-warning inline-flex cursor-help items-center gap-1 rounded-md px-2 py-1 text-xs font-semibold">
+                            {sale.status === 'cancelled' ? (
+                              <>
+                                <AlertCircle size={12} /> İptal Edildi
+                              </>
+                            ) : (
+                              'Tamamlandı'
+                            )}
+                            <CloudUpload size={13} aria-hidden />
+                          </span>
+                        </Tooltip.Trigger>
+                        <Tooltip.Content showArrow placement="top">
+                          <Tooltip.Arrow />
+                          {sale.syncStatus === 'pending'
+                            ? 'İşlem cihazınıza kaydedildi; internet bağlantısı geldiğinde buluta yedeklenecek.'
+                            : 'İşlem buluta yedeklenemedi. İnternet bağlantınızı kontrol edin.'}
+                        </Tooltip.Content>
+                      </Tooltip>
+                    ) : sale.status === 'cancelled' ? (
                       <span className="bg-danger/10 text-danger inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-semibold">
                         <AlertCircle size={12} /> İptal Edildi
                       </span>
@@ -161,7 +194,7 @@ export const SalesHistoryList: React.FC = () => {
                 {/* Expanded Sale Details */}
                 {expandedSaleId === sale.id && (
                   <tr className="border-b border-gray-100 bg-gray-50/50">
-                    <td colSpan={6} className="px-6 py-4">
+                    <td colSpan={7} className="px-6 py-4">
                       <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
                         <div className="mb-3 flex items-start justify-between">
                           <h4 className="flex items-center gap-2 text-sm font-semibold text-gray-900">
@@ -220,7 +253,9 @@ export const SalesHistoryList: React.FC = () => {
                                         onClick={e => {
                                           e.stopPropagation();
                                           navigate(
-                                            `/inventory/edit/${item.inventoryId}`
+                                            ROUTES.INVENTORY.EDIT(
+                                              item.inventoryId
+                                            )
                                           );
                                         }}>
                                         {item.name}

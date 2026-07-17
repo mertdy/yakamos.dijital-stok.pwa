@@ -21,6 +21,11 @@ interface AppErrorBoundaryState {
 const toError = (reason: unknown, fallbackMessage: string): Error =>
   reason instanceof Error ? reason : new Error(fallbackMessage);
 
+const isLazyModuleLoadError = (error: Error) =>
+  /dynamically imported module|importing a module script failed|chunkloaderror/i.test(
+    error.message
+  );
+
 const reportApplicationError = (
   error: Error,
   source: ErrorSource,
@@ -74,17 +79,20 @@ export class AppErrorBoundary extends Component<
   }
 
   private handleWindowError = (event: ErrorEvent) => {
-    this.handleFatalError(
-      toError(event.error, event.message || 'Beklenmeyen tarayıcı hatası'),
-      'window_error'
+    const error = toError(
+      event.error,
+      event.message || 'Beklenmeyen tarayıcı hatası'
     );
+    // A route-level boundary can recover a failed lazy chunk. Let it render
+    // its offline-specific fallback instead of replacing the entire app.
+    if (isLazyModuleLoadError(error)) return;
+    this.handleFatalError(error, 'window_error');
   };
 
   private handleUnhandledRejection = (event: PromiseRejectionEvent) => {
-    this.handleFatalError(
-      toError(event.reason, 'Yakalanmamış asenkron işlem hatası'),
-      'unhandled_rejection'
-    );
+    const error = toError(event.reason, 'Yakalanmamış asenkron işlem hatası');
+    if (isLazyModuleLoadError(error)) return;
+    this.handleFatalError(error, 'unhandled_rejection');
   };
 
   private handleFatalError(error: Error, source: ErrorSource) {

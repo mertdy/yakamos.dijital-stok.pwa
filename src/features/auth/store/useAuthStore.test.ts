@@ -16,6 +16,17 @@ import {
 
 // ─── Firebase mocks ───────────────────────────────────────────────────────────
 
+const { firestoreState } = vi.hoisted(() => ({
+  firestoreState: {
+    activeCompanyId: 'company-a',
+    companies: {
+      'company-a': { id: 'company-a', name: 'Test Company' },
+      'company-b': { id: 'company-b', name: 'İkinci İşletme' }
+    } as Record<string, any>,
+    userListener: null as any
+  }
+}));
+
 vi.mock('firebase/auth', () => ({
   signInWithPopup: vi.fn(),
   signOut: vi.fn(),
@@ -27,15 +38,91 @@ vi.mock('firebase/auth', () => ({
 }));
 
 vi.mock('firebase/firestore', () => ({
-  doc: vi.fn(() => ({ id: 'mock-doc-id' })),
+  doc: vi.fn((_db, collectionName, id) => ({
+    id: id || 'mock-doc-id',
+    path: collectionName
+      ? `${collectionName}/${id || 'mock-doc-id'}`
+      : id || 'mock-doc-id'
+  })),
   getDoc: vi.fn().mockResolvedValue({ exists: () => false }),
   setDoc: vi.fn().mockResolvedValue(undefined),
-  onSnapshot: vi.fn(() => vi.fn()),
+  onSnapshot: vi.fn((ref: any, callback: any) => {
+    if (typeof callback === 'function') {
+      const isUser =
+        ref && (ref.path?.startsWith('users/') || ref.id === 'mock-doc-id');
+      const isCompany = ref && ref.path?.startsWith('companies/');
+      if (isUser) {
+        firestoreState.userListener = callback;
+        callback({
+          exists: () => true,
+          data: () => ({
+            activeCompanyId: firestoreState.activeCompanyId,
+            id: ref?.id || 'mock-doc-id',
+            name: 'Test User'
+          })
+        });
+      } else if (isCompany) {
+        const companyId = ref.id;
+        const companyData = firestoreState.companies[companyId] || {
+          id: companyId,
+          name: 'Test Company'
+        };
+        callback({
+          exists: () => true,
+          data: () => companyData
+        });
+      } else {
+        // Fallback for memberships or queries
+        callback({
+          forEach: (cb: any) => {
+            cb({
+              data: () => ({
+                id: 'membership-a',
+                companyId: 'company-a',
+                companyName: 'Test Company',
+                role: 'OWNER',
+                permissions: []
+              })
+            });
+            cb({
+              data: () => ({
+                id: 'membership-b',
+                companyId: 'company-b',
+                companyName: 'İkinci İşletme',
+                role: 'OWNER',
+                permissions: []
+              })
+            });
+          }
+        });
+      }
+    }
+    return vi.fn();
+  }),
   collection: vi.fn(),
   query: vi.fn(),
   where: vi.fn(),
-  updateDoc: vi.fn().mockResolvedValue(undefined),
-  getDocs: vi.fn(),
+  updateDoc: vi.fn().mockImplementation(async (ref: any, data: any) => {
+    if (data && 'activeCompanyId' in data) {
+      firestoreState.activeCompanyId = data.activeCompanyId;
+      if (firestoreState.userListener) {
+        firestoreState.userListener({
+          exists: () => true,
+          data: () => ({
+            activeCompanyId: data.activeCompanyId,
+            id: ref?.id || 'mock-doc-id',
+            name: 'Test User'
+          })
+        });
+      }
+    }
+    return Promise.resolve();
+  }),
+  getDocs: vi.fn().mockResolvedValue({
+    empty: true,
+    docs: [],
+    forEach: () => {}
+  }),
   writeBatch: vi.fn()
 }));
 
@@ -166,6 +253,8 @@ describe('getAvailableActiveCompanyId', () => {
 describe('useAuthStore', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    firestoreState.activeCompanyId = 'company-a';
+    firestoreState.userListener = null;
   });
 
   // ── initial state ────────────────────────────────────────────────────────
@@ -217,7 +306,7 @@ describe('useAuthStore', () => {
       'test@example.com',
       'password123'
     );
-    expect(store.getState().isLoading).toBe(false);
+    expect(store.getState().isLoading).toBe(true);
     expect(store.getState().authError).toBeNull();
   });
 
@@ -249,7 +338,7 @@ describe('useAuthStore', () => {
       'password123'
     );
     expect(sendEmailVerification).toHaveBeenCalledWith(fakeUser);
-    expect(store.getState().isLoading).toBe(false);
+    expect(store.getState().isLoading).toBe(true);
     expect(store.getState().authError).toBeNull();
   });
 
@@ -286,7 +375,7 @@ describe('useAuthStore', () => {
 
   it('synchronizes membership names when the company name changes', async () => {
     const batch = { update: vi.fn(), commit: vi.fn().mockResolvedValue(null) };
-    vi.mocked(getDocs).mockResolvedValue({
+    vi.mocked(getDocs).mockResolvedValueOnce({
       docs: [{ ref: { id: 'membership-1' } }, { ref: { id: 'membership-2' } }]
     } as never);
     vi.mocked(writeBatch).mockReturnValue(batch as never);
@@ -312,6 +401,20 @@ describe('useAuthStore', () => {
       { companyName: 'Yeni İşletme' }
     );
     expect(batch.commit).toHaveBeenCalledOnce();
+  });
+
+  it('loads the selected company immediately after an online company switch', async () => {
+    const store = await buildStore();
+    const fakeUser = { uid: 'user-1', email: 'test@example.com' } as never;
+    await store.getState().setUser(fakeUser);
+
+    await store.getState().switchCompany('company-b');
+
+    expect(store.getState().profile?.activeCompanyId).toBe('company-b');
+    expect(store.getState().activeCompany).toEqual({
+      id: 'company-b',
+      name: 'İkinci İşletme'
+    });
   });
 
   // ── resetPassword ────────────────────────────────────────────────────────
@@ -351,7 +454,7 @@ describe('useAuthStore', () => {
     const store = await buildStore();
     await store.getState().loginWithGoogle();
     expect(signInWithPopup).toHaveBeenCalledWith({}, {});
-    expect(store.getState().isLoading).toBe(false);
+    expect(store.getState().isLoading).toBe(true);
   });
 
   it('loginWithGoogle sets authError and re-throws on failure', async () => {

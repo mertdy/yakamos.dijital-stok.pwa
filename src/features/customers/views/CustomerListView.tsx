@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { clsx } from 'clsx';
 import { useNavigate } from 'react-router-dom';
+import { ROUTES } from '@/core/config/routes';
 import { useCustomerStore } from '../store/useCustomerStore';
 import { Plus, Search, User, Phone, Edit2, Eye } from 'lucide-react';
 import { Button, Input } from '@heroui/react';
@@ -9,7 +10,7 @@ import posthog from 'posthog-js';
 import { useAuthStore } from '@/features/auth/store/useAuthStore';
 
 export const CustomerListView: React.FC = () => {
-  const { customers, loadCustomers, isLoading } = useCustomerStore();
+  const { customers, isLoading } = useCustomerStore();
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const { activeMembership } = useAuthStore();
@@ -21,8 +22,7 @@ export const CustomerListView: React.FC = () => {
     posthog.capture('customers_viewed', {
       view_source: 'navigation'
     });
-    loadCustomers();
-  }, [loadCustomers]);
+  }, []);
 
   const filteredCustomers = customers.filter(
     c =>
@@ -43,7 +43,9 @@ export const CustomerListView: React.FC = () => {
           </p>
         </div>
         {hasCustomerPermission && (
-          <Button onPress={() => navigate('/customers/new')} variant="primary">
+          <Button
+            onPress={() => navigate(ROUTES.CUSTOMERS.NEW)}
+            variant="primary">
             <Plus className="mr-2 text-xl" /> Yeni Müşteri
           </Button>
         )}
@@ -130,7 +132,7 @@ export const CustomerListView: React.FC = () => {
                         key={customer.id}
                         className="cursor-pointer border-b border-gray-100 transition-colors hover:bg-gray-50/50"
                         onClick={() =>
-                          navigate(`/customers/details/${customer.id}`)
+                          navigate(ROUTES.CUSTOMERS.DETAILS(customer.id))
                         }>
                         <td className="px-6 py-4 text-sm">
                           <div className="flex items-center gap-3">
@@ -214,7 +216,7 @@ export const CustomerListView: React.FC = () => {
                               variant="tertiary"
                               isIconOnly
                               onPress={() =>
-                                navigate(`/customers/details/${customer.id}`)
+                                navigate(ROUTES.CUSTOMERS.DETAILS(customer.id))
                               }
                               aria-label="Hesap Detayı">
                               <Eye className="text-lg" />
@@ -224,7 +226,7 @@ export const CustomerListView: React.FC = () => {
                                 variant="tertiary"
                                 isIconOnly
                                 onPress={() =>
-                                  navigate(`/customers/edit/${customer.id}`)
+                                  navigate(ROUTES.CUSTOMERS.EDIT(customer.id))
                                 }
                                 aria-label="Müşteriyi Düzenle">
                                 <Edit2 className="text-lg" />

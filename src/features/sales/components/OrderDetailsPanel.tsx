@@ -1,6 +1,7 @@
 import React from 'react';
 import { useSalesStore } from '../store/useSalesStore';
 import { useNavigate } from 'react-router-dom';
+import { ROUTES } from '@/core/config/routes';
 import { useAuthStore } from '@/features/auth';
 import {
   Trash2,
@@ -93,7 +94,7 @@ export const OrderDetailsPanel: React.FC = () => {
                           variant="ghost"
                           className="text-primary hover:bg-primary/5 mt-0.5 -ml-1 h-6 w-fit gap-1 rounded-md px-2 text-xs font-medium"
                           onPress={() =>
-                            navigate(`/inventory/edit/${item.inventoryId}`)
+                            navigate(ROUTES.INVENTORY.EDIT(item.inventoryId))
                           }>
                           <Pencil size={13} /> Ürünü düzenle
                         </Button>

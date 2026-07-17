@@ -88,7 +88,7 @@ describe('PhoneInput', () => {
 
     await waitFor(() => {
       expect(screen.getByText('Geçersiz telefon numarası')).toBeInTheDocument();
-      expect(input.parentElement).toHaveClass('focus-within:ring-0');
+      expect(input.parentElement).toHaveAttribute('data-invalid', 'true');
       expect(input).toHaveClass('focus:ring-0', 'focus:shadow-none');
     });
   });

@@ -10,7 +10,9 @@ import { useInventoryStore } from '@/features/inventory';
 import { toast, Button, Modal } from '@heroui/react';
 import { useSalesStore } from '../store/useSalesStore';
 import { useNavigate } from 'react-router-dom';
+import { ROUTES } from '@/core/config/routes';
 import posthog from 'posthog-js';
+import { playBarcodeFeedback } from '@/shared/utils/barcodeFeedback';
 
 interface ScannerModalProps {
   isOpen: boolean;
@@ -88,6 +90,7 @@ const ScannerModal: React.FC<ScannerModalProps> = ({
 
       if (onScan) {
         hasScannedRef.current = true;
+        playBarcodeFeedback();
         onScan(barcode);
         if (Capacitor.getPlatform() !== 'web') {
           stopScan();
@@ -100,6 +103,7 @@ const ScannerModal: React.FC<ScannerModalProps> = ({
       const item = items.find((i: any) => i.barcode === barcode);
       if (item) {
         hasScannedRef.current = true;
+        playBarcodeFeedback();
         posthog.capture('scanner_item_added_to_cart', {
           inventory_id: item.id,
           barcode_length: barcode.length,
@@ -138,7 +142,7 @@ const ScannerModal: React.FC<ScannerModalProps> = ({
                 stopScan();
               }
               onClose();
-              navigate(`/inventory/new?barcode=${encodeURIComponent(barcode)}`);
+              navigate(ROUTES.INVENTORY.NEW_WITH_BARCODE(barcode));
             }
           }
         });

@@ -1,30 +1,32 @@
 import { test, expect } from '@playwright/test';
 import { ENV } from '../src/core/config/env';
+import { ROUTES } from '../src/core/config/routes';
 
 test.describe('Sales (POS) Flow', () => {
   const productName = `Sales Item ${Date.now()}`;
 
   test.beforeEach(async ({ page }) => {
     // 1. Log in
-    await page.goto('/login');
+    await page.goto(ROUTES.LOGIN);
     await page.locator('#login-email').fill(ENV.TEST_USER_EMAIL);
     await page.locator('#login-password').fill(ENV.TEST_USER_PASSWORD);
     await page.click('#login-submit-btn');
     await expect(page.getByRole('heading', { name: 'Anasayfa' })).toBeVisible();
 
     // 2. Ensure we have at least one test product in the inventory
-    await page.goto('/inventory');
+    await page.goto(ROUTES.INVENTORY.INDEX);
     await page.click('button:has-text("Yeni Ürün")');
     await page.locator('input[name="name"]').fill(productName);
     await page.locator('input[name="stock"]').fill('50');
     await page.locator('input[name="price"]').fill('20.00');
     await page.click('button:has-text("Ürünü Kaydet")');
+    await expect(page.getByText('Yeni ürün eklendi')).toBeVisible();
   });
 
   test('should add product to cart, apply discount, and complete checkout', async ({
     page
   }) => {
-    await page.goto('/sales');
+    await page.goto(ROUTES.SALES);
     await expect(
       page.getByRole('heading', { name: 'Sipariş Detayları' })
     ).toBeVisible();
@@ -54,7 +56,7 @@ test.describe('Sales (POS) Flow', () => {
   });
 
   test('should hold and restore a sale', async ({ page }) => {
-    await page.goto('/sales');
+    await page.goto(ROUTES.SALES);
     await expect(
       page.getByRole('heading', { name: 'Sipariş Detayları' })
     ).toBeVisible();

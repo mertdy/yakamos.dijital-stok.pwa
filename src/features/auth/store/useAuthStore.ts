@@ -425,10 +425,8 @@ export const useAuthStore = getSingletonStore('auth', () =>
           context: 'login_with_google'
         });
         const code = (error as { code?: string }).code ?? '';
-        set({ authError: getAuthErrorMessage(code) });
+        set({ authError: getAuthErrorMessage(code), isLoading: false });
         throw error;
-      } finally {
-        set({ isLoading: false });
       }
     },
 
@@ -453,10 +451,8 @@ export const useAuthStore = getSingletonStore('auth', () =>
           context: 'login_with_email'
         });
         const code = (error as { code?: string }).code ?? '';
-        set({ authError: getAuthErrorMessage(code) });
+        set({ authError: getAuthErrorMessage(code), isLoading: false });
         throw error;
-      } finally {
-        set({ isLoading: false });
       }
     },
 
@@ -482,10 +478,8 @@ export const useAuthStore = getSingletonStore('auth', () =>
           context: 'register_with_email'
         });
         const code = (error as { code?: string }).code ?? '';
-        set({ authError: getAuthErrorMessage(code) });
+        set({ authError: getAuthErrorMessage(code), isLoading: false });
         throw error;
-      } finally {
-        set({ isLoading: false });
       }
     },
 
@@ -583,7 +577,22 @@ export const useAuthStore = getSingletonStore('auth', () =>
       await setDoc(membershipRef, membershipData);
 
       const userRef = doc(db, 'users', user.uid);
-      await updateDoc(userRef, { activeCompanyId: companyId });
+      await updateDoc(userRef, {
+        activeCompanyId: companyId
+      });
+
+      const profile = get().profile;
+      set({
+        profile: profile ? { ...profile, activeCompanyId: companyId } : profile,
+        activeMembership: membershipData,
+        activeCompany: companyData,
+        memberships: [
+          ...get().memberships.filter(
+            membership => membership.id !== membershipId
+          ),
+          membershipData
+        ]
+      });
 
       return companyId;
     },
@@ -593,7 +602,9 @@ export const useAuthStore = getSingletonStore('auth', () =>
       if (!user) throw new Error('User not authenticated');
 
       const userRef = doc(db, 'users', user.uid);
-      const updatePromise = updateDoc(userRef, { activeCompanyId: companyId });
+      const updatePromise = updateDoc(userRef, {
+        activeCompanyId: companyId
+      });
 
       if (!navigator.onLine) {
         const [companySnap, profile] = await Promise.all([
@@ -747,7 +758,24 @@ export const useAuthStore = getSingletonStore('auth', () =>
       await updateDoc(inviteRef, { status: 'ACCEPTED' });
 
       const userRef = doc(db, 'users', user.uid);
-      await updateDoc(userRef, { activeCompanyId: invite.companyId });
+      await updateDoc(userRef, {
+        activeCompanyId: invite.companyId
+      });
+
+      const profile = get().profile;
+      set({
+        profile: profile
+          ? { ...profile, activeCompanyId: invite.companyId }
+          : profile,
+        activeMembership: membershipData,
+        activeCompany: null,
+        memberships: [
+          ...get().memberships.filter(
+            membership => membership.id !== membershipId
+          ),
+          membershipData
+        ]
+      });
     },
 
     declineInvitation: async invitationId => {

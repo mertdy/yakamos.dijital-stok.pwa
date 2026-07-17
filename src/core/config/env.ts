@@ -29,5 +29,8 @@ export const ENV = {
 
   // Test User for E2E
   TEST_USER_EMAIL: envSource.VITE_TEST_USER_EMAIL || 'test@dijitalstok.com',
-  TEST_USER_PASSWORD: envSource.VITE_TEST_USER_PASSWORD || 'test1234'
+  TEST_USER_PASSWORD: envSource.VITE_TEST_USER_PASSWORD || 'test1234',
+  TEST_USER_2_EMAIL:
+    envSource.VITE_TEST_USER_2_EMAIL || 'test2@dijitalstok.com',
+  TEST_USER_2_PASSWORD: envSource.VITE_TEST_USER_2_PASSWORD || 'qweQWE123'
 };

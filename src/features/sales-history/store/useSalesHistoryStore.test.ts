@@ -1,24 +1,30 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { getDocs, writeBatch } from 'firebase/firestore';
 
-vi.mock('firebase/firestore', () => {
-  const batchMock = {
+const { batchMock, authState } = vi.hoisted(() => ({
+  batchMock: {
     set: vi.fn(),
     update: vi.fn(),
     commit: vi.fn().mockResolvedValue(undefined)
-  };
+  },
+  authState: {
+    value: {
+      profile: { activeCompanyId: 'test-company-id', name: 'Test Sahibi' },
+      activeMembership: { role: 'OWNER', permissions: ['VIEW_SALES_HISTORY'] }
+    }
+  }
+}));
+
+vi.mock('firebase/firestore', () => {
   return {
     collection: vi.fn(),
     doc: vi.fn(() => ({ id: 'mock-doc-id' })),
     query: vi.fn(),
     where: vi.fn(),
+    documentId: vi.fn(),
     orderBy: vi.fn(),
     limit: vi.fn(),
     getDocs: vi.fn(),
-    getDoc: vi.fn(() => ({
-      exists: () => true,
-      data: () => ({ stock: 10, totalDebt: 100 })
-    })),
     increment: vi.fn(value => value),
     writeBatch: vi.fn(() => batchMock)
   };
@@ -33,10 +39,7 @@ vi.mock('@/core/firebase/config', () => ({
 
 vi.mock('@/features/auth/store/useAuthStore', () => ({
   useAuthStore: {
-    getState: () => ({
-      profile: { activeCompanyId: 'test-company-id' },
-      activeMembership: { role: 'OWNER', permissions: ['VIEW_SALES_HISTORY'] }
-    })
+    getState: () => authState.value
   }
 }));
 
@@ -46,14 +49,29 @@ async function buildStore() {
 }
 
 describe('useSalesHistoryStore', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
+    batchMock.commit.mockResolvedValue(undefined);
+    authState.value = {
+      profile: { activeCompanyId: 'test-company-id', name: 'Test Sahibi' },
+      activeMembership: { role: 'OWNER', permissions: ['VIEW_SALES_HISTORY'] }
+    };
+    const store = await buildStore();
+    store.setState({
+      sales: [],
+      rawSales: [],
+      isLoading: false,
+      loadedCompanyId: null,
+      loadingCompanyId: null,
+      filters: {}
+    });
   });
 
   it('has correct initial state', async () => {
     const store = await buildStore();
     const state = store.getState();
     expect(state.sales).toEqual([]);
+    expect(state.rawSales).toEqual([]);
     expect(state.isLoading).toBe(false);
     expect(state.filters).toEqual({});
   });
@@ -95,15 +113,194 @@ describe('useSalesHistoryStore', () => {
         data: () => sale
       }))
     } as any);
+    getDocsMock.mockResolvedValueOnce({
+      docs: [
+        {
+          data: () => ({
+            userId: 'test-user-id',
+            employeeName: 'Test Sahibi'
+          })
+        }
+      ]
+    } as any);
 
     const store = await buildStore();
     await store.getState().fetchSales();
 
     expect(store.getState().sales.length).toBe(2);
+    expect(store.getState().sales[0].sellerName).toBe('Test Sahibi');
     expect(getDocs).toHaveBeenCalled();
   });
 
-  it('setFilters updates filters and calls fetchSales', async () => {
+  it('uses an employee membership name for legacy sales without a seller name', async () => {
+    vi.mocked(getDocs)
+      .mockResolvedValueOnce({
+        docs: [
+          {
+            id: 'legacy-sale',
+            data: () => ({
+              id: 'legacy-sale',
+              userId: 'employee-id',
+              companyId: 'test-company-id',
+              invoiceNumber: 'INV-LEGACY',
+              customerId: null,
+              subtotal: 100,
+              discount: 0,
+              totalAmount: 100,
+              paymentMethod: 'Cash',
+              createdAt: '2026-07-10T01:00:00Z',
+              cart: []
+            })
+          }
+        ]
+      } as any)
+      .mockResolvedValueOnce({
+        docs: [
+          {
+            data: () => ({
+              userId: 'employee-id',
+              employeeName: 'Ayşe Yılmaz'
+            })
+          }
+        ]
+      } as any);
+
+    const store = await buildStore();
+    await store.getState().fetchSales();
+
+    expect(store.getState().sales).toEqual([
+      expect.objectContaining({ sellerName: 'Ayşe Yılmaz' })
+    ]);
+  });
+
+  it('prefers the user profile name over a membership email for legacy sales', async () => {
+    vi.mocked(getDocs)
+      .mockResolvedValueOnce({
+        docs: [
+          {
+            id: 'legacy-sale',
+            data: () => ({
+              userId: 'employee-id',
+              companyId: 'test-company-id',
+              invoiceNumber: 'INV-LEGACY',
+              customerId: null,
+              subtotal: 100,
+              discount: 0,
+              totalAmount: 100,
+              paymentMethod: 'Cash',
+              createdAt: '2026-07-10T01:00:00Z',
+              cart: []
+            })
+          }
+        ]
+      } as any)
+      .mockResolvedValueOnce({
+        docs: [
+          {
+            data: () => ({
+              userId: 'employee-id',
+              email: 'ayse@example.com'
+            })
+          }
+        ]
+      } as any)
+      .mockResolvedValueOnce({
+        docs: [
+          {
+            id: 'employee-id',
+            data: () => ({ name: 'Ayşe Yılmaz' })
+          }
+        ]
+      } as any);
+
+    const store = await buildStore();
+    await store.getState().fetchSales();
+
+    expect(store.getState().sales).toEqual([
+      expect.objectContaining({ sellerName: 'Ayşe Yılmaz' })
+    ]);
+  });
+
+  it('shares an in-flight request for the active company', async () => {
+    let resolveRequest: (value: unknown) => void;
+    const request = new Promise(resolve => {
+      resolveRequest = resolve;
+    });
+    vi.mocked(getDocs).mockReturnValueOnce(request as any);
+
+    const store = await buildStore();
+    const firstRequest = store.getState().fetchSales();
+    const secondRequest = store.getState().fetchSales();
+
+    expect(getDocs).toHaveBeenCalledTimes(1);
+
+    resolveRequest!({ docs: [] });
+    await Promise.all([firstRequest, secondRequest]);
+
+    expect(store.getState().loadedCompanyId).toBe('test-company-id');
+  });
+
+  it('uses the current company membership when a switch completes mid-request', async () => {
+    let resolveSales: (value: unknown) => void;
+    vi.mocked(getDocs).mockReturnValueOnce(
+      new Promise(resolve => {
+        resolveSales = resolve;
+      }) as any
+    );
+    authState.value = {
+      profile: { activeCompanyId: 'test-company-id', name: 'Test Sahibi' },
+      activeMembership: { role: 'EMPLOYEE', permissions: [] }
+    };
+
+    const store = await buildStore();
+    const pendingRequest = store.getState().fetchSales();
+
+    authState.value = {
+      profile: { activeCompanyId: 'test-company-id', name: 'Test Sahibi' },
+      activeMembership: { role: 'OWNER', permissions: ['VIEW_SALES_HISTORY'] }
+    };
+    resolveSales!({
+      docs: [
+        {
+          id: 'own-sale',
+          data: () => ({
+            userId: 'test-user-id',
+            sellerName: 'Test Sahibi',
+            companyId: 'test-company-id',
+            invoiceNumber: 'INV-OWN',
+            customerId: null,
+            subtotal: 100,
+            discount: 0,
+            totalAmount: 100,
+            paymentMethod: 'Cash',
+            createdAt: '2026-07-10T01:00:00Z',
+            cart: []
+          })
+        },
+        {
+          id: 'employee-sale',
+          data: () => ({
+            userId: 'employee-id',
+            sellerName: 'Çalışan',
+            companyId: 'test-company-id',
+            invoiceNumber: 'INV-EMPLOYEE',
+            customerId: null,
+            subtotal: 200,
+            discount: 0,
+            totalAmount: 200,
+            paymentMethod: 'Cash',
+            createdAt: '2026-07-10T02:00:00Z',
+            cart: []
+          })
+        }
+      ]
+    });
+    await pendingRequest;
+
+    expect(store.getState().sales).toHaveLength(2);
+  });
+
+  it('setFilters updates the visible sales without fetching again', async () => {
     const mockSales = [
       {
         id: 'sale-1',
@@ -129,18 +326,94 @@ describe('useSalesHistoryStore', () => {
     } as any);
 
     const store = await buildStore();
+    store.setState({ rawSales: mockSales as any, sales: mockSales as any });
     store.getState().setFilters({ searchQuery: 'INV-001' });
 
     expect(store.getState().filters.searchQuery).toBe('INV-001');
-    expect(getDocs).toHaveBeenCalled();
+    expect(store.getState().sales).toHaveLength(1);
+    expect(getDocs).not.toHaveBeenCalled();
   });
 
-  it('clearFilters clears filters and fetches sales', async () => {
+  it('shows a newly completed sale immediately without fetching again', async () => {
     const store = await buildStore();
-    store.setState({ filters: { searchQuery: 'INV-001' } });
+    store.setState({
+      loadedCompanyId: 'test-company-id',
+      filters: { paymentMethod: 'Cash' }
+    });
+
+    store.getState().recordSale({
+      id: 'new-sale',
+      userId: 'test-user-id',
+      companyId: 'test-company-id',
+      invoiceNumber: 'INV-NEW',
+      customerId: null,
+      subtotal: 100,
+      discount: 0,
+      totalAmount: 100,
+      paymentMethod: 'Cash',
+      status: 'completed',
+      createdAt: '2026-07-10T01:00:00Z',
+      cart: []
+    });
+
+    expect(store.getState().rawSales).toHaveLength(1);
+    expect(store.getState().sales).toEqual([
+      expect.objectContaining({ id: 'new-sale', invoiceNumber: 'INV-NEW' })
+    ]);
+    expect(getDocs).not.toHaveBeenCalled();
+  });
+
+  it('updates a pending sale when its backup is confirmed', async () => {
+    const store = await buildStore();
+    const sale = {
+      id: 'pending-sale',
+      userId: 'test-user-id',
+      companyId: 'test-company-id',
+      invoiceNumber: 'INV-PENDING',
+      customerId: null,
+      subtotal: 100,
+      discount: 0,
+      totalAmount: 100,
+      paymentMethod: 'Cash',
+      status: 'completed' as const,
+      syncStatus: 'pending' as const,
+      createdAt: '2026-07-10T01:00:00Z',
+      cart: []
+    };
+    store.setState({ rawSales: [sale], sales: [sale] });
+
+    store.getState().updateSaleSyncStatus('pending-sale', 'synced');
+
+    expect(store.getState().sales[0].syncStatus).toBe('synced');
+  });
+
+  it('clearFilters restores the unfiltered sales without fetching again', async () => {
+    const store = await buildStore();
+    const mockSales = [
+      {
+        id: 'sale-1',
+        userId: 'test-user-id',
+        companyId: 'test-company-id',
+        invoiceNumber: 'INV-001',
+        customerId: null,
+        subtotal: 100,
+        discount: 0,
+        totalAmount: 100,
+        paymentMethod: 'Cash',
+        createdAt: '2026-07-09T01:00:00Z',
+        cart: []
+      }
+    ];
+    store.setState({
+      rawSales: mockSales as any,
+      sales: [],
+      filters: { searchQuery: 'INV-001' }
+    });
     store.getState().clearFilters();
 
     expect(store.getState().filters).toEqual({});
+    expect(store.getState().sales).toEqual(mockSales);
+    expect(getDocs).not.toHaveBeenCalled();
   });
 
   it('cancelSale performs batch updates and marks sale as cancelled', async () => {
@@ -159,13 +432,56 @@ describe('useSalesHistoryStore', () => {
     };
 
     const store = await buildStore();
-    store.setState({ sales: [mockSale] });
+    store.setState({ rawSales: [mockSale], sales: [mockSale] });
 
     const success = await store.getState().cancelSale('sale-1');
 
     expect(success).toBe(true);
     expect(writeBatch).toHaveBeenCalled();
     expect(store.getState().sales[0].status).toBe('cancelled');
+  });
+
+  it('cancels a sale locally before its offline backup is confirmed', async () => {
+    let resolveBackup: () => void;
+    batchMock.commit.mockImplementationOnce(
+      () =>
+        new Promise<void>(resolve => {
+          resolveBackup = resolve;
+        })
+    );
+    const sale = {
+      id: 'pending-sale',
+      userId: 'test-user-id',
+      companyId: 'test-company-id',
+      invoiceNumber: 'INV-PENDING',
+      customerId: null,
+      subtotal: 100,
+      discount: 0,
+      totalAmount: 100,
+      paymentMethod: 'Cash',
+      status: 'completed' as const,
+      syncStatus: 'synced' as const,
+      createdAt: '2026-07-10T01:00:00Z',
+      cart: [{ inventoryId: 'p1', name: 'Product 1', price: 100, quantity: 1 }]
+    };
+    const store = await buildStore();
+    store.setState({ rawSales: [sale], sales: [sale] });
+
+    await expect(store.getState().cancelSale('pending-sale')).resolves.toBe(
+      true
+    );
+
+    expect(store.getState().sales[0]).toEqual(
+      expect.objectContaining({
+        status: 'cancelled',
+        syncStatus: 'pending'
+      })
+    );
+
+    resolveBackup!();
+    await vi.waitFor(() => {
+      expect(store.getState().sales[0].syncStatus).toBe('synced');
+    });
   });
 
   it('clearSales resets sales array and filters', async () => {

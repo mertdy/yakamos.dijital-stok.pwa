@@ -86,4 +86,25 @@ describe('AppErrorBoundary', () => {
     expect(onRetry).toHaveBeenCalledOnce();
     consoleError.mockRestore();
   });
+
+  it('leaves lazy route loading errors to the route-level recovery screen', async () => {
+    render(
+      <AppErrorBoundary>
+        <p>Uygulama açık</p>
+      </AppErrorBoundary>
+    );
+
+    await act(async () => {
+      window.dispatchEvent(
+        new ErrorEvent('error', {
+          error: new TypeError('Failed to fetch dynamically imported module')
+        })
+      );
+    });
+
+    expect(screen.getByText('Uygulama açık')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('heading', { name: 'Bir sorun yaşıyoruz' })
+    ).not.toBeInTheDocument();
+  });
 });

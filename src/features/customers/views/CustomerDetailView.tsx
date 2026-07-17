@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback, Fragment } from 'react';
 import { clsx } from 'clsx';
 import { useParams, useNavigate } from 'react-router-dom';
+import { ROUTES } from '@/core/config/routes';
 import {
   ArrowLeft,
   User,
@@ -30,7 +31,7 @@ import { normalizeWhatsAppPhone } from '../domain/customerStatement';
 export const CustomerDetailView: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { customers, getCustomerTransactions, loadCustomers, isLoading } =
+  const { customers, getCustomerTransactions, isLoading, hasLoadedCustomers } =
     useCustomerStore();
   const { activeMembership } = useAuthStore();
   const isOwner = activeMembership?.role === 'OWNER';
@@ -49,10 +50,6 @@ export const CustomerDetailView: React.FC = () => {
   const toggleExpand = (txId: string) => {
     setExpandedTxId(prev => (prev === txId ? null : txId));
   };
-
-  useEffect(() => {
-    loadCustomers();
-  }, [loadCustomers]);
 
   const customer = customers.find(c => c.id === id);
 
@@ -85,7 +82,7 @@ export const CustomerDetailView: React.FC = () => {
     }
   }, [id, loadTransactions]);
 
-  if (isLoading) {
+  if (isLoading || hasLoadedCustomers === false) {
     return (
       <div className="flex h-full min-h-[400px] items-center justify-center">
         <div className="flex animate-pulse flex-col items-center">
@@ -102,7 +99,7 @@ export const CustomerDetailView: React.FC = () => {
         <User className="mb-4 text-6xl opacity-30" />
         <p className="text-lg font-medium text-gray-700">Müşteri bulunamadı.</p>
         <Button
-          onPress={() => navigate('/customers')}
+          onPress={() => navigate(ROUTES.CUSTOMERS.INDEX)}
           className="mt-4"
           variant="secondary">
           Listeye Dön
@@ -122,7 +119,7 @@ export const CustomerDetailView: React.FC = () => {
       {/* Header */}
       <div className="flex items-center gap-4">
         <button
-          onClick={() => navigate('/customers')}
+          onClick={() => navigate(ROUTES.CUSTOMERS.INDEX)}
           className="flex h-10 w-10 items-center justify-center rounded-full text-gray-600 transition-colors hover:bg-gray-200">
           <ArrowLeft size={24} />
         </button>
@@ -260,7 +257,7 @@ export const CustomerDetailView: React.FC = () => {
               <Button
                 variant="secondary"
                 className="flex-1 border border-amber-200 bg-amber-50 py-4 text-amber-800"
-                onPress={() => navigate(`/customers/edit/${customer.id}`)}>
+                onPress={() => navigate(ROUTES.CUSTOMERS.EDIT(customer.id))}>
                 <PhoneCall className="mr-2" size={20} />
                 Telefon Ekle / Düzelt
               </Button>

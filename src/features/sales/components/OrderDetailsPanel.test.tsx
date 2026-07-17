@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { OrderDetailsPanel } from './OrderDetailsPanel';
+import { ROUTES } from '@/core/config/routes';
 
 const navigateMock = vi.fn();
 
@@ -36,6 +37,8 @@ describe('OrderDetailsPanel', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /ürünü düzenle/i }));
 
-    expect(navigateMock).toHaveBeenCalledWith('/inventory/edit/product-1');
+    expect(navigateMock).toHaveBeenCalledWith(
+      ROUTES.INVENTORY.EDIT('product-1')
+    );
   });
 });

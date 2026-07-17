@@ -71,6 +71,10 @@ VITE_FIREBASE_MEASUREMENT_ID=G-3VGSXRNWW1
 # E2E Test Credentials
 VITE_TEST_USER_EMAIL=test@dijitalstok.com
 VITE_TEST_USER_PASSWORD=test1234
+
+# Second E2E test user
+VITE_TEST_USER_2_EMAIL=test2@dijitalstok.com
+VITE_TEST_USER_2_PASSWORD=qweQWE123
 ```
 
 ---

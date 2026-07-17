@@ -7,6 +7,7 @@ import {
   useRef
 } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { ROUTES } from '@/core/config/routes';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -59,8 +60,7 @@ export const ProductFormView: React.FC = () => {
   const [searchParams] = useSearchParams();
   const initialBarcode = searchParams.get('barcode');
 
-  const { items, hasLoadedItems, loadItems, addItem, updateItem } =
-    useInventoryStore();
+  const { items, hasLoadedItems, addItem, updateItem } = useInventoryStore();
   const navigate = useNavigate();
   const hasRedirectedForMissingItem = useRef(false);
 
@@ -90,12 +90,6 @@ export const ProductFormView: React.FC = () => {
       price: 0
     }
   });
-
-  useEffect(() => {
-    if (!hasLoadedItems) {
-      loadItems();
-    }
-  }, [hasLoadedItems, loadItems]);
 
   const searchProductByBarcode = useCallback(
     async (barcodeToSearch: string) => {
@@ -198,7 +192,7 @@ export const ProductFormView: React.FC = () => {
                   children: 'Yeni Etiket Bastır',
                   className: 'bg-primary text-white font-medium',
                   size: 'sm',
-                  onPress: () => navigate(`/inventory?print=${id}`)
+                  onPress: () => navigate(ROUTES.INVENTORY.PRINT(id))
                 }
               }
             : undefined
@@ -218,7 +212,7 @@ export const ProductFormView: React.FC = () => {
                   className: 'bg-primary text-white font-medium',
                   size: 'sm',
                   onPress: () => {
-                    navigate(`/inventory/edit/${existingItem.id}`);
+                    navigate(ROUTES.INVENTORY.EDIT(existingItem.id));
                   }
                 }
               }
@@ -256,6 +250,14 @@ export const ProductFormView: React.FC = () => {
     }
     setIsLabelPrintOpen(true);
   };
+
+  if (isEditMode && hasLoadedItems === false) {
+    return (
+      <div className="flex min-h-[400px] items-center justify-center">
+        <Loader2 className="text-primary h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-3xl space-y-6 p-4 md:p-8">

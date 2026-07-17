@@ -98,10 +98,14 @@ const toCsv = (rows: ExportDataset['rows']) => {
 };
 
 export const loadExportDatasets = async (
-  company: Company
+  company: Company,
+  selected: readonly ExportDataKey[] = EXPORT_OPTIONS.map(option => option.key)
 ): Promise<ExportDataset[]> => {
   const scoped = (name: string) =>
     getDocs(query(collection(db, name), where('companyId', '==', company.id)));
+  const hasSelected = (...keys: ExportDataKey[]) =>
+    keys.some(key => selected.includes(key));
+  const emptySnapshot = Promise.resolve({ docs: [] as any[] });
   const [
     inventorySnap,
     customersSnap,
@@ -110,12 +114,16 @@ export const loadExportDatasets = async (
     membershipsSnap,
     invitationsSnap
   ] = await Promise.all([
-    scoped('inventory'),
-    scoped('customers'),
-    scoped('sales'),
-    scoped('payments'),
-    scoped('memberships'),
-    scoped('invitations')
+    hasSelected('inventory') ? scoped('inventory') : emptySnapshot,
+    hasSelected('customers', 'sales', 'payments', 'statements')
+      ? scoped('customers')
+      : emptySnapshot,
+    hasSelected('sales', 'saleItems', 'statements')
+      ? scoped('sales')
+      : emptySnapshot,
+    hasSelected('payments', 'statements') ? scoped('payments') : emptySnapshot,
+    hasSelected('team') ? scoped('memberships') : emptySnapshot,
+    hasSelected('team') ? scoped('invitations') : emptySnapshot
   ]);
   const toRecord = (snapshot: { id: string; data: () => unknown }) =>
     ({
@@ -133,7 +141,7 @@ export const loadExportDatasets = async (
     ])
   );
 
-  return [
+  const datasets: ExportDataset[] = [
     {
       key: 'company',
       label: 'İşletme Profili',
@@ -280,6 +288,8 @@ export const loadExportDatasets = async (
       ]
     }
   ];
+
+  return datasets.filter(dataset => selected.includes(dataset.key));
 };
 
 export const exportDatasets = async (

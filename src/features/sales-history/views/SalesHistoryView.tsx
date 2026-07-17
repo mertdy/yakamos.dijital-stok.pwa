@@ -1,22 +1,18 @@
 import React, { useEffect } from 'react';
 import { useSalesHistoryStore } from '../store/useSalesHistoryStore';
-import { useCustomerStore } from '@/features/customers';
 import { SalesHistoryFilters } from '../components/SalesHistoryFilters';
 import { SalesHistoryList } from '../components/SalesHistoryList';
 import { Loader2 } from 'lucide-react';
 import posthog from 'posthog-js';
 
 export const SalesHistoryView: React.FC = () => {
-  const { fetchSales, isLoading } = useSalesHistoryStore();
-  const { loadCustomers } = useCustomerStore();
+  const { isLoading } = useSalesHistoryStore();
 
   useEffect(() => {
     posthog.capture('sales_history_viewed', {
       view_source: 'navigation'
     });
-    fetchSales();
-    loadCustomers();
-  }, [fetchSales, loadCustomers]);
+  }, []);
 
   return (
     <div className="mx-auto flex h-full max-w-7xl flex-col space-y-6 p-4 md:p-6">

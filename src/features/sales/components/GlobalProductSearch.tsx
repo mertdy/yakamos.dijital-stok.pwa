@@ -5,8 +5,10 @@ import { useSalesStore } from '../store/useSalesStore';
 import { useDebounce } from '@/shared/hooks/useDebounce';
 import { useGlobalBarcodeScanner } from '@/shared/hooks/useGlobalBarcodeScanner';
 import { useNavigate } from 'react-router-dom';
+import { ROUTES } from '@/core/config/routes';
 import { Input, toast } from '@heroui/react';
 import posthog from 'posthog-js';
+import { playBarcodeFeedback } from '@/shared/utils/barcodeFeedback';
 
 interface Props {
   onOpenScanner: () => void;
@@ -57,6 +59,7 @@ export const GlobalProductSearch: React.FC<Props> = ({ onOpenScanner }) => {
 
         if (item) {
           handleSelectProduct(item);
+          playBarcodeFeedback();
           toast.success(`${item.name} sepete eklendi`);
         } else {
           setIsFocused(false);
@@ -66,9 +69,7 @@ export const GlobalProductSearch: React.FC<Props> = ({ onOpenScanner }) => {
               children: 'Yeni Ürün Ekle',
               onPress: () => {
                 setQuery('');
-                navigate(
-                  `/inventory/new?barcode=${encodeURIComponent(barcode)}`
-                );
+                navigate(ROUTES.INVENTORY.NEW_WITH_BARCODE(barcode));
               }
             }
           });
@@ -179,9 +180,7 @@ export const GlobalProductSearch: React.FC<Props> = ({ onOpenScanner }) => {
                 onClick={() => {
                   setQuery('');
                   setIsFocused(false);
-                  navigate(
-                    `/inventory/new?barcode=${encodeURIComponent(debouncedQuery)}`
-                  );
+                  navigate(ROUTES.INVENTORY.NEW_WITH_BARCODE(debouncedQuery));
                 }}
                 className="text-primary mt-1 cursor-pointer font-medium hover:underline">
                 Bu ürünü eklemek ister misiniz?

@@ -69,7 +69,7 @@ export default defineConfig(({ mode }) => ({
             name: 'Yeni Satış (Hızlı Kasa)',
             short_name: 'Kasa',
             description: 'Doğrudan POS satış ekranını aç',
-            url: '/sales',
+            url: '/satis',
             icons: [
               { src: 'icon-192.png', sizes: '192x192', type: 'image/png' }
             ]
@@ -78,7 +78,7 @@ export default defineConfig(({ mode }) => ({
             name: 'Yeni Ürün Ekle',
             short_name: 'Ürün Ekle',
             description: 'Envantere hızlı yeni ürün ekle',
-            url: '/inventory/new',
+            url: '/envanter/yeni',
             icons: [
               { src: 'icon-192.png', sizes: '192x192', type: 'image/png' }
             ]

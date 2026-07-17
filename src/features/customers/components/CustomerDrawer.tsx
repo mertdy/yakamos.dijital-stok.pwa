@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { clsx } from 'clsx';
 import { useCustomerStore } from '../store/useCustomerStore';
 import { useSalesStore } from '@/features/sales';
@@ -7,6 +7,7 @@ import { X, Search, UserPlus, CheckCircle2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import posthog from 'posthog-js';
+import { ROUTES } from '@/core/config/routes';
 
 interface Props {
   isOpen: boolean;
@@ -14,17 +15,11 @@ interface Props {
 }
 
 export const CustomerDrawer: React.FC<Props> = ({ isOpen, onClose }) => {
-  const { customers, loadCustomers } = useCustomerStore();
+  const { customers } = useCustomerStore();
   const { customerId, setCustomerId } = useSalesStore();
   const navigate = useNavigate();
 
   const [search, setSearch] = useState('');
-
-  useEffect(() => {
-    if (isOpen) {
-      loadCustomers();
-    }
-  }, [isOpen, loadCustomers]);
 
   const filteredCustomers = customers.filter(
     c =>
@@ -102,7 +97,7 @@ export const CustomerDrawer: React.FC<Props> = ({ isOpen, onClose }) => {
                   className="mt-3 w-full rounded-xl border-dashed"
                   onPress={() => {
                     onClose();
-                    navigate('/customers/new');
+                    navigate(ROUTES.CUSTOMERS.NEW);
                   }}>
                   <UserPlus size={18} className="mr-2" />
                   Yeni Müşteri Ekle

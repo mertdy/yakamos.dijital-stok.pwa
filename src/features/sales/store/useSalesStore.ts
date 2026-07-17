@@ -4,6 +4,10 @@ import { getSingletonStore } from '@/shared/utils/getSingletonStore';
 import { writeBatch, doc, collection, increment } from 'firebase/firestore';
 import { db, auth } from '@/core/firebase/config';
 import { useAuthStore } from '@/features/auth/store/useAuthStore';
+import {
+  useSalesHistoryStore,
+  type SaleTransaction
+} from '@/features/sales-history';
 import posthog from 'posthog-js';
 
 export interface CartItem {
@@ -193,6 +197,7 @@ export const useSalesStore = getSingletonStore('sales', () =>
           if (cart.length === 0) return false;
 
           const profile = useAuthStore.getState().profile;
+          const activeMembership = useAuthStore.getState().activeMembership;
           if (!profile?.activeCompanyId) {
             console.error('No active company selected');
             return false;
@@ -227,12 +232,19 @@ export const useSalesStore = getSingletonStore('sales', () =>
 
             const createdAt = new Date().toISOString();
             const invoiceNumber = `INV-${Date.now().toString().slice(-6)}`;
+            const sellerName =
+              activeMembership?.employeeName?.trim() ||
+              profile.name?.trim() ||
+              user.displayName?.trim() ||
+              user.email?.split('@')[0] ||
+              'Bilinmeyen çalışan';
 
             const batch = writeBatch(db);
 
             const saleRef = doc(collection(db, 'sales'));
             batch.set(saleRef, {
               userId: user.uid,
+              sellerName,
               companyId: profile.activeCompanyId,
               invoiceNumber,
               customerId,
@@ -242,7 +254,7 @@ export const useSalesStore = getSingletonStore('sales', () =>
               discountValue,
               totalAmount,
               paymentMethod,
-              status: 'Completed',
+              status: 'completed',
               createdAt,
               cart
             });
@@ -272,14 +284,42 @@ export const useSalesStore = getSingletonStore('sales', () =>
               });
             }
 
-            batch.commit().catch(err => {
-              console.error('Firestore background batch sync failed', err);
-              posthog.captureException(err, {
-                context: 'sale_checkout_background_sync',
-                sale_id: saleRef.id,
-                invoice_number: invoiceNumber
+            const backupPromise = batch.commit();
+
+            const completedSale: SaleTransaction = {
+              id: saleRef.id,
+              userId: user.uid,
+              sellerName,
+              companyId: profile.activeCompanyId,
+              invoiceNumber,
+              customerId,
+              subtotal,
+              discount: discountAmount,
+              discountType,
+              discountValue,
+              totalAmount,
+              paymentMethod,
+              status: 'completed',
+              syncStatus: 'pending',
+              pendingBackupCount: 1,
+              createdAt,
+              cart
+            };
+            useSalesHistoryStore.getState().recordSale(completedSale);
+
+            void backupPromise
+              .then(() => {
+                useSalesHistoryStore.getState().confirmSaleBackup(saleRef.id);
+              })
+              .catch(error => {
+                console.error('Sale backup failed:', error);
+                useSalesHistoryStore.getState().failSaleBackup(saleRef.id);
+                posthog.captureException(error, {
+                  context: 'sale_checkout_backup',
+                  sale_id: saleRef.id,
+                  invoice_number: invoiceNumber
+                });
               });
-            });
 
             posthog.capture('sale_completed', {
               sale_id: saleRef.id,

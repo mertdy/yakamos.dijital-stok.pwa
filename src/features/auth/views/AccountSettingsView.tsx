@@ -364,8 +364,11 @@ export const AccountSettingsView = () => {
                       {invite.companyName}
                     </h4>
                     <p className="mt-0.5 text-xs text-gray-500">
-                      Bu işletmede çalışan (Employee) olarak görev yapmaya davet
-                      edildiniz.
+                      Bu işletmede{' '}
+                      <span className="font-extrabold text-gray-700">
+                        {invite.jobTitle?.trim() || 'çalışan'}
+                      </span>{' '}
+                      olarak görev yapmaya davet edildiniz.
                     </p>
                     <div className="mt-2 flex flex-wrap gap-1.5">
                       {invite.permissions.map(perm => (

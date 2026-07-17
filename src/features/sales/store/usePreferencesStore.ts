@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { getSingletonStore } from '@/shared/utils/getSingletonStore';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { arrayRemove, doc, getDoc, setDoc } from 'firebase/firestore';
 import { db, auth } from '@/core/firebase/config';
 import { useAuthStore } from '@/features/auth/store/useAuthStore';
 
@@ -8,24 +8,39 @@ interface PreferencesState {
   quickAddItems: string[]; // Array of inventory IDs
   quickAddCompanyId: string | null;
   isLoading: boolean;
-  loadPreferences: () => Promise<void>;
+  loadPreferences: (companyId?: string | null) => Promise<void>;
   saveQuickAddItems: (items: string[]) => Promise<void>;
+  removeQuickAddItems: (itemIds: string[]) => Promise<void>;
   clearPreferences: () => void;
 }
 
-export const usePreferencesStore = getSingletonStore('preferences', () =>
-  create<PreferencesState>((set, get) => ({
+export const usePreferencesStore = getSingletonStore('preferences', () => {
+  let latestLoadRequest = 0;
+
+  return create<PreferencesState>((set, get) => ({
     quickAddItems: [],
     quickAddCompanyId: null,
     isLoading: false,
 
-    loadPreferences: async () => {
+    loadPreferences: async requestedCompanyId => {
+      const requestId = ++latestLoadRequest;
       const user = auth.currentUser;
-      const companyId = useAuthStore.getState().profile?.activeCompanyId;
+      const companyId =
+        requestedCompanyId ?? useAuthStore.getState().profile?.activeCompanyId;
       if (!user || !companyId) {
-        set({ quickAddItems: [], quickAddCompanyId: null, isLoading: false });
+        if (requestId === latestLoadRequest) {
+          set({ quickAddItems: [], quickAddCompanyId: null, isLoading: false });
+        }
         return;
       }
+
+      const isCurrentRequest = () =>
+        requestId === latestLoadRequest &&
+        useAuthStore.getState().profile?.activeCompanyId === companyId;
+
+      // An effect scheduled just before a company switch must not restore the
+      // former company's shortcuts after the switch has completed.
+      if (!isCurrentRequest()) return;
 
       set({
         isLoading: true,
@@ -36,7 +51,7 @@ export const usePreferencesStore = getSingletonStore('preferences', () =>
         const docRef = doc(db, 'userPreferences', user.uid);
         const docSnap = await getDoc(docRef);
 
-        if (useAuthStore.getState().profile?.activeCompanyId !== companyId) {
+        if (!isCurrentRequest()) {
           return;
         }
 
@@ -45,11 +60,13 @@ export const usePreferencesStore = getSingletonStore('preferences', () =>
           const quickAddItemsByCompany = data.quickAddItemsByCompany;
 
           if (quickAddItemsByCompany) {
-            set({
-              quickAddItems: Array.isArray(quickAddItemsByCompany[companyId])
-                ? quickAddItemsByCompany[companyId]
-                : []
-            });
+            if (isCurrentRequest()) {
+              set({
+                quickAddItems: Array.isArray(quickAddItemsByCompany[companyId])
+                  ? quickAddItemsByCompany[companyId]
+                  : []
+              });
+            }
             return;
           }
 
@@ -65,7 +82,9 @@ export const usePreferencesStore = getSingletonStore('preferences', () =>
             },
             { merge: true }
           );
-          set({ quickAddItems: legacyQuickAddItems });
+          if (isCurrentRequest()) {
+            set({ quickAddItems: legacyQuickAddItems });
+          }
         } else {
           // Create default empty array if not exists
           await setDoc(
@@ -73,12 +92,14 @@ export const usePreferencesStore = getSingletonStore('preferences', () =>
             { quickAddItemsByCompany: { [companyId]: [] } },
             { merge: true }
           );
-          set({ quickAddItems: [] });
+          if (isCurrentRequest()) {
+            set({ quickAddItems: [] });
+          }
         }
       } catch (error) {
         console.error('Error loading user preferences:', error);
       } finally {
-        if (useAuthStore.getState().profile?.activeCompanyId === companyId) {
+        if (isCurrentRequest()) {
           set({ isLoading: false });
         }
       }
@@ -109,8 +130,36 @@ export const usePreferencesStore = getSingletonStore('preferences', () =>
       }
     },
 
+    removeQuickAddItems: async itemIds => {
+      const user = auth.currentUser;
+      const companyId = useAuthStore.getState().profile?.activeCompanyId;
+      if (!user || !companyId || itemIds.length === 0) return;
+
+      if (get().quickAddCompanyId === companyId) {
+        set(state => ({
+          quickAddItems: state.quickAddItems.filter(
+            itemId => !itemIds.includes(itemId)
+          )
+        }));
+      }
+
+      try {
+        await setDoc(
+          doc(db, 'userPreferences', user.uid),
+          {
+            quickAddItemsByCompany: {
+              [companyId]: arrayRemove(...itemIds)
+            }
+          },
+          { merge: true }
+        );
+      } catch (error) {
+        console.error('Error removing quick add items:', error);
+      }
+    },
+
     clearPreferences: () => {
       set({ quickAddItems: [], quickAddCompanyId: null });
     }
-  }))
-);
+  }));
+});
