@@ -6,11 +6,22 @@ export const runId = `E2E-${Date.now()}`;
 export const uniqueName = (kind: string) => `${runId}-${kind}-${Date.now()}`;
 
 export async function login(page: Page) {
+  await loginWithCredentials(page, ENV.TEST_USER_EMAIL, ENV.TEST_USER_PASSWORD);
+}
+
+export async function loginWithCredentials(
+  page: Page,
+  email: string,
+  password: string
+) {
   await page.goto('/login');
-  await page.locator('#login-email').fill(ENV.TEST_USER_EMAIL);
-  await page.locator('#login-password').fill(ENV.TEST_USER_PASSWORD);
+  await page.locator('#login-email').fill(email);
+  await page.locator('#login-password').fill(password);
   await page.locator('#login-submit-btn').click();
-  await expect(page.getByRole('heading', { name: 'Anasayfa' })).toBeVisible();
+  // Employees without dashboard permission are redirected to Sales, so the
+  // shared login helper waits for the authenticated shell rather than a
+  // dashboard-only heading.
+  await expect(page.getByRole('button', { name: 'İşletme Seç' })).toBeVisible();
 }
 
 export async function createProduct(

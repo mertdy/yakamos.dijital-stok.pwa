@@ -119,6 +119,13 @@ export const useInventoryStore = getSingletonStore('inventory', () =>
         companyId: profile.activeCompanyId
       };
 
+      // The Firestore write is deliberately queued for offline support. Keep
+      // the local list in sync immediately so a newly created product can be
+      // selected in Sales without waiting for the snapshot round trip.
+      set(state => ({
+        items: [...state.items.filter(item => item.id !== id), newItem]
+      }));
+
       setDoc(doc(db, 'inventory', id), newItem).catch(err => {
         console.error('Firestore background sync failed', err);
         posthog.captureException(err, {
