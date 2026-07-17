@@ -11,6 +11,3 @@ export const AccountSettingsView = lazy(() =>
     default: m.AccountSettingsView
   }))
 );
-export const NoCompanyView = lazy(() =>
-  import('./views/NoCompanyView').then(m => ({ default: m.NoCompanyView }))
-);
