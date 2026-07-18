@@ -4,6 +4,7 @@ import { useInventoryStore } from '@/features/inventory';
 import { useSalesStore } from '../store/useSalesStore';
 import { useDebounce } from '@/shared/hooks/useDebounce';
 import { useGlobalBarcodeScanner } from '@/shared/hooks/useGlobalBarcodeScanner';
+import { normalizeSearchText } from '@/shared/utils/searchText';
 import { useNavigate } from 'react-router-dom';
 import { ROUTES } from '@/core/config/routes';
 import { Input, toast } from '@heroui/react';
@@ -78,20 +79,15 @@ export const GlobalProductSearch: React.FC<Props> = ({ onOpenScanner }) => {
     }
   });
 
+  const normalizedQuery = normalizeSearchText(debouncedQuery);
   const searchResults = !debouncedQuery.trim()
     ? []
     : items
         .filter(
           (item: any) =>
-            item.name.toLowerCase().includes(debouncedQuery.toLowerCase()) ||
-            (item.barcode &&
-              String(item.barcode)
-                .toLowerCase()
-                .includes(debouncedQuery.toLowerCase())) ||
-            (item.sku &&
-              String(item.sku)
-                .toLowerCase()
-                .includes(debouncedQuery.toLowerCase()))
+            normalizeSearchText(item.name).includes(normalizedQuery) ||
+            (item.barcode && String(item.barcode).includes(debouncedQuery)) ||
+            (item.sku && String(item.sku).includes(debouncedQuery))
         )
         .slice(0, 10);
 
@@ -115,7 +111,7 @@ export const GlobalProductSearch: React.FC<Props> = ({ onOpenScanner }) => {
   const showDropdown = isFocused && debouncedQuery.trim().length > 0;
 
   return (
-    <div className="relative flex-shrink-0" ref={containerRef}>
+    <div className="relative z-20 flex-shrink-0" ref={containerRef}>
       <Search
         className="absolute top-1/2 left-4 -translate-y-1/2 text-gray-400"
         size={18}

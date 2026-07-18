@@ -21,6 +21,11 @@ export interface CartItem {
   barcode?: string;
 }
 
+type CartProductDetails = Pick<
+  CartItem,
+  'inventoryId' | 'name' | 'price' | 'imageUrl' | 'barcode'
+>;
+
 export type PaymentMethod = 'Cash' | 'Card' | 'Scan' | 'Credit';
 export type DiscountType = 'amount' | 'percentage';
 
@@ -43,6 +48,7 @@ interface SalesState {
   paymentMethod: PaymentMethod;
   heldSales: HeldSale[];
   addToCart: (item: CartItem) => void;
+  syncCartItemProduct: (product: CartProductDetails) => void;
   removeFromCart: (inventoryId: string) => void;
   updateQuantity: (inventoryId: string, quantity: number) => void;
   clearCart: () => void;
@@ -83,6 +89,30 @@ export const useSalesStore = getSingletonStore('sales', () =>
               };
             }
             return { cart: [...state.cart, newItem] };
+          });
+        },
+
+        syncCartItemProduct: product => {
+          set(state => {
+            if (
+              !state.cart.some(item => item.inventoryId === product.inventoryId)
+            ) {
+              return state;
+            }
+
+            return {
+              cart: state.cart.map(item =>
+                item.inventoryId === product.inventoryId
+                  ? {
+                      ...item,
+                      name: product.name,
+                      price: product.price,
+                      barcode: product.barcode,
+                      imageUrl: product.imageUrl
+                    }
+                  : item
+              )
+            };
           });
         },
 

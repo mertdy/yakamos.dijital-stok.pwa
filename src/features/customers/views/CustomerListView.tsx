@@ -8,6 +8,8 @@ import { Button, Input, Pagination } from '@heroui/react';
 import posthog from 'posthog-js';
 
 import { useAuthStore } from '@/features/auth/store/useAuthStore';
+import { useDebounce } from '@/shared/hooks/useDebounce';
+import { normalizeSearchText } from '@/shared/utils/searchText';
 
 const CUSTOMER_PAGE_SIZE = 25;
 
@@ -32,6 +34,7 @@ export const CustomerListView: React.FC = () => {
   const { customers, isLoading } = useCustomerStore();
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
+  const debouncedSearch = useDebounce(search, 300);
   const [page, setPage] = useState(1);
   const { activeMembership } = useAuthStore();
   const isOwner = activeMembership?.role === 'OWNER';
@@ -44,17 +47,16 @@ export const CustomerListView: React.FC = () => {
     });
   }, []);
 
-  const filteredCustomers = useMemo(
-    () =>
-      customers.filter(
-        customer =>
-          customer.name.toLowerCase().includes(search.toLowerCase()) ||
-          (customer.surname &&
-            customer.surname.toLowerCase().includes(search.toLowerCase())) ||
-          (customer.phone && customer.phone.includes(search))
-      ),
-    [customers, search]
-  );
+  const filteredCustomers = useMemo(() => {
+    const normalizedSearch = normalizeSearchText(debouncedSearch);
+    return customers.filter(
+      customer =>
+        normalizeSearchText(customer.name).includes(normalizedSearch) ||
+        (customer.surname &&
+          normalizeSearchText(customer.surname).includes(normalizedSearch)) ||
+        (customer.phone && customer.phone.includes(debouncedSearch))
+    );
+  }, [customers, debouncedSearch]);
   const pageCount = Math.max(
     1,
     Math.ceil(filteredCustomers.length / CUSTOMER_PAGE_SIZE)

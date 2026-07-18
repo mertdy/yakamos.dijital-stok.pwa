@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { vi } from 'vitest';
 import { CustomerDrawer } from './CustomerDrawer';
 import { useCustomerStore } from '../store/useCustomerStore';
@@ -73,14 +73,16 @@ describe('CustomerDrawer', () => {
     expect(screen.getByText('Jane Smith')).toBeInTheDocument();
   });
 
-  it('filters customers based on search input', () => {
+  it('filters customers based on search input', async () => {
     render(<CustomerDrawer isOpen={true} onClose={onCloseMock} />);
 
     const searchInput = screen.getByPlaceholderText('Müşteri ara...');
     fireEvent.change(searchInput, { target: { value: 'Jane' } });
 
-    expect(screen.queryByText('John Doe')).not.toBeInTheDocument();
-    expect(screen.getByText('Jane Smith')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.queryByText('John Doe')).not.toBeInTheDocument();
+      expect(screen.getByText('Jane Smith')).toBeInTheDocument();
+    });
   });
 
   it('calls setCustomerId and onClose when a customer is clicked', () => {

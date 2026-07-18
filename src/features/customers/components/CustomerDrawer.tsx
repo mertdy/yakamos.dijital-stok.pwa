@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { clsx } from 'clsx';
 import { useCustomerStore } from '../store/useCustomerStore';
 import { useSalesStore } from '@/features/sales';
@@ -8,6 +8,8 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import posthog from 'posthog-js';
 import { ROUTES } from '@/core/config/routes';
+import { useDebounce } from '@/shared/hooks/useDebounce';
+import { normalizeSearchText } from '@/shared/utils/searchText';
 
 interface Props {
   isOpen: boolean;
@@ -20,13 +22,18 @@ export const CustomerDrawer: React.FC<Props> = ({ isOpen, onClose }) => {
   const navigate = useNavigate();
 
   const [search, setSearch] = useState('');
+  const debouncedSearch = useDebounce(search, 300);
 
-  const filteredCustomers = customers.filter(
-    c =>
-      c.name.toLowerCase().includes(search.toLowerCase()) ||
-      (c.surname && c.surname.toLowerCase().includes(search.toLowerCase())) ||
-      (c.phone && c.phone.includes(search))
-  );
+  const filteredCustomers = useMemo(() => {
+    const normalizedSearch = normalizeSearchText(debouncedSearch);
+    return customers.filter(
+      customer =>
+        normalizeSearchText(customer.name).includes(normalizedSearch) ||
+        (customer.surname &&
+          normalizeSearchText(customer.surname).includes(normalizedSearch)) ||
+        (customer.phone && customer.phone.includes(debouncedSearch))
+    );
+  }, [customers, debouncedSearch]);
 
   const handleSelectCustomer = (id: string | null) => {
     const selectedCustomer = customers.find(customer => customer.id === id);

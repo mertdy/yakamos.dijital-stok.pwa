@@ -49,6 +49,8 @@ import { useConfirm } from '@/shared/contexts/ConfirmDialogContext';
 import { useAuthStore } from '@/features/auth';
 import { createInternalBarcode } from '../domain/labelPrinting';
 import { playBarcodeFeedback } from '@/shared/utils/barcodeFeedback';
+import { useDebounce } from '@/shared/hooks/useDebounce';
+import { normalizeSearchText } from '@/shared/utils/searchText';
 
 const LabelPrintModal = lazy(() =>
   import('./LabelPrintModal').then(module => ({
@@ -85,6 +87,8 @@ export const InventoryTable: React.FC<InventoryTableProps> = ({
   const { items, deleteItem, deleteItems, updateItem } = useInventoryStore();
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState('');
+  const [isImmediateSearch, setIsImmediateSearch] = useState(false);
+  const debouncedGlobalFilter = useDebounce(globalFilter, 300);
   const [pagination, setPagination] = useState<PaginationState>({
     pageIndex: 0,
     pageSize: INVENTORY_PAGE_SIZE
@@ -96,8 +100,9 @@ export const InventoryTable: React.FC<InventoryTableProps> = ({
   const navigate = useNavigate();
   const { confirm } = useConfirm();
 
-  const setSearchFilter = useCallback((value: string) => {
+  const setSearchFilter = useCallback((value: string, immediate = false) => {
     setGlobalFilter(value);
+    setIsImmediateSearch(immediate);
     setPagination(current => ({ ...current, pageIndex: 0 }));
   }, []);
 
@@ -108,7 +113,7 @@ export const InventoryTable: React.FC<InventoryTableProps> = ({
         .items.find(i => String(i.barcode) === barcode);
       if (item) {
         playBarcodeFeedback();
-        setSearchFilter(barcode);
+        setSearchFilter(barcode, true);
         toast.success(`Ürün bulundu: ${item.name}`);
       } else {
         toast(`${barcode} sistemde kayıtlı değil`, {
@@ -298,12 +303,16 @@ export const InventoryTable: React.FC<InventoryTableProps> = ({
   ]);
 
   const filteredItems = useMemo(() => {
+    const searchTerm = isImmediateSearch ? globalFilter : debouncedGlobalFilter;
+    const normalizedSearchTerm = normalizeSearchText(searchTerm);
+
     return items.filter(
       item =>
-        item.name.toLowerCase().includes(globalFilter.toLowerCase()) ||
-        (item.barcode && item.barcode.includes(globalFilter))
+        item.name.includes(searchTerm) ||
+        normalizeSearchText(item.name).includes(normalizedSearchTerm) ||
+        (item.barcode && item.barcode.includes(searchTerm))
     );
-  }, [items, globalFilter]);
+  }, [debouncedGlobalFilter, globalFilter, isImmediateSearch, items]);
 
   const selectedIds = useMemo(() => {
     return Object.keys(rowSelection).filter(id => rowSelection[id]);

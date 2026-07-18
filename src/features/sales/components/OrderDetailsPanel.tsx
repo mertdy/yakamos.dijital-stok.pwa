@@ -84,11 +84,6 @@ export const OrderDetailsPanel: React.FC = () => {
                         title={item.name}>
                         {item.name}
                       </span>
-                      {item.barcode && (
-                        <span className="truncate text-[11px] text-gray-500">
-                          SKU: {item.barcode}
-                        </span>
-                      )}
                       {hasInventoryPermission && (
                         <Button
                           variant="ghost"

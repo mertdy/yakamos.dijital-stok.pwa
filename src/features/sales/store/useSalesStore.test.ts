@@ -112,6 +112,40 @@ describe('useSalesStore', () => {
     expect(store.getState().cart[0].quantity).toBe(5);
   });
 
+  it('syncCartItemProduct refreshes product details while preserving quantity', async () => {
+    const store = await buildStore();
+    store.setState({
+      cart: [
+        {
+          inventoryId: 'p1',
+          name: 'Eski ad',
+          price: 10,
+          quantity: 3,
+          barcode: 'old-barcode'
+        }
+      ]
+    });
+
+    store.getState().syncCartItemProduct({
+      inventoryId: 'p1',
+      name: 'Yeni ad',
+      price: 15,
+      barcode: 'new-barcode',
+      imageUrl: 'https://example.com/product.jpg'
+    });
+
+    expect(store.getState().cart).toEqual([
+      {
+        inventoryId: 'p1',
+        name: 'Yeni ad',
+        price: 15,
+        quantity: 3,
+        barcode: 'new-barcode',
+        imageUrl: 'https://example.com/product.jpg'
+      }
+    ]);
+  });
+
   it('holdSale saves cart to heldSales and clears active cart', async () => {
     const store = await buildStore();
     store.setState({

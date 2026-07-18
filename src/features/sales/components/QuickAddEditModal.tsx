@@ -14,6 +14,7 @@ import { useInventoryStore } from '@/features/inventory';
 import { usePreferencesStore } from '../store/usePreferencesStore';
 import { useAuthStore } from '@/features/auth';
 import { useDebounce } from '@/shared/hooks/useDebounce';
+import { normalizeSearchText } from '@/shared/utils/searchText';
 import {
   DndContext,
   closestCenter,
@@ -134,12 +135,12 @@ export const QuickAddEditModal: React.FC<Props> = ({ isOpen, onClose }) => {
   const searchResults = useMemo(() => {
     if (!debouncedSearch.trim()) return items.slice(0, 50); // Default show 50 items
 
-    const query = debouncedSearch.toLowerCase();
+    const normalizedQuery = normalizeSearchText(debouncedSearch);
     return items.filter(
       (item: any) =>
-        item.name.toLowerCase().includes(query) ||
-        (item.barcode && String(item.barcode).toLowerCase().includes(query)) ||
-        (item.sku && String(item.sku).toLowerCase().includes(query))
+        normalizeSearchText(item.name).includes(normalizedQuery) ||
+        (item.barcode && String(item.barcode).includes(debouncedSearch)) ||
+        (item.sku && String(item.sku).includes(debouncedSearch))
     );
   }, [items, debouncedSearch]);
 

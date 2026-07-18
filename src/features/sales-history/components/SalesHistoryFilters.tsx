@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { clsx } from 'clsx';
 import { useSalesHistoryStore } from '../store/useSalesHistoryStore';
 import { useCustomerStore } from '@/features/customers';
@@ -12,6 +12,7 @@ import {
   TimeField
 } from '@heroui/react';
 import { parseAbsoluteToLocal } from '@internationalized/date';
+import { useDebounce } from '@/shared/hooks/useDebounce';
 export const SalesHistoryFilters: React.FC = () => {
   const { filters, setFilters, clearFilters } = useSalesHistoryStore();
   const { customers } = useCustomerStore();
@@ -19,21 +20,27 @@ export const SalesHistoryFilters: React.FC = () => {
 
   // Local state for filters to apply them on button click
   const [localFilters, setLocalFilters] = useState(filters);
+  const [searchQuery, setSearchQuery] = useState(filters.searchQuery ?? '');
+  const debouncedSearchQuery = useDebounce(searchQuery, 300);
+
+  useEffect(() => {
+    setFilters({ searchQuery: debouncedSearchQuery || undefined });
+  }, [debouncedSearchQuery, setFilters]);
 
   const handleApplyFilters = () => {
     setFilters(localFilters);
   };
 
   const handleClearFilters = () => {
+    setSearchQuery('');
     setLocalFilters({});
     clearFilters();
   };
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
+    setSearchQuery(val);
     setLocalFilters(prev => ({ ...prev, searchQuery: val }));
-    // We can auto-apply search
-    setFilters({ searchQuery: val });
   };
 
   return (
@@ -49,7 +56,7 @@ export const SalesHistoryFilters: React.FC = () => {
             fullWidth
             placeholder="Fatura No veya Müşteri Adı ile ara..."
             className="pl-10"
-            value={localFilters.searchQuery || ''}
+            value={searchQuery}
             onChange={handleSearchChange}
           />
         </div>

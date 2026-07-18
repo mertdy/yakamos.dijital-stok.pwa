@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { getSingletonStore } from '@/shared/utils/getSingletonStore';
+import { normalizeSearchText } from '@/shared/utils/searchText';
 import {
   collection,
   query,
@@ -75,9 +76,9 @@ const filterSales = (sales: SaleTransaction[], filters: SalesHistoryFilter) => {
   let filteredSales = sales;
 
   if (filters.searchQuery) {
-    const queryLower = filters.searchQuery.toLowerCase();
+    const normalizedQuery = normalizeSearchText(filters.searchQuery);
     filteredSales = filteredSales.filter(sale =>
-      sale.invoiceNumber?.toLowerCase().includes(queryLower)
+      normalizeSearchText(sale.invoiceNumber ?? '').includes(normalizedQuery)
     );
   }
 

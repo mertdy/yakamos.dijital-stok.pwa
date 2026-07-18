@@ -19,6 +19,7 @@ import {
 } from '../store/useInventoryStore';
 import { useCategoryStore, getCategoryPath } from '../store/useCategoryStore';
 import { useAuthStore } from '@/features/auth';
+import { useSalesStore } from '@/features/sales';
 import { getCompanyLowStockThreshold } from '../domain/stockRules';
 const ScannerModal = lazy(
   () => import('@/features/sales/components/ScannerModal')
@@ -85,6 +86,7 @@ export const ProductFormView: React.FC = () => {
   const initialBarcode = searchParams.get('barcode');
 
   const { items, hasLoadedItems, addItem, updateItem } = useInventoryStore();
+  const { syncCartItemProduct } = useSalesStore();
   const { categories, loadCategories } = useCategoryStore();
   const activeCompany = useAuthStore(state => state.activeCompany);
   const navigate = useNavigate();
@@ -253,6 +255,13 @@ export const ProductFormView: React.FC = () => {
           ? (existingItem.salePrice ?? existingItem.price ?? 0)
           : 0;
         await updateItem(id, { ...data, price: data.salePrice });
+        syncCartItemProduct({
+          inventoryId: id,
+          name: data.name,
+          price: data.salePrice,
+          barcode: data.barcode || undefined,
+          imageUrl: existingItem?.imageUrl
+        });
         toast.success(
           previousPrice !== data.salePrice
             ? 'Fiyat güncellendi'

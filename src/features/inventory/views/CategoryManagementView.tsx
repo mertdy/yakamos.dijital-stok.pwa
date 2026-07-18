@@ -25,6 +25,8 @@ import {
   useCategoryStore,
   type ProductCategory
 } from '../store/useCategoryStore';
+import { useDebounce } from '@/shared/hooks/useDebounce';
+import { normalizeSearchText } from '@/shared/utils/searchText';
 
 export const CategoryManagementView = () => {
   const {
@@ -38,6 +40,7 @@ export const CategoryManagementView = () => {
   const { items } = useInventoryStore();
   const navigate = useNavigate();
   const [query, setQuery] = useState('');
+  const debouncedQuery = useDebounce(query, 300);
   const [editing, setEditing] = useState<ProductCategory | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [name, setName] = useState('');
@@ -58,9 +61,11 @@ export const CategoryManagementView = () => {
       categories.filter(
         category =>
           !category.parentId &&
-          category.name.toLowerCase().includes(query.toLowerCase())
+          normalizeSearchText(category.name).includes(
+            normalizeSearchText(debouncedQuery)
+          )
       ),
-    [categories, query]
+    [categories, debouncedQuery]
   );
 
   const productsByCategory = useMemo(() => {
