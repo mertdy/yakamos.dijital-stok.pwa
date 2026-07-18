@@ -214,4 +214,49 @@ describe('useCustomerStore', () => {
 
     expect(onSnapshot).toHaveBeenCalledTimes(1);
   });
+
+  it('applies subsequent snapshot changes without rebuilding the full customer list', async () => {
+    const store = await buildStore();
+    store.setState({
+      customers: [],
+      subscriptionCompanyId: null,
+      unsubscribeSnapshot: null,
+      hasLoadedCustomers: false
+    });
+
+    store.getState().loadCustomers();
+    const listener = vi.mocked(onSnapshot).mock.calls.at(-1)?.[1] as (
+      snapshot: any
+    ) => void;
+
+    listener({
+      docs: [
+        { id: 'c1', data: () => ({ name: 'Ayşe', totalDebt: 0 }) },
+        { id: 'c2', data: () => ({ name: 'Mehmet', totalDebt: 10 }) }
+      ]
+    });
+
+    listener({
+      docs: [],
+      docChanges: () => [
+        {
+          type: 'modified',
+          doc: { id: 'c1', data: () => ({ name: 'Ayşe', totalDebt: 25 }) }
+        },
+        {
+          type: 'added',
+          doc: { id: 'c3', data: () => ({ name: 'Can', totalDebt: 0 }) }
+        },
+        {
+          type: 'removed',
+          doc: { id: 'c2', data: () => ({}) }
+        }
+      ]
+    });
+
+    expect(store.getState().customers).toEqual([
+      { id: 'c1', name: 'Ayşe', totalDebt: 25 },
+      { id: 'c3', name: 'Can', totalDebt: 0 }
+    ]);
+  });
 });

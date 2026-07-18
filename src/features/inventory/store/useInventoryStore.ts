@@ -119,11 +119,33 @@ export const useInventoryStore = getSingletonStore('inventory', () =>
       const unsubscribe = onSnapshot(
         q,
         snapshot => {
-          const items: InventoryItem[] = [];
-          snapshot.forEach(doc => {
-            items.push({ id: doc.id, ...doc.data() } as InventoryItem);
-          });
           if (get().subscriptionCompanyId !== companyId) return;
+
+          const items = !get().hasLoadedItems
+            ? snapshot.docs.map(
+                itemDoc =>
+                  ({ id: itemDoc.id, ...itemDoc.data() }) as InventoryItem
+              )
+            : (() => {
+                const itemsById = new Map(
+                  get().items.map(item => [item.id, item])
+                );
+
+                snapshot.docChanges().forEach(change => {
+                  if (change.type === 'removed') {
+                    itemsById.delete(change.doc.id);
+                    return;
+                  }
+
+                  itemsById.set(change.doc.id, {
+                    id: change.doc.id,
+                    ...change.doc.data()
+                  } as InventoryItem);
+                });
+
+                return Array.from(itemsById.values());
+              })();
+
           set({ items, isLoading: false, hasLoadedItems: true });
         },
         error => {

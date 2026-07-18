@@ -10,7 +10,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '@/core/firebase/config';
 
-interface OfflineCompanyCacheEntry {
+export interface OfflineCompanyCacheEntry {
   companyId: string;
   preparedAt: string;
 }
@@ -34,6 +34,11 @@ const saveRegistry = (registry: OfflineCompanyCacheRegistry) => {
 export const getOfflineReadyCompanyIds = (userId?: string) => {
   if (!userId) return [];
   return getRegistry()[userId]?.map(entry => entry.companyId) ?? [];
+};
+
+export const getOfflineReadyCompanies = (userId?: string) => {
+  if (!userId) return [];
+  return getRegistry()[userId] ?? [];
 };
 
 export const markCompanyOfflineReady = (userId: string, companyId: string) => {

@@ -1,18 +1,38 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { clsx } from 'clsx';
 import { useNavigate } from 'react-router-dom';
 import { ROUTES } from '@/core/config/routes';
 import { useCustomerStore } from '../store/useCustomerStore';
 import { Plus, Search, User, Phone, Edit2, Eye } from 'lucide-react';
-import { Button, Input } from '@heroui/react';
+import { Button, Input, Pagination } from '@heroui/react';
 import posthog from 'posthog-js';
 
 import { useAuthStore } from '@/features/auth/store/useAuthStore';
+
+const CUSTOMER_PAGE_SIZE = 25;
+
+const getPageItems = (pageCount: number, currentPage: number) => {
+  if (pageCount <= 5) {
+    return Array.from({ length: pageCount }, (_, index) => index + 1);
+  }
+
+  const pages: Array<number | 'ellipsis'> = [1];
+  const start = Math.max(2, currentPage - 1);
+  const end = Math.min(pageCount - 1, currentPage + 1);
+
+  if (start > 2) pages.push('ellipsis');
+  for (let page = start; page <= end; page += 1) pages.push(page);
+  if (end < pageCount - 1) pages.push('ellipsis');
+  pages.push(pageCount);
+
+  return pages;
+};
 
 export const CustomerListView: React.FC = () => {
   const { customers, isLoading } = useCustomerStore();
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
   const { activeMembership } = useAuthStore();
   const isOwner = activeMembership?.role === 'OWNER';
   const hasCustomerPermission =
@@ -24,12 +44,45 @@ export const CustomerListView: React.FC = () => {
     });
   }, []);
 
-  const filteredCustomers = customers.filter(
-    c =>
-      c.name.toLowerCase().includes(search.toLowerCase()) ||
-      (c.surname && c.surname.toLowerCase().includes(search.toLowerCase())) ||
-      (c.phone && c.phone.includes(search))
+  const filteredCustomers = useMemo(
+    () =>
+      customers.filter(
+        customer =>
+          customer.name.toLowerCase().includes(search.toLowerCase()) ||
+          (customer.surname &&
+            customer.surname.toLowerCase().includes(search.toLowerCase())) ||
+          (customer.phone && customer.phone.includes(search))
+      ),
+    [customers, search]
   );
+  const pageCount = Math.max(
+    1,
+    Math.ceil(filteredCustomers.length / CUSTOMER_PAGE_SIZE)
+  );
+  const currentPage = Math.min(page, pageCount);
+  const pageStart = filteredCustomers.length
+    ? (currentPage - 1) * CUSTOMER_PAGE_SIZE + 1
+    : 0;
+  const pageEnd = Math.min(
+    currentPage * CUSTOMER_PAGE_SIZE,
+    filteredCustomers.length
+  );
+  const pageItems = useMemo(
+    () => getPageItems(pageCount, currentPage),
+    [currentPage, pageCount]
+  );
+  const paginatedCustomers = useMemo(
+    () =>
+      filteredCustomers.slice(
+        (currentPage - 1) * CUSTOMER_PAGE_SIZE,
+        currentPage * CUSTOMER_PAGE_SIZE
+      ),
+    [currentPage, filteredCustomers]
+  );
+
+  useEffect(() => {
+    if (page > pageCount) setPage(pageCount);
+  }, [page, pageCount]);
 
   return (
     <div className="mx-auto flex h-full max-w-7xl flex-col p-4 md:p-6">
@@ -64,7 +117,10 @@ export const CustomerListView: React.FC = () => {
                 fullWidth
                 placeholder="İsim, soyisim veya telefon ile ara..."
                 value={search}
-                onChange={e => setSearch(e.target.value)}
+                onChange={e => {
+                  setSearch(e.target.value);
+                  setPage(1);
+                }}
                 className="pl-10"
               />
             </div>
@@ -120,7 +176,7 @@ export const CustomerListView: React.FC = () => {
                     </td>
                   </tr>
                 ) : (
-                  filteredCustomers.map(customer => {
+                  paginatedCustomers.map(customer => {
                     const debt = customer.totalDebt || 0;
                     const limit = customer.creditLimit || 0;
                     const isExceeded = limit > 0 && debt >= limit;
@@ -241,6 +297,52 @@ export const CustomerListView: React.FC = () => {
               </tbody>
             </table>
           </div>
+          {filteredCustomers.length > CUSTOMER_PAGE_SIZE && (
+            <div className="border-t border-gray-100 px-4 py-3 sm:px-6">
+              <Pagination className="flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <Pagination.Summary>
+                  {pageStart}–{pageEnd} / {filteredCustomers.length} müşteri
+                </Pagination.Summary>
+                <Pagination.Content>
+                  <Pagination.Item>
+                    <Pagination.Previous
+                      isDisabled={currentPage === 1}
+                      onPress={() =>
+                        setPage(current => Math.max(1, current - 1))
+                      }>
+                      <Pagination.PreviousIcon />
+                      <span>Önceki</span>
+                    </Pagination.Previous>
+                  </Pagination.Item>
+                  {pageItems.map((item, index) =>
+                    item === 'ellipsis' ? (
+                      <Pagination.Item key={`ellipsis-${index}`}>
+                        <Pagination.Ellipsis />
+                      </Pagination.Item>
+                    ) : (
+                      <Pagination.Item key={item}>
+                        <Pagination.Link
+                          isActive={item === currentPage}
+                          onPress={() => setPage(item)}>
+                          {item}
+                        </Pagination.Link>
+                      </Pagination.Item>
+                    )
+                  )}
+                  <Pagination.Item>
+                    <Pagination.Next
+                      isDisabled={currentPage === pageCount}
+                      onPress={() =>
+                        setPage(current => Math.min(pageCount, current + 1))
+                      }>
+                      <span>Sonraki</span>
+                      <Pagination.NextIcon />
+                    </Pagination.Next>
+                  </Pagination.Item>
+                </Pagination.Content>
+              </Pagination>
+            </div>
+          )}
         </div>
       </div>
     </div>

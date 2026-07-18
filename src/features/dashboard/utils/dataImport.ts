@@ -2,13 +2,19 @@ import { collection, doc, writeBatch } from 'firebase/firestore';
 import { db } from '@/core/firebase/config';
 import type { Customer } from '@/features/customers';
 import type { InventoryItem } from '@/features/inventory';
-import { MAX_IMPORT_DATA_ROWS } from './dataImport.constants';
+import {
+  IMPORT_WRITE_BATCH_SIZE,
+  MAX_IMPORT_DATA_ROWS
+} from './dataImport.constants';
 import {
   prepareImportOperations,
   type PreparedImportResult
 } from './dataImportPreparation';
 
-export { MAX_IMPORT_DATA_ROWS } from './dataImport.constants';
+export {
+  IMPORT_WRITE_BATCH_SIZE,
+  MAX_IMPORT_DATA_ROWS
+} from './dataImport.constants';
 
 export type ImportType = 'inventory' | 'customers';
 export type DuplicateMode = 'update' | 'skip' | 'create';
@@ -400,7 +406,14 @@ export const buildImportRows = (
 };
 
 const yieldToBrowser = () =>
-  new Promise<void>(resolve => window.setTimeout(resolve, 0));
+  new Promise<void>(resolve => {
+    const continueAfterPaint = () => window.setTimeout(resolve, 0);
+    if (typeof window.requestAnimationFrame === 'function') {
+      window.requestAnimationFrame(continueAfterPaint);
+      return;
+    }
+    continueAfterPaint();
+  });
 
 const prepareImportRows = async (input: {
   type: ImportType;
@@ -472,21 +485,34 @@ export const importRows = async ({
   });
   const { operations } = prepared;
   onProgress?.({ completed: 0, total: operations.length, phase: 'writing' });
-  for (let start = 0; start < operations.length; start += 450) {
+  await yieldToBrowser();
+  for (
+    let start = 0;
+    start < operations.length;
+    start += IMPORT_WRITE_BATCH_SIZE
+  ) {
     const batch = writeBatch(db);
-    operations.slice(start, start + 450).forEach(operation => {
-      if (operation.id) {
-        batch.set(
-          doc(db, operation.collection, operation.id),
-          operation.payload,
-          { merge: true }
-        );
-      } else {
-        batch.set(doc(collection(db, operation.collection)), operation.payload);
-      }
-    });
+    operations
+      .slice(start, start + IMPORT_WRITE_BATCH_SIZE)
+      .forEach(operation => {
+        if (operation.id) {
+          batch.set(
+            doc(db, operation.collection, operation.id),
+            operation.payload,
+            { merge: true }
+          );
+        } else {
+          batch.set(
+            doc(collection(db, operation.collection)),
+            operation.payload
+          );
+        }
+      });
     await batch.commit();
-    const completed = Math.min(start + 450, operations.length);
+    const completed = Math.min(
+      start + IMPORT_WRITE_BATCH_SIZE,
+      operations.length
+    );
     onProgress?.({ completed, total: operations.length, phase: 'writing' });
     if (completed < operations.length) await yieldToBrowser();
   }

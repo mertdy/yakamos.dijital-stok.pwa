@@ -1,1 +1,2 @@
 export const MAX_IMPORT_DATA_ROWS = 15_000;
+export const IMPORT_WRITE_BATCH_SIZE = 150;

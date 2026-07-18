@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button, Card, Input, Label, toast, Tooltip } from '@heroui/react';
 import { useAuthStore } from '../store/useAuthStore';
@@ -7,6 +7,10 @@ import { db } from '@/core/firebase/config';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import type { Invitation, PermissionKey } from '@/core/types/tenant';
 import { PERMISSION_META } from '@/core/types/permissions';
+import {
+  getLocalDataStorageSummary,
+  type LocalDataStorageSummary
+} from '@/shared/utils/localDataStorage';
 import {
   Loader2,
   CheckCircle2,
@@ -18,7 +22,9 @@ import {
   Mail,
   Shield,
   ShieldCheck,
-  Save
+  Save,
+  Database,
+  RefreshCw
 } from 'lucide-react';
 
 const formatAuthDate = (value?: string | null) => {
@@ -31,6 +37,18 @@ const formatAuthDate = (value?: string | null) => {
     dateStyle: 'long',
     timeStyle: 'short'
   }).format(date);
+};
+
+const formatStorageSize = (bytes: number) => {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) {
+    return `${(bytes / 1024).toLocaleString('tr-TR', {
+      maximumFractionDigits: 1
+    })} KB`;
+  }
+  return `${(bytes / (1024 * 1024)).toLocaleString('tr-TR', {
+    maximumFractionDigits: 1
+  })} MB`;
 };
 
 export const AccountSettingsView = () => {
@@ -48,6 +66,10 @@ export const AccountSettingsView = () => {
   const [actionInviteId, setActionInviteId] = useState<string | null>(null);
   const [displayName, setDisplayName] = useState(user?.displayName ?? '');
   const [isSavingName, setIsSavingName] = useState(false);
+  const [localDataSummary, setLocalDataSummary] =
+    useState<LocalDataStorageSummary | null>(null);
+  const [isLoadingLocalData, setIsLoadingLocalData] = useState(false);
+  const userId = user?.uid;
   const usesEmailPassword = user?.providerData?.some(
     provider => provider.providerId === 'password'
   );
@@ -55,6 +77,27 @@ export const AccountSettingsView = () => {
   useEffect(() => {
     setDisplayName(user?.displayName ?? '');
   }, [user?.displayName]);
+
+  const loadLocalDataSummary = useCallback(async () => {
+    if (!userId) {
+      setLocalDataSummary(null);
+      return;
+    }
+
+    setIsLoadingLocalData(true);
+    try {
+      setLocalDataSummary(await getLocalDataStorageSummary(userId));
+    } catch (error) {
+      console.error('Yerel veri özeti alınamadı:', error);
+      setLocalDataSummary(null);
+    } finally {
+      setIsLoadingLocalData(false);
+    }
+  }, [userId]);
+
+  useEffect(() => {
+    void loadLocalDataSummary();
+  }, [loadLocalDataSummary]);
 
   useEffect(() => {
     if (!user?.email) return;
@@ -141,7 +184,7 @@ export const AccountSettingsView = () => {
         </div>
       </div>
 
-      <div className="space-y-6 pb-6">
+      <div className="flex flex-col gap-6 pb-6">
         {/* User Profile Card */}
         <SettingsCard
           title="Profil Bilgileri"
@@ -260,6 +303,122 @@ export const AccountSettingsView = () => {
                   </Button>
                 </div>
               </form>
+            )}
+          </div>
+        </SettingsCard>
+
+        <SettingsCard
+          title="Yerel Veri ve Yedekler"
+          icon={<Database size={20} className="text-primary" />}
+          className="order-last">
+          <div className="space-y-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-sm text-gray-500">
+                Çevrimdışı kullanım için yedeklenen işletme verilerinin özeti.
+              </p>
+              <Button
+                variant="tertiary"
+                size="sm"
+                onPress={() => void loadLocalDataSummary()}
+                isDisabled={isLoadingLocalData}
+                aria-label="Yerel veri bilgisini yenile">
+                <RefreshCw
+                  size={16}
+                  className={isLoadingLocalData ? 'animate-spin' : ''}
+                />
+                Yenile
+              </Button>
+            </div>
+            {isLoadingLocalData && !localDataSummary ? (
+              <div className="flex items-center justify-center py-10 text-sm text-gray-500">
+                <Loader2 className="text-primary mr-2 animate-spin" size={20} />
+                Yerel veriler hesaplanıyor...
+              </div>
+            ) : localDataSummary ? (
+              <>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="bg-primary/5 rounded-xl p-4">
+                    <p className="text-xs font-medium text-gray-500">
+                      Yedeklenen işletme verisi
+                    </p>
+                    <p className="mt-1 text-xl font-bold text-gray-900">
+                      {formatStorageSize(localDataSummary.localBackupBytes)}
+                    </p>
+                  </div>
+                  <div className="rounded-xl bg-gray-50 p-4">
+                    <p className="text-xs font-medium text-gray-500">
+                      Uygulamanın tarayıcı kullanımı
+                    </p>
+                    <p className="mt-1 text-xl font-bold text-gray-900">
+                      {localDataSummary.browserUsageBytes === null
+                        ? 'Bilinmiyor'
+                        : formatStorageSize(localDataSummary.browserUsageBytes)}
+                    </p>
+                    {localDataSummary.browserQuotaBytes !== null && (
+                      <p className="mt-1 text-xs text-gray-500">
+                        {formatStorageSize(localDataSummary.browserQuotaBytes)}{' '}
+                        kota
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {localDataSummary.companies.length > 0 ? (
+                  <div className="space-y-3">
+                    {localDataSummary.companies.map(company => (
+                      <section
+                        key={company.companyId}
+                        className="rounded-xl border border-gray-100 p-4">
+                        <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                          <div>
+                            <h3 className="font-semibold text-gray-900">
+                              {company.companyName}
+                            </h3>
+                            <p className="text-xs text-gray-500">
+                              Son yedekleme:{' '}
+                              {formatAuthDate(company.preparedAt)}
+                            </p>
+                          </div>
+                          <p className="text-primary text-sm font-bold">
+                            {formatStorageSize(company.estimatedBytes)}
+                          </p>
+                        </div>
+                        <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                          {company.dataSets.map(dataSet => (
+                            <div
+                              key={dataSet.label}
+                              className="rounded-lg bg-gray-50 px-3 py-2">
+                              <p className="text-xs font-medium text-gray-700">
+                                {dataSet.label}
+                              </p>
+                              <p className="mt-1 text-xs text-gray-500">
+                                {dataSet.recordCount.toLocaleString('tr-TR')}{' '}
+                                kayıt ·{' '}
+                                {formatStorageSize(dataSet.estimatedBytes)}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      </section>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50 p-5 text-sm text-gray-500">
+                    Bu cihazda çevrimdışı kullanım için hazırlanmış işletme
+                    verisi bulunmuyor.
+                  </div>
+                )}
+
+                <p className="text-xs text-gray-500">
+                  Veri boyutları, yedeklenen kayıt içeriklerinin tahmini
+                  boyutudur. Tarayıcı toplamı Firestore önbelleği ve diğer yerel
+                  uygulama verilerini de içerir.
+                </p>
+              </>
+            ) : (
+              <div className="rounded-xl bg-gray-50 p-4 text-sm text-gray-500">
+                Yerel veri bilgisi şu anda alınamıyor.
+              </div>
             )}
           </div>
         </SettingsCard>

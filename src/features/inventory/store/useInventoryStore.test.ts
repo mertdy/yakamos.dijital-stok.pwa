@@ -126,4 +126,49 @@ describe('useInventoryStore', () => {
 
     expect(onSnapshot).toHaveBeenCalledTimes(1);
   });
+
+  it('applies subsequent snapshot changes without rebuilding the full inventory list', async () => {
+    const store = await buildStore();
+    store.setState({
+      items: [],
+      subscriptionCompanyId: null,
+      unsubscribeSnapshot: null,
+      hasLoadedItems: false
+    });
+
+    store.getState().loadItems();
+    const listener = vi.mocked(onSnapshot).mock.calls.at(-1)?.[1] as (
+      snapshot: any
+    ) => void;
+
+    listener({
+      docs: [
+        { id: 'p1', data: () => ({ name: 'Elma', stock: 3 }) },
+        { id: 'p2', data: () => ({ name: 'Armut', stock: 4 }) }
+      ]
+    });
+
+    listener({
+      docs: [],
+      docChanges: () => [
+        {
+          type: 'modified',
+          doc: { id: 'p1', data: () => ({ name: 'Elma', stock: 8 }) }
+        },
+        {
+          type: 'added',
+          doc: { id: 'p3', data: () => ({ name: 'Muz', stock: 2 }) }
+        },
+        {
+          type: 'removed',
+          doc: { id: 'p2', data: () => ({}) }
+        }
+      ]
+    });
+
+    expect(store.getState().items).toEqual([
+      { id: 'p1', name: 'Elma', stock: 8 },
+      { id: 'p3', name: 'Muz', stock: 2 }
+    ]);
+  });
 });

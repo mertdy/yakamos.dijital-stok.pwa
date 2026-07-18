@@ -43,8 +43,6 @@ export const DataImportWizard = ({
   onClose: () => void;
 }) => {
   const { activeCompany, user } = useAuthStore();
-  const { items } = useInventoryStore();
-  const { customers } = useCustomerStore();
   const [step, setStep] = useState(1);
   const [type, setType] = useState<ImportType>('inventory');
   const [headers, setHeaders] = useState<string[]>([]);
@@ -226,8 +224,8 @@ export const DataImportWizard = ({
         rows,
         companyId: activeCompany.id,
         userId: user.uid,
-        inventory: items,
-        customers,
+        inventory: useInventoryStore.getState().items,
+        customers: useCustomerStore.getState().customers,
         duplicateMode,
         stockMode,
         onProgress: setImportProgress
@@ -713,19 +711,15 @@ export const DataImportWizard = ({
                   <Button variant="primary" onPress={closeWizard}>
                     Kapat
                   </Button>
-                ) : (
+                ) : !busy ? (
                   <Button
                     variant="ghost"
                     onPress={() =>
-                      busy
-                        ? requestClose()
-                        : step === 1
-                          ? requestClose()
-                          : setStep(step - 1)
+                      step === 1 ? requestClose() : setStep(step - 1)
                     }>
                     {step === 1 ? 'İptal' : 'Geri'}
                   </Button>
-                )}
+                ) : null}
                 {!importResult &&
                   (step < 3 ? (
                     <Button

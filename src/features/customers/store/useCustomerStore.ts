@@ -153,11 +153,33 @@ export const useCustomerStore = getSingletonStore('customers', () =>
       const unsubscribe = onSnapshot(
         q,
         snapshot => {
-          const customers: Customer[] = [];
-          snapshot.forEach(doc => {
-            customers.push({ id: doc.id, ...doc.data() } as Customer);
-          });
           if (get().subscriptionCompanyId !== companyId) return;
+
+          const customers = !get().hasLoadedCustomers
+            ? snapshot.docs.map(
+                customerDoc =>
+                  ({ id: customerDoc.id, ...customerDoc.data() }) as Customer
+              )
+            : (() => {
+                const customersById = new Map(
+                  get().customers.map(customer => [customer.id, customer])
+                );
+
+                snapshot.docChanges().forEach(change => {
+                  if (change.type === 'removed') {
+                    customersById.delete(change.doc.id);
+                    return;
+                  }
+
+                  customersById.set(change.doc.id, {
+                    id: change.doc.id,
+                    ...change.doc.data()
+                  } as Customer);
+                });
+
+                return Array.from(customersById.values());
+              })();
+
           set({ customers, isLoading: false, hasLoadedCustomers: true });
         },
         error => {
