@@ -111,6 +111,8 @@ describe('InvoicePanel', () => {
 
     // subtotal = 5*2 + 15*1 = 25
     expect(screen.getAllByText('₺25.00').length).toBeGreaterThan(0);
+    expect(screen.getByText('Toplam Tutar')).toBeInTheDocument();
+    expect(screen.getByText('25,00')).toBeInTheDocument();
     expect(screen.getByText('Müşteri Seçin')).toBeInTheDocument();
   });
 
@@ -130,7 +132,7 @@ describe('InvoicePanel', () => {
     expect(screen.getByText('Limit: ₺200.00')).toBeInTheDocument();
 
     // totalPayable = 25 - 5 = 20
-    expect(screen.getAllByText('₺20.00').length).toBeGreaterThan(0);
+    expect(screen.getByText('20,00')).toBeInTheDocument();
   });
 
   it('renders cash change calculator when Cash is selected', () => {

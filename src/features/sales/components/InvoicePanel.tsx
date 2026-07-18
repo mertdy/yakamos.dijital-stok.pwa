@@ -70,6 +70,10 @@ export const InvoicePanel: React.FC<Props> = ({
   }
 
   const totalPayable = subtotal - discountAmount;
+  const formattedTotalPayable = totalPayable.toLocaleString('tr-TR', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  });
 
   const selectedCustomer = customers.find(c => c.id === customerId);
   const customerDisplayName = selectedCustomer
@@ -235,13 +239,16 @@ export const InvoicePanel: React.FC<Props> = ({
             </div>
           </div>
 
-          <div className="flex items-end justify-between border-t border-gray-200 pt-2">
-            <span className="text-sm font-bold text-gray-900">
-              Genel Toplam
-            </span>
-            <span className="text-2xl leading-none font-black text-gray-900">
-              ₺{totalPayable.toFixed(2)}
-            </span>
+          <div className="border-primary/25 bg-primary/10 mt-3 flex flex-col rounded-2xl border p-4">
+            <p className="min-w-0 self-end text-2xl font-bold text-gray-900">
+              Toplam Tutar
+            </p>
+            <p className="text-primary mt-1 flex shrink-0 items-baseline gap-1 self-end leading-none">
+              <span className="text-xl font-bold">₺</span>
+              <span className="text-5xl font-black tracking-tight tabular-nums">
+                {formattedTotalPayable}
+              </span>
+            </p>
           </div>
         </div>
 
