@@ -13,7 +13,8 @@ export type LabelField =
   | 'SKU'
   | 'STOCK'
   | 'UPDATED_AT'
-  | 'IMAGE';
+  | 'IMAGE'
+  | 'UNIT';
 
 export interface LabelSize {
   id: string;
@@ -124,7 +125,12 @@ export const LABEL_SIZES: LabelSize[] = [
   }
 ];
 
-export const DEFAULT_LABEL_FIELDS: LabelField[] = ['NAME', 'PRICE', 'BARCODE'];
+export const DEFAULT_LABEL_FIELDS: LabelField[] = [
+  'NAME',
+  'PRICE',
+  'UNIT',
+  'BARCODE'
+];
 export const DEFAULT_LABEL_SIZE_ID = '40x30';
 
 const hasValidGs1CheckDigit = (barcode: string): boolean => {

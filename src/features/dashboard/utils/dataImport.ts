@@ -2,6 +2,13 @@ import { collection, doc, writeBatch } from 'firebase/firestore';
 import { db } from '@/core/firebase/config';
 import type { Customer } from '@/features/customers';
 import type { InventoryItem } from '@/features/inventory';
+import { MAX_IMPORT_DATA_ROWS } from './dataImport.constants';
+import {
+  prepareImportOperations,
+  type PreparedImportResult
+} from './dataImportPreparation';
+
+export { MAX_IMPORT_DATA_ROWS } from './dataImport.constants';
 
 export type ImportType = 'inventory' | 'customers';
 export type DuplicateMode = 'update' | 'skip' | 'create';
@@ -14,13 +21,37 @@ export interface ImportResult {
   invalid: number;
 }
 
+export interface ParsedImportFile {
+  headers: string[];
+  rows: unknown[][];
+  sheetName: string;
+  totalRows: number;
+  isTruncated: boolean;
+}
+
+export interface ImportFileInspection {
+  sheetNames: string[];
+}
+
+export interface ImportProgress {
+  completed: number;
+  total: number;
+  phase: 'preparing' | 'writing';
+}
+
 export const IMPORT_FIELDS = {
   inventory: [
     ['name', 'Ürün adı', true],
     ['barcode', 'Barkod', false],
     ['sku', 'SKU', false],
     ['stock', 'Stok', false],
-    ['price', 'Fiyat', false]
+    ['price', 'Satış fiyatı', false],
+    ['costPrice', 'Alış fiyatı (Maliyet)', false],
+    ['taxRate', 'KDV', false],
+    ['unit', 'Birim', false],
+    ['lowStockThreshold', 'Kritik stok', false],
+    ['note', 'Not', false],
+    ['description', 'Açıklama', false]
   ],
   customers: [
     ['name', 'Ad', true],
@@ -78,6 +109,17 @@ const fieldAliases: Record<ImportField, string[]> = {
     'liste fiyati',
     'price'
   ],
+  costPrice: ['maliyet', 'alış fiyatı', 'alis fiyati', 'alış maliyeti', 'cost'],
+  taxRate: ['kdv', 'kdv oranı', 'tax rate', 'vergi'],
+  unit: ['birim', 'unit', 'ölçü birimi', 'olcu birimi'],
+  lowStockThreshold: [
+    'kritik stok',
+    'minimum stok',
+    'stok eşiği',
+    'stok esigi'
+  ],
+  note: ['not', 'notlar'],
+  description: ['açıklama', 'aciklama', 'description'],
   surname: ['soyad', 'soy isim', 'soyisim', 'surname', 'last name'],
   phone: ['telefon', 'telefon no', 'telefon numarası', 'tel', 'phone'],
   email: ['e-posta', 'eposta', 'email', 'e mail'],
@@ -85,7 +127,19 @@ const fieldAliases: Record<ImportField, string[]> = {
 };
 
 const importFieldsByType: Record<ImportType, readonly ImportField[]> = {
-  inventory: ['name', 'barcode', 'sku', 'stock', 'price'],
+  inventory: [
+    'name',
+    'barcode',
+    'sku',
+    'stock',
+    'price',
+    'costPrice',
+    'taxRate',
+    'unit',
+    'lowStockThreshold',
+    'note',
+    'description'
+  ],
   customers: ['name', 'surname', 'phone', 'email', 'creditLimit']
 };
 
@@ -192,13 +246,6 @@ const getHeaderMatchScore = (header: string, field: ImportField) => {
   }, 0);
 };
 
-const key = (value: unknown) =>
-  String(value ?? '')
-    .trim()
-    .toLocaleLowerCase('tr-TR');
-const numberValue = (value: unknown) =>
-  Number(String(value ?? 0).replace(',', '.')) || 0;
-
 export const suggestMapping = (headers: string[], type: ImportType) => {
   const mapping = Object.fromEntries(
     importFieldsByType[type].map(field => [field, ''])
@@ -234,45 +281,161 @@ export const suggestMapping = (headers: string[], type: ImportType) => {
   return mapping;
 };
 
-export const parseImportFile = async (file: File) => {
+const inspectImportFileOnMainThread = async (
+  file: File
+): Promise<ImportFileInspection> => {
   const XLSX = await import('xlsx');
   const workbook = XLSX.read(await file.arrayBuffer(), {
     type: 'array',
-    sheetRows: 5001,
+    bookSheets: true
+  });
+  return { sheetNames: workbook.SheetNames };
+};
+
+const parseImportFileOnMainThread = async (
+  file: File,
+  sheetName: string
+): Promise<ParsedImportFile> => {
+  const XLSX = await import('xlsx');
+  const workbook = XLSX.read(await file.arrayBuffer(), {
+    type: 'array',
+    sheetRows: MAX_IMPORT_DATA_ROWS + 2,
     codepage: 65001
   });
-  const sheetName = workbook.SheetNames[0];
+  if (!workbook.Sheets[sheetName]) {
+    throw new Error('Çalışma sayfası bulunamadı');
+  }
   const values = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], {
     header: 1,
     defval: ''
   }) as unknown[][];
   const headers = (values[0] || []).map(value => String(value).trim());
+  const populatedRows = values
+    .slice(1)
+    .filter(row => row.some(value => String(value).trim()));
+
   return {
     headers,
-    rows: values
-      .slice(1)
-      .filter(row => row.some(value => String(value).trim())),
+    rows: populatedRows.slice(0, MAX_IMPORT_DATA_ROWS),
     sheetName,
-    totalRows: Math.max(values.length - 1, 0)
+    totalRows: Math.min(populatedRows.length, MAX_IMPORT_DATA_ROWS),
+    isTruncated: populatedRows.length > MAX_IMPORT_DATA_ROWS
   };
+};
+
+type ImportWorkerRequest =
+  | { type: 'inspect' }
+  | { type: 'parse'; sheetName: string };
+
+const runImportWorker = async <T>(
+  file: File,
+  request: ImportWorkerRequest
+): Promise<T> => {
+  const buffer = await file.arrayBuffer();
+
+  return new Promise((resolve, reject) => {
+    const worker = new Worker(
+      new URL('./dataImport.worker.ts', import.meta.url),
+      {
+        type: 'module'
+      }
+    );
+    const cleanup = () => worker.terminate();
+
+    worker.onmessage = (
+      event: MessageEvent<{ type: 'success'; data: T } | { type: 'error' }>
+    ) => {
+      cleanup();
+      if (event.data.type === 'success') resolve(event.data.data);
+      else reject(new Error('Dosya okunamadı'));
+    };
+    worker.onerror = () => {
+      cleanup();
+      reject(new Error('Dosya okunamadı'));
+    };
+    worker.postMessage({ ...request, buffer }, [buffer]);
+  });
+};
+
+export const inspectImportFile = async (
+  file: File
+): Promise<ImportFileInspection> => {
+  if (typeof Worker === 'undefined') return inspectImportFileOnMainThread(file);
+  return runImportWorker<ImportFileInspection>(file, { type: 'inspect' });
+};
+
+export const parseImportFile = async (
+  file: File,
+  sheetName: string
+): Promise<ParsedImportFile> => {
+  if (typeof Worker === 'undefined') {
+    return parseImportFileOnMainThread(file, sheetName);
+  }
+  return runImportWorker<ParsedImportFile>(file, { type: 'parse', sheetName });
 };
 
 export const buildImportRows = (
   rawRows: unknown[][],
   headers: string[],
   mapping: Record<string, string>
-) =>
-  rawRows.map(row => {
-    const source = Object.fromEntries(
-      headers.map((header, index) => [header, row[index]])
-    );
-    return Object.fromEntries(
-      Object.entries(mapping).map(([field, header]) => [
+) => {
+  const headerIndexes = new Map(
+    headers.map((header, index) => [header, index])
+  );
+  const mappedFields: Array<[string, number | undefined]> = Object.entries(
+    mapping
+  ).map(([field, header]) => [
+    field,
+    header ? headerIndexes.get(header) : undefined
+  ]);
+
+  return rawRows.map(row =>
+    Object.fromEntries(
+      mappedFields.map(([field, index]) => [
         field,
-        header ? source[header] : undefined
+        index === undefined ? undefined : row[index]
       ])
+    )
+  );
+};
+
+const yieldToBrowser = () =>
+  new Promise<void>(resolve => window.setTimeout(resolve, 0));
+
+const prepareImportRows = async (input: {
+  type: ImportType;
+  rows: ImportRow[];
+  companyId: string;
+  userId: string;
+  inventory: InventoryItem[];
+  customers: Customer[];
+  duplicateMode: DuplicateMode;
+  stockMode: StockMode;
+}): Promise<PreparedImportResult> => {
+  if (typeof Worker === 'undefined') return prepareImportOperations(input);
+
+  return new Promise((resolve, reject) => {
+    const worker = new Worker(
+      new URL('./dataImportProcessor.worker.ts', import.meta.url),
+      { type: 'module' }
     );
+    const cleanup = () => worker.terminate();
+    worker.onmessage = (
+      event: MessageEvent<
+        { type: 'success'; data: PreparedImportResult } | { type: 'error' }
+      >
+    ) => {
+      cleanup();
+      if (event.data.type === 'success') resolve(event.data.data);
+      else reject(new Error('İçe aktarma hazırlanamadı'));
+    };
+    worker.onerror = () => {
+      cleanup();
+      reject(new Error('İçe aktarma hazırlanamadı'));
+    };
+    worker.postMessage(input);
   });
+};
 
 export const importRows = async ({
   type,
@@ -282,7 +445,8 @@ export const importRows = async ({
   inventory,
   customers,
   duplicateMode,
-  stockMode
+  stockMode,
+  onProgress
 }: {
   type: ImportType;
   rows: ImportRow[];
@@ -292,92 +456,42 @@ export const importRows = async ({
   customers: Customer[];
   duplicateMode: DuplicateMode;
   stockMode: StockMode;
+  onProgress?: (progress: ImportProgress) => void;
 }) => {
-  const validRows = rows.filter(row => key(row.name));
-  let created = 0,
-    updated = 0,
-    skipped = 0;
-  for (let start = 0; start < validRows.length; start += 450) {
+  onProgress?.({ completed: 0, total: rows.length, phase: 'preparing' });
+  await yieldToBrowser();
+  const prepared = await prepareImportRows({
+    type,
+    rows,
+    companyId,
+    userId,
+    inventory,
+    customers,
+    duplicateMode,
+    stockMode
+  });
+  const { operations } = prepared;
+  onProgress?.({ completed: 0, total: operations.length, phase: 'writing' });
+  for (let start = 0; start < operations.length; start += 450) {
     const batch = writeBatch(db);
-    validRows.slice(start, start + 450).forEach(row => {
-      const now = new Date().toISOString();
-      if (type === 'inventory') {
-        const barcode = key(row.barcode);
-        const sku = key(row.sku);
-        const existing = inventory.find(
-          item =>
-            (barcode && key(item.barcode) === barcode) ||
-            (sku && key(item.sku) === sku)
+    operations.slice(start, start + 450).forEach(operation => {
+      if (operation.id) {
+        batch.set(
+          doc(db, operation.collection, operation.id),
+          operation.payload,
+          { merge: true }
         );
-        if (existing && duplicateMode === 'skip') {
-          skipped++;
-          return;
-        }
-        const payload = {
-          name: String(row.name).trim(),
-          barcode: String(row.barcode || '').trim(),
-          sku: String(row.sku || '').trim(),
-          stock:
-            stockMode === 'add' && existing
-              ? existing.stock + numberValue(row.stock)
-              : numberValue(row.stock),
-          price: numberValue(row.price),
-          updatedAt: now,
-          userId,
-          companyId
-        };
-        if (existing && duplicateMode === 'update') {
-          batch.set(doc(db, 'inventory', existing.id), payload, {
-            merge: true
-          });
-          updated++;
-        } else {
-          batch.set(doc(collection(db, 'inventory')), payload);
-          created++;
-        }
       } else {
-        const phone = key(row.phone).replace(/\D/g, '');
-        const email = key(row.email);
-        const existing = customers.find(
-          customer =>
-            (phone && key(customer.phone).replace(/\D/g, '') === phone) ||
-            (email && key(customer.email) === email)
-        );
-        if (existing && duplicateMode === 'skip') {
-          skipped++;
-          return;
-        }
-        const payload = {
-          name: String(row.name).trim(),
-          surname: String(row.surname || '').trim(),
-          phone: String(row.phone || '').trim(),
-          email: String(row.email || '').trim(),
-          creditLimit: numberValue(row.creditLimit),
-          updatedAt: now,
-          userId,
-          companyId
-        };
-        if (existing && duplicateMode === 'update') {
-          batch.set(doc(db, 'customers', existing.id), payload, {
-            merge: true
-          });
-          updated++;
-        } else {
-          batch.set(doc(collection(db, 'customers')), {
-            ...payload,
-            totalDebt: 0,
-            createdAt: now
-          });
-          created++;
-        }
+        batch.set(doc(collection(db, operation.collection)), operation.payload);
       }
     });
     await batch.commit();
+    const completed = Math.min(start + 450, operations.length);
+    onProgress?.({ completed, total: operations.length, phase: 'writing' });
+    if (completed < operations.length) await yieldToBrowser();
   }
-  return {
-    created,
-    updated,
-    skipped,
-    invalid: rows.length - validRows.length
-  } satisfies ImportResult;
+  if (operations.length === 0) {
+    onProgress?.({ completed: 0, total: 0, phase: 'writing' });
+  }
+  return prepared satisfies ImportResult;
 };

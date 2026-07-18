@@ -250,7 +250,10 @@ export const QuickAddEditModal: React.FC<Props> = ({ isOpen, onClose }) => {
                                   {item.name}
                                 </p>
                                 <p className="text-xs font-medium text-gray-500">
-                                  ₺{item.price.toFixed(2)}
+                                  ₺
+                                  {(item.salePrice ?? item.price ?? 0).toFixed(
+                                    2
+                                  )}
                                 </p>
                               </div>
                             </div>

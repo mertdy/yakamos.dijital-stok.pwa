@@ -12,8 +12,10 @@ import {
   createColumnHelper,
   flexRender,
   getCoreRowModel,
+  getPaginationRowModel,
   useReactTable,
   getSortedRowModel,
+  type PaginationState,
   type SortingState
 } from '@tanstack/react-table';
 import {
@@ -36,6 +38,7 @@ import {
   Checkbox,
   Description,
   Input,
+  Pagination,
   Tooltip,
   toast
 } from '@heroui/react';
@@ -57,18 +60,46 @@ interface InventoryTableProps {
   initialPrintItemId?: string | null;
 }
 
+const INVENTORY_PAGE_SIZE = 25;
+
+const getPageItems = (pageCount: number, currentPage: number) => {
+  if (pageCount <= 5) {
+    return Array.from({ length: pageCount }, (_, index) => index + 1);
+  }
+
+  const pages: Array<number | 'ellipsis'> = [1];
+  const start = Math.max(2, currentPage - 1);
+  const end = Math.min(pageCount - 1, currentPage + 1);
+
+  if (start > 2) pages.push('ellipsis');
+  for (let page = start; page <= end; page += 1) pages.push(page);
+  if (end < pageCount - 1) pages.push('ellipsis');
+  pages.push(pageCount);
+
+  return pages;
+};
+
 export const InventoryTable: React.FC<InventoryTableProps> = ({
   initialPrintItemId = null
 }) => {
   const { items, deleteItem, deleteItems, updateItem } = useInventoryStore();
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState('');
+  const [pagination, setPagination] = useState<PaginationState>({
+    pageIndex: 0,
+    pageSize: INVENTORY_PAGE_SIZE
+  });
   const [rowSelection, setRowSelection] = useState<Record<string, boolean>>({});
   const [isLabelPrintOpen, setIsLabelPrintOpen] = useState(false);
   const [labelItems, setLabelItems] = useState<InventoryItem[]>([]);
   const handledInitialPrintId = useRef<string | null>(null);
   const navigate = useNavigate();
   const { confirm } = useConfirm();
+
+  const setSearchFilter = useCallback((value: string) => {
+    setGlobalFilter(value);
+    setPagination(current => ({ ...current, pageIndex: 0 }));
+  }, []);
 
   useGlobalBarcodeScanner({
     onScan: barcode => {
@@ -77,7 +108,7 @@ export const InventoryTable: React.FC<InventoryTableProps> = ({
         .items.find(i => String(i.barcode) === barcode);
       if (item) {
         playBarcodeFeedback();
-        setGlobalFilter(barcode);
+        setSearchFilter(barcode);
         toast.success(`Ürün bulundu: ${item.name}`);
       } else {
         toast(`${barcode} sistemde kayıtlı değil`, {
@@ -200,8 +231,12 @@ export const InventoryTable: React.FC<InventoryTableProps> = ({
         }
       }),
       columnHelper.accessor('price', {
-        header: 'Fiyat',
-        cell: info => <span>₺{info.getValue().toFixed(2)}</span>
+        header: 'Satış Fiyatı',
+        cell: info => (
+          <span>
+            ₺{(info.row.original.salePrice ?? info.getValue() ?? 0).toFixed(2)}
+          </span>
+        )
       })
     );
 
@@ -274,18 +309,52 @@ export const InventoryTable: React.FC<InventoryTableProps> = ({
     return Object.keys(rowSelection).filter(id => rowSelection[id]);
   }, [rowSelection]);
 
+  useEffect(() => {
+    const lastPageIndex = Math.max(
+      0,
+      Math.ceil(filteredItems.length / INVENTORY_PAGE_SIZE) - 1
+    );
+
+    setPagination(current =>
+      current.pageIndex > lastPageIndex
+        ? { ...current, pageIndex: lastPageIndex }
+        : current
+    );
+  }, [filteredItems.length]);
+
   // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
     data: filteredItems,
     columns,
-    state: { sorting, rowSelection },
-    onSortingChange: setSorting,
+    state: { sorting, pagination, rowSelection },
+    onSortingChange: updater => {
+      setSorting(current =>
+        typeof updater === 'function' ? updater(current) : updater
+      );
+      setPagination(current => ({ ...current, pageIndex: 0 }));
+    },
+    onPaginationChange: setPagination,
     onRowSelectionChange: setRowSelection,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
     enableRowSelection: true,
     getRowId: row => row.id
   });
+
+  const currentPage = pagination.pageIndex + 1;
+  const pageCount = table.getPageCount();
+  const pageStart = filteredItems.length
+    ? pagination.pageIndex * INVENTORY_PAGE_SIZE + 1
+    : 0;
+  const pageEnd = Math.min(
+    (pagination.pageIndex + 1) * INVENTORY_PAGE_SIZE,
+    filteredItems.length
+  );
+  const pageItems = useMemo(
+    () => getPageItems(pageCount, currentPage),
+    [currentPage, pageCount]
+  );
 
   if (items.length === 0) {
     return (
@@ -314,7 +383,7 @@ export const InventoryTable: React.FC<InventoryTableProps> = ({
             fullWidth
             placeholder="Ürün adı veya barkod ile ara..."
             value={globalFilter}
-            onChange={e => setGlobalFilter(e.target.value)}
+            onChange={e => setSearchFilter(e.target.value)}
             className="pl-10"
           />
         </div>
@@ -484,6 +553,48 @@ export const InventoryTable: React.FC<InventoryTableProps> = ({
           </tbody>
         </table>
       </div>
+      {filteredItems.length > INVENTORY_PAGE_SIZE && (
+        <div className="border-t border-gray-100 px-4 py-3 sm:px-6">
+          <Pagination className="flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <Pagination.Summary>
+              {pageStart}–{pageEnd} / {filteredItems.length} ürün
+            </Pagination.Summary>
+            <Pagination.Content>
+              <Pagination.Item>
+                <Pagination.Previous
+                  isDisabled={!table.getCanPreviousPage()}
+                  onPress={() => table.previousPage()}>
+                  <Pagination.PreviousIcon />
+                  <span>Önceki</span>
+                </Pagination.Previous>
+              </Pagination.Item>
+              {pageItems.map((page, index) =>
+                page === 'ellipsis' ? (
+                  <Pagination.Item key={`ellipsis-${index}`}>
+                    <Pagination.Ellipsis />
+                  </Pagination.Item>
+                ) : (
+                  <Pagination.Item key={page}>
+                    <Pagination.Link
+                      isActive={page === currentPage}
+                      onPress={() => table.setPageIndex(page - 1)}>
+                      {page}
+                    </Pagination.Link>
+                  </Pagination.Item>
+                )
+              )}
+              <Pagination.Item>
+                <Pagination.Next
+                  isDisabled={!table.getCanNextPage()}
+                  onPress={() => table.nextPage()}>
+                  <span>Sonraki</span>
+                  <Pagination.NextIcon />
+                </Pagination.Next>
+              </Pagination.Item>
+            </Pagination.Content>
+          </Pagination>
+        </div>
+      )}
       {isLabelPrintOpen && (
         <Suspense fallback={null}>
           <LabelPrintModal

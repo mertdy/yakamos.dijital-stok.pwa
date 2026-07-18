@@ -10,6 +10,7 @@ import {
 } from '@/features/sales-history';
 import posthog from 'posthog-js';
 import { trackPendingSyncOperation } from '@/shared/utils/pendingSyncOperations';
+import { useInventoryStore } from '@/features/inventory';
 
 export interface CartItem {
   inventoryId: string;
@@ -271,11 +272,16 @@ export const useSalesStore = getSingletonStore('sales', () =>
                 unitPrice: item.price
               });
 
-              const invRef = doc(db, 'inventory', item.inventoryId);
-              batch.update(invRef, {
-                stock: increment(-item.quantity),
-                updatedAt: createdAt
-              });
+              const inventoryItem = useInventoryStore
+                .getState()
+                .items.find(product => product.id === item.inventoryId);
+              if (inventoryItem?.trackStock !== false) {
+                const invRef = doc(db, 'inventory', item.inventoryId);
+                batch.update(invRef, {
+                  stock: increment(-item.quantity),
+                  updatedAt: createdAt
+                });
+              }
             }
 
             if (paymentMethod === 'Credit' && customerId) {

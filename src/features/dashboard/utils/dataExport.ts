@@ -193,7 +193,17 @@ export const loadExportDatasets = async (
         Barkod: item.barcode || '',
         SKU: item.sku || '',
         Stok: item.stock || 0,
-        Fiyat: item.price || 0,
+        'Satış Fiyatı': item.salePrice ?? item.price ?? 0,
+        'Alış fiyatı (Maliyet)': item.costPrice ?? '',
+        KDV: item.taxRate ?? 20,
+        Birim: item.unit ?? 'adet',
+        'Kritik Stok':
+          item.useCompanyLowStockThreshold === false
+            ? (item.lowStockThreshold ?? '')
+            : 'Şirket varsayılanı',
+        Aktif: item.isActive !== false ? 'Evet' : 'Hayır',
+        Not: item.note ?? '',
+        Açıklama: item.description ?? '',
         'Güncellenme Tarihi': formatDate(item.updatedAt)
       }))
     },

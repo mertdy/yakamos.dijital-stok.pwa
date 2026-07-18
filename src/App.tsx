@@ -2,7 +2,11 @@ import { useEffect, Suspense } from 'react';
 import { Spinner } from '@heroui/react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { MainLayout } from './shared/layouts/MainLayout';
-import { InventoryView, ProductFormView } from '@/features/inventory/routes';
+import {
+  InventoryView,
+  ProductFormView,
+  CategoryManagementView
+} from '@/features/inventory/routes';
 import { SalesView } from '@/features/sales/routes';
 import { useAuthStore } from '@/features/auth';
 import {
@@ -26,6 +30,7 @@ import { auth } from './core/firebase/config';
 import { Loader2 } from 'lucide-react';
 
 import { useInventoryStore } from '@/features/inventory';
+import { useCategoryStore } from '@/features/inventory/store/useCategoryStore';
 import { useCustomerStore } from '@/features/customers';
 import { useSalesHistoryStore } from '@/features/sales-history';
 
@@ -69,6 +74,7 @@ function App() {
   useEffect(() => {
     if (activeCompanyId) {
       useInventoryStore.getState().loadItems();
+      useCategoryStore.getState().loadCategories();
       useCustomerStore.getState().loadCustomers();
       useSalesHistoryStore.getState().fetchSales();
     }
@@ -104,6 +110,10 @@ function App() {
     isOwner ||
     !isEmployee ||
     activeMembership?.permissions.includes('MANAGE_CUSTOMERS');
+  const hasCategoryPermission =
+    isOwner ||
+    !isEmployee ||
+    activeMembership?.permissions.includes('MANAGE_CATEGORIES');
 
   return (
     <Suspense
@@ -205,6 +215,16 @@ function App() {
             element={<CustomerDetailView />}
           />
           <Route path={ROUTES.INVENTORY.INDEX} element={<InventoryView />} />
+          <Route
+            path={ROUTES.CATEGORIES}
+            element={
+              hasCategoryPermission ? (
+                <CategoryManagementView />
+              ) : (
+                <Navigate to={ROUTES.INVENTORY.INDEX} replace />
+              )
+            }
+          />
           <Route
             path={ROUTES.INVENTORY.NEW}
             element={

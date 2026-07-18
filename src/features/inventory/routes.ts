@@ -6,3 +6,8 @@ export const InventoryView = lazy(() =>
 export const ProductFormView = lazy(() =>
   import('./views/ProductFormView').then(m => ({ default: m.ProductFormView }))
 );
+export const CategoryManagementView = lazy(() =>
+  import('./views/CategoryManagementView').then(m => ({
+    default: m.CategoryManagementView
+  }))
+);

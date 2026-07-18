@@ -19,6 +19,12 @@ export const PERMISSION_META: Record<PermissionKey, PermissionMeta> = {
     description:
       'Yeni ürün ekleyebilir, fiyatları düzenleyebilir ve ürün silebilir.'
   },
+  MANAGE_CATEGORIES: {
+    label: 'Kategori Yönetimi',
+    shortLabel: 'Kategoriler',
+    description:
+      'Ürün kategorilerini ve alt kategorileri ekleyebilir, düzenleyebilir ve pasife alabilir.'
+  },
   MANAGE_CUSTOMERS: {
     label: 'Müşteri Yönetimi',
     shortLabel: 'Müşteriler',

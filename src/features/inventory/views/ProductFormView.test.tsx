@@ -213,12 +213,16 @@ describe('ProductFormView', () => {
     fireEvent.click(submitBtn);
 
     await waitFor(() => {
-      expect(addItemMock).toHaveBeenCalledWith({
-        name: 'Ice Tea Peach',
-        barcode: '',
-        stock: 24,
-        price: 18.75
-      });
+      expect(addItemMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: 'Ice Tea Peach',
+          barcode: '',
+          stock: 24,
+          price: 18.75,
+          salePrice: 18.75,
+          unit: 'adet'
+        })
+      );
       expect(toast.success).toHaveBeenCalledWith('Yeni ürün eklendi');
       expect(navigateMock).toHaveBeenCalledWith(-1);
     });

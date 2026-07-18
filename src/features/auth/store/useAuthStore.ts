@@ -583,6 +583,7 @@ export const useAuthStore = getSingletonStore('auth', () =>
         phone: details?.phone || null,
         address: details?.address || null,
         receiptHeader: details?.receiptHeader || null,
+        defaultLowStockThreshold: 10,
         createdAt
       };
       await setDoc(companyRef, companyData);

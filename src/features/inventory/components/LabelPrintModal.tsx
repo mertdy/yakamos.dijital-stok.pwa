@@ -42,6 +42,7 @@ const FIELD_OPTIONS: { id: LabelField; label: string }[] = [
   { id: 'BARCODE_TEXT', label: 'Barkod numarası' },
   { id: 'SKU', label: 'Stok kodu (SKU)' },
   { id: 'STOCK', label: 'Stok miktarı' },
+  { id: 'UNIT', label: 'Birim' },
   { id: 'UPDATED_AT', label: 'Son güncelleme' },
   { id: 'IMAGE', label: 'Ürün görseli' }
 ];
@@ -374,7 +375,10 @@ const ProductLabel = ({
         <strong className="label-print-name">{item.name}</strong>
       )}
       {show('PRICE') && (
-        <span className="label-print-price">{formatPrice(item.price)}</span>
+        <span className="label-print-price">
+          {formatPrice(item.salePrice ?? item.price ?? 0)}
+          {item.unit && item.unit !== 'adet' ? ` / ${item.unit}` : ''}
+        </span>
       )}
       {show('BARCODE') && item.barcode && (
         <BarcodeSvg value={item.barcode} compact={compact} />
@@ -387,6 +391,9 @@ const ProductLabel = ({
       )}
       {show('STOCK') && (
         <span className="label-print-meta">Stok: {item.stock}</span>
+      )}
+      {show('UNIT') && item.unit === 'adet' && (
+        <span className="label-print-meta">Birim: {item.unit}</span>
       )}
       {show('UPDATED_AT') && (
         <span className="label-print-meta">

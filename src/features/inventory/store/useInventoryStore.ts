@@ -21,14 +21,46 @@ export interface InventoryItem {
   id: string;
   name: string;
   stock: number;
-  price: number;
+  /** @deprecated Kept while existing Firestore documents are migrated lazily. */
+  price?: number;
+  salePrice?: number;
+  costPrice?: number | null;
+  taxRate?: 0 | 1 | 10 | 20;
+  priceIncludesTax?: boolean;
+  unit?: ProductUnit;
+  categoryId?: string | null;
+  trackStock?: boolean;
+  useCompanyLowStockThreshold?: boolean;
+  lowStockThreshold?: number | null;
+  isActive?: boolean;
+  note?: string | null;
+  description?: string | null;
   barcode?: string;
   sku?: string;
   imageUrl?: string;
   updatedAt: string;
   userId?: string;
   companyId?: string;
+  createdAt?: string;
 }
+
+export const PRODUCT_UNITS = [
+  'adet',
+  'kg',
+  'g',
+  'lt',
+  'ml',
+  'paket',
+  'koli'
+] as const;
+export type ProductUnit = (typeof PRODUCT_UNITS)[number];
+
+export const getSalePrice = (item: InventoryItem) =>
+  item.salePrice ?? item.price ?? 0;
+
+export const isStockTracked = (item: InventoryItem) =>
+  item.trackStock !== false;
+export const isItemActive = (item: InventoryItem) => item.isActive !== false;
 
 interface InventoryState {
   items: InventoryItem[];
@@ -162,7 +194,7 @@ export const useInventoryStore = getSingletonStore('inventory', () =>
         inventory_id: id,
         has_barcode: Boolean(newItem.barcode),
         initial_stock: newItem.stock,
-        price: newItem.price
+        sale_price: getSalePrice(newItem)
       });
     },
 
@@ -189,13 +221,24 @@ export const useInventoryStore = getSingletonStore('inventory', () =>
         {
           name: 'Ürün adı',
           stock: 'Stok miktarı',
-          price: 'Fiyat',
+          salePrice: 'Satış fiyatı',
+          costPrice: 'Maliyet',
+          taxRate: 'KDV oranı',
+          priceIncludesTax: 'Fiyat KDV dahil',
+          unit: 'Birim',
+          categoryId: 'Kategori',
+          trackStock: 'Stok takibi',
+          useCompanyLowStockThreshold: 'Şirket stok eşiği',
+          lowStockThreshold: 'Kritik stok eşiği',
+          isActive: 'Ürün aktif',
+          note: 'Not',
+          description: 'Açıklama',
           barcode: 'Barkod',
           sku: 'Stok kodu',
           imageUrl: 'Ürün görseli'
         },
         {
-          price: value =>
+          salePrice: value =>
             typeof value === 'number'
               ? `${value.toLocaleString('tr-TR')} ₺`
               : value === undefined || value === null
@@ -224,7 +267,7 @@ export const useInventoryStore = getSingletonStore('inventory', () =>
         inventory_id: id,
         has_barcode: Boolean(mergedItem.barcode),
         stock: mergedItem.stock,
-        price: mergedItem.price
+        sale_price: getSalePrice(mergedItem)
       });
     },
 

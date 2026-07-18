@@ -7,6 +7,7 @@ export const ROUTES = {
   COMPANY_SETTINGS: '/sirket-ayarlari',
   ACCOUNT_SETTINGS: '/hesap-ayarlari',
   PRICING_PLANS: '/planlar-ve-fiyatlandirma',
+  CATEGORIES: '/kategoriler',
   CUSTOMERS: {
     INDEX: '/musteriler',
     NEW: '/musteriler/yeni',

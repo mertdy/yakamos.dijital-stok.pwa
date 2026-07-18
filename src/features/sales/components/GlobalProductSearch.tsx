@@ -168,7 +168,7 @@ export const GlobalProductSearch: React.FC<Props> = ({ onOpenScanner }) => {
                     )}
                   </div>
                   <div className="text-primary font-bold whitespace-nowrap">
-                    ₺{item.price.toFixed(2)}
+                    ₺{(item.salePrice ?? item.price ?? 0).toFixed(2)}
                   </div>
                 </button>
               ))}

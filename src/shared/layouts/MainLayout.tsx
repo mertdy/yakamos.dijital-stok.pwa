@@ -13,6 +13,7 @@ import {
   Store,
   MonitorCheck,
   Package,
+  FolderTree,
   Users,
   LogOut,
   PanelLeftClose,
@@ -310,11 +311,13 @@ export const MainLayout: React.FC = () => {
     { name: 'Satış', path: ROUTES.SALES, icon: MonitorCheck },
     { name: 'Satış Geçmişi', path: ROUTES.SALES_HISTORY, icon: History },
     { name: 'Müşteriler', path: ROUTES.CUSTOMERS.INDEX, icon: Users },
-    { name: 'Envanter', path: ROUTES.INVENTORY.INDEX, icon: Package }
+    { name: 'Envanter', path: ROUTES.INVENTORY.INDEX, icon: Package },
+    { name: 'Kategoriler', path: ROUTES.CATEGORIES, icon: FolderTree }
   ];
 
   let filteredNavItems = baseNavItems;
   const isOwner = activeMembership?.role === 'OWNER';
+  const isEmployee = activeMembership?.role === 'EMPLOYEE';
   if (
     !isOwner &&
     activeMembership?.role === 'EMPLOYEE' &&
@@ -322,6 +325,15 @@ export const MainLayout: React.FC = () => {
   ) {
     filteredNavItems = baseNavItems.filter(
       item => item.path !== ROUTES.DASHBOARD
+    );
+  }
+
+  if (
+    isEmployee &&
+    !activeMembership.permissions.includes('MANAGE_CATEGORIES')
+  ) {
+    filteredNavItems = filteredNavItems.filter(
+      item => item.path !== ROUTES.CATEGORIES
     );
   }
 
@@ -738,7 +750,7 @@ export const MainLayout: React.FC = () => {
           </div>
         </header>
 
-        <div className="mx-auto h-full w-full max-w-7xl">
+        <div className="h-full w-full">
           <LazyRouteErrorBoundary>
             <Suspense
               fallback={

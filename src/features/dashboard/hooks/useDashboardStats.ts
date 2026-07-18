@@ -2,6 +2,8 @@ import { useMemo, useState } from 'react';
 import { useSalesHistoryStore } from '@/features/sales-history';
 import { useInventoryStore } from '@/features/inventory';
 import { useCustomerStore } from '@/features/customers';
+import { useAuthStore } from '@/features/auth';
+import { isLowStock } from '@/features/inventory/domain/stockRules';
 import dayjs from 'dayjs';
 import isSameOrAfter from 'dayjs/plugin/isSameOrAfter';
 
@@ -19,6 +21,7 @@ export const useDashboardStats = () => {
   const { rawSales } = useSalesHistoryStore();
   const { items } = useInventoryStore();
   const { customers } = useCustomerStore();
+  const activeCompany = useAuthStore(state => state.activeCompany);
 
   const [period, setPeriod] = useState<ChartPeriod>('7D');
 
@@ -102,7 +105,7 @@ export const useDashboardStats = () => {
     );
 
     const lowStockProducts = items
-      .filter(item => item.stock <= 10)
+      .filter(item => isLowStock(item, activeCompany))
       .sort((a, b) => a.stock - b.stock);
 
     return {
@@ -116,7 +119,7 @@ export const useDashboardStats = () => {
       paymentMethods,
       lowStockProducts
     };
-  }, [rawSales, items, customers]);
+  }, [rawSales, items, customers, activeCompany]);
 
   // Chart data based on selected period
   const chartData = useMemo(() => {

@@ -68,7 +68,8 @@ const companyProfileSchema = z.object({
     .max(50, 'İşletme adı en fazla 50 karakter olmalıdır'),
   receiptHeader: z.string().optional(),
   phone: optionalPhoneNumberSchema,
-  address: z.string().optional()
+  address: z.string().optional(),
+  defaultLowStockThreshold: z.number().int().min(0)
 });
 
 type CompanyProfileFormData = z.infer<typeof companyProfileSchema>;
@@ -166,6 +167,10 @@ export const CompanySettingsView = () => {
       setProfileValue('receiptHeader', activeCompany.receiptHeader || '');
       setProfileValue('phone', activeCompany.phone || '');
       setProfileValue('address', activeCompany.address || '');
+      setProfileValue(
+        'defaultLowStockThreshold',
+        activeCompany.defaultLowStockThreshold ?? 10
+      );
     }
   }, [activeCompany, setProfileValue]);
 
@@ -218,7 +223,8 @@ export const CompanySettingsView = () => {
         name: data.name,
         phone: normalizePhoneNumber(data.phone),
         address: data.address || null,
-        receiptHeader: data.receiptHeader || null
+        receiptHeader: data.receiptHeader || null,
+        defaultLowStockThreshold: data.defaultLowStockThreshold
       });
       toast.success('Şirket profili güncellendi!');
     } catch (err) {
@@ -400,6 +406,14 @@ export const CompanySettingsView = () => {
                 label="Adres Bilgisi"
                 type="text"
                 placeholder="Örn: Kadıköy, İstanbul"
+              />
+              <FormInput
+                control={controlProfile}
+                name="defaultLowStockThreshold"
+                label="Varsayılan Kritik Stok Seviyesi"
+                hint="Üründe özel bir değer seçilmediyse bu eşik kullanılır."
+                type="number"
+                valueAsNumber
               />
             </div>
 

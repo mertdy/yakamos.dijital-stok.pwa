@@ -142,6 +142,37 @@ describe('InventoryTable', () => {
     });
   });
 
+  it('renders products in pages of 25', async () => {
+    const paginatedItems = Array.from({ length: 26 }, (_, index) => ({
+      id: String(index + 1),
+      name: `Ürün ${index + 1}`,
+      barcode: String(index + 1),
+      stock: index + 1,
+      price: index + 1
+    }));
+
+    mockUseInventoryStore.mockReturnValue({
+      items: paginatedItems,
+      deleteItem: deleteItemMock,
+      deleteItems: deleteItemsMock,
+      updateItem: updateItemMock
+    });
+
+    render(<InventoryTable />);
+
+    expect(screen.getByText('Ürün 1')).toBeInTheDocument();
+    expect(screen.queryByText('Ürün 26')).not.toBeInTheDocument();
+    expect(screen.getByText('1–25 / 26 ürün')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Sonraki' }));
+
+    await waitFor(() => {
+      expect(screen.getByText('Ürün 26')).toBeInTheDocument();
+      expect(screen.queryByText('Ürün 1')).not.toBeInTheDocument();
+      expect(screen.getByText('26–26 / 26 ürün')).toBeInTheDocument();
+    });
+  });
+
   it('navigates to edit product view on edit button press', () => {
     render(<InventoryTable />);
 

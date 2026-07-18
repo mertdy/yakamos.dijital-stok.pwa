@@ -1,6 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import { clsx } from 'clsx';
-import { Checkbox, Button, Modal, toast } from '@heroui/react';
+import {
+  Checkbox,
+  Button,
+  Modal,
+  Radio,
+  RadioGroup,
+  toast
+} from '@heroui/react';
 import { Download, FileSpreadsheet, FileText, Loader2 } from 'lucide-react';
 import type { Company } from '@/core/types/tenant';
 import {
@@ -216,26 +223,31 @@ export const DataExportWizard = ({ isOpen, onClose, company }: Props) => {
                     <p className="mb-3 text-sm font-medium text-gray-700">
                       Teslim şekli
                     </p>
-                    <label className="flex cursor-pointer items-center gap-2 text-sm">
-                      <input
-                        type="radio"
-                        checked={delivery === 'combined'}
-                        onChange={() => setDelivery('combined')}
-                      />
-                      {format === 'xlsx'
-                        ? 'Tek Excel çalışma kitabı (Önerilen)'
-                        : 'Tek ZIP dosyası (Önerilen)'}
-                    </label>
-                    <label className="mt-2 flex cursor-pointer items-center gap-2 text-sm">
-                      <input
-                        type="radio"
-                        checked={delivery === 'separate'}
-                        onChange={() => setDelivery('separate')}
-                      />
-                      {format === 'xlsx'
-                        ? 'Her veri grubu için ayrı Excel dosyası'
-                        : 'Her veri grubu için ayrı CSV dosyası'}
-                    </label>
+                    <RadioGroup
+                      name="export-delivery"
+                      value={delivery}
+                      onChange={value => setDelivery(value as ExportDelivery)}>
+                      <Radio value="combined">
+                        <Radio.Content>
+                          <Radio.Control>
+                            <Radio.Indicator />
+                          </Radio.Control>
+                          {format === 'xlsx'
+                            ? 'Tek Excel çalışma kitabı (Önerilen)'
+                            : 'Tek ZIP dosyası (Önerilen)'}
+                        </Radio.Content>
+                      </Radio>
+                      <Radio value="separate">
+                        <Radio.Content>
+                          <Radio.Control>
+                            <Radio.Indicator />
+                          </Radio.Control>
+                          {format === 'xlsx'
+                            ? 'Her veri grubu için ayrı Excel dosyası'
+                            : 'Her veri grubu için ayrı CSV dosyası'}
+                        </Radio.Content>
+                      </Radio>
+                    </RadioGroup>
                   </div>
                 </>
               )}

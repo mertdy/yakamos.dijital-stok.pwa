@@ -5,6 +5,8 @@ export interface Company {
   receiptHeader?: string | null;
   phone?: string | null;
   address?: string | null;
+  /** Used by products that do not define their own low-stock threshold. */
+  defaultLowStockThreshold?: number;
   createdAt: string;
 }
 
@@ -13,6 +15,7 @@ export type UserRole = 'OWNER' | 'EMPLOYEE';
 export type PermissionKey =
   | 'VIEW_DASHBOARD'
   | 'MANAGE_INVENTORY'
+  | 'MANAGE_CATEGORIES'
   | 'MANAGE_CUSTOMERS'
   | 'TAKE_PAYMENT'
   | 'SHARE_CUSTOMER_STATEMENT'

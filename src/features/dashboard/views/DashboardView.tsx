@@ -431,7 +431,9 @@ export const DashboardView: React.FC = () => {
                                 {item.barcode || item.sku || '-'}
                               </Table.Cell>
                               <Table.Cell>
-                                {valueFormatter(item.price)}
+                                {valueFormatter(
+                                  item.salePrice ?? item.price ?? 0
+                                )}
                               </Table.Cell>
                               <Table.Cell>
                                 <Chip

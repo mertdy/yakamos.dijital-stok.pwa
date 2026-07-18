@@ -8,17 +8,30 @@ import {
 } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { ROUTES } from '@/core/config/routes';
-import { useForm } from 'react-hook-form';
+import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import {
   useInventoryStore,
-  type InventoryItem
+  PRODUCT_UNITS,
+  type InventoryItem,
+  type ProductUnit
 } from '../store/useInventoryStore';
+import { useCategoryStore, getCategoryPath } from '../store/useCategoryStore';
+import { useAuthStore } from '@/features/auth';
+import { getCompanyLowStockThreshold } from '../domain/stockRules';
 const ScannerModal = lazy(
   () => import('@/features/sales/components/ScannerModal')
 );
-import { Button } from '@heroui/react';
+import {
+  Button,
+  Checkbox,
+  Label,
+  ListBox,
+  Select,
+  TextArea,
+  Tooltip
+} from '@heroui/react';
 import { FormInput } from '@/shared/components/FormInput';
 import {
   ArrowLeft,
@@ -43,7 +56,18 @@ const productSchema = z.object({
   name: z.string().min(2, 'Ürün adı en az 2 karakter olmalıdır'),
   barcode: z.string().optional(),
   stock: z.number().min(0, 'Stok 0 veya daha büyük olmalıdır'),
-  price: z.number().min(0, 'Fiyat 0 veya daha büyük olmalıdır')
+  salePrice: z.number().min(0, 'Fiyat 0 veya daha büyük olmalıdır'),
+  costPrice: z.number().min(0).nullable().optional(),
+  taxRate: z.union([z.literal(0), z.literal(1), z.literal(10), z.literal(20)]),
+  priceIncludesTax: z.boolean().catch(true),
+  unit: z.enum(PRODUCT_UNITS).catch('adet'),
+  categoryId: z.string().nullable(),
+  trackStock: z.boolean().catch(true),
+  useCompanyLowStockThreshold: z.boolean().catch(true),
+  lowStockThreshold: z.number().min(0).nullable(),
+  isActive: z.boolean().catch(true),
+  note: z.string().max(500).nullable(),
+  description: z.string().max(2000).nullable()
 });
 
 type ProductFormData = z.infer<typeof productSchema>;
@@ -61,6 +85,8 @@ export const ProductFormView: React.FC = () => {
   const initialBarcode = searchParams.get('barcode');
 
   const { items, hasLoadedItems, addItem, updateItem } = useInventoryStore();
+  const { categories, loadCategories } = useCategoryStore();
+  const activeCompany = useAuthStore(state => state.activeCompany);
   const navigate = useNavigate();
   const hasRedirectedForMissingItem = useRef(false);
 
@@ -73,23 +99,37 @@ export const ProductFormView: React.FC = () => {
   const [isLabelPrintOpen, setIsLabelPrintOpen] = useState(false);
   const [labelItems, setLabelItems] = useState<InventoryItem[]>([]);
 
-  const {
-    control,
-    handleSubmit,
-    reset,
-    setValue,
-    getValues,
-    formState: { isValid }
-  } = useForm<ProductFormData>({
-    resolver: zodResolver(productSchema),
-    mode: 'onChange',
-    defaultValues: {
-      name: '',
-      barcode: '',
-      stock: 0,
-      price: 0
-    }
-  });
+  const { control, handleSubmit, reset, setValue, getValues, watch } =
+    useForm<ProductFormData>({
+      resolver: zodResolver(productSchema),
+      mode: 'onChange',
+      defaultValues: {
+        name: '',
+        barcode: '',
+        stock: 0,
+        salePrice: 0,
+        costPrice: null,
+        taxRate: 20,
+        priceIncludesTax: true,
+        unit: 'adet',
+        categoryId: null,
+        trackStock: true,
+        useCompanyLowStockThreshold: true,
+        lowStockThreshold: null,
+        isActive: true,
+        note: null,
+        description: null
+      }
+    });
+  // eslint-disable-next-line react-hooks/incompatible-library
+  const usesCompanyThreshold = watch('useCompanyLowStockThreshold');
+  const productName = watch('name');
+  const salePrice = watch('salePrice');
+  const companyThreshold = getCompanyLowStockThreshold(activeCompany);
+
+  useEffect(() => {
+    loadCategories();
+  }, [loadCategories]);
 
   const searchProductByBarcode = useCallback(
     async (barcodeToSearch: string) => {
@@ -151,14 +191,42 @@ export const ProductFormView: React.FC = () => {
       name: editingItem.name,
       barcode: editingItem.barcode || '',
       stock: editingItem.stock,
-      price: editingItem.price
+      salePrice: editingItem.salePrice ?? editingItem.price ?? 0,
+      costPrice: editingItem.costPrice ?? null,
+      taxRate: editingItem.taxRate ?? 20,
+      priceIncludesTax: editingItem.priceIncludesTax ?? true,
+      unit: editingItem.unit ?? 'adet',
+      categoryId: editingItem.categoryId ?? null,
+      trackStock: editingItem.trackStock ?? true,
+      useCompanyLowStockThreshold:
+        editingItem.useCompanyLowStockThreshold ?? true,
+      lowStockThreshold: editingItem.lowStockThreshold ?? null,
+      isActive: editingItem.isActive ?? true,
+      note: editingItem.note ?? null,
+      description: editingItem.description ?? null
     });
     setApiProductData(null);
   }, [isEditMode, id, items, hasLoadedItems, navigate, reset]);
 
   useEffect(() => {
     if (!isEditMode) {
-      reset({ name: '', barcode: initialBarcode || '', stock: 0, price: 0 });
+      reset({
+        name: '',
+        barcode: initialBarcode || '',
+        stock: 0,
+        salePrice: 0,
+        costPrice: null,
+        taxRate: 20,
+        priceIncludesTax: true,
+        unit: 'adet',
+        categoryId: null,
+        trackStock: true,
+        useCompanyLowStockThreshold: true,
+        lowStockThreshold: null,
+        isActive: true,
+        note: null,
+        description: null
+      });
 
       setApiProductData(null);
       if (initialBarcode) {
@@ -176,17 +244,20 @@ export const ProductFormView: React.FC = () => {
         inventory_id: id,
         has_barcode: Boolean(data.barcode?.trim()),
         stock: data.stock,
-        price: data.price
+        sale_price: data.salePrice
       });
 
       if (isEditMode && id) {
-        const previousPrice = items.find(item => item.id === id)?.price;
-        await updateItem(id, data);
+        const existingItem = items.find(item => item.id === id);
+        const previousPrice = existingItem
+          ? (existingItem.salePrice ?? existingItem.price ?? 0)
+          : 0;
+        await updateItem(id, { ...data, price: data.salePrice });
         toast.success(
-          previousPrice !== data.price
+          previousPrice !== data.salePrice
             ? 'Fiyat güncellendi'
             : 'Ürün güncellendi',
-          previousPrice !== data.price
+          previousPrice !== data.salePrice
             ? {
                 actionProps: {
                   children: 'Yeni Etiket Bastır',
@@ -221,7 +292,11 @@ export const ProductFormView: React.FC = () => {
             return;
           }
         }
-        await addItem(data);
+        await addItem({
+          ...data,
+          price: data.salePrice,
+          createdAt: new Date().toISOString()
+        });
         toast.success('Yeni ürün eklendi');
       }
       navigate(-1);
@@ -372,12 +447,280 @@ export const ProductFormView: React.FC = () => {
             />
             <FormInput
               control={control}
-              name="price"
-              label="Birim Fiyatı (₺)"
+              name="salePrice"
+              label="Birim Fiyatı (Satış) (₺)"
               isRequired
               type="number"
               step="0.01"
               valueAsNumber
+            />
+          </div>
+
+          <div className="grid grid-cols-1 gap-6 border-t border-gray-100 pt-6 md:grid-cols-2">
+            <FormInput
+              control={control}
+              name="costPrice"
+              label="Alış Maliyeti (₺)"
+              type="number"
+              step="0.01"
+              valueAsNumber
+            />
+            <Controller
+              control={control}
+              name="unit"
+              render={({ field }) => (
+                <Select
+                  fullWidth
+                  selectedKey={field.value}
+                  onSelectionChange={value =>
+                    field.onChange(value as ProductUnit)
+                  }>
+                  <Label>Birim</Label>
+                  <Select.Trigger>
+                    <Select.Value />
+                    <Select.Indicator />
+                  </Select.Trigger>
+                  <Select.Popover>
+                    <ListBox>
+                      {PRODUCT_UNITS.map(unit => (
+                        <ListBox.Item key={unit} id={unit}>
+                          {unit}
+                          <ListBox.ItemIndicator />
+                        </ListBox.Item>
+                      ))}
+                    </ListBox>
+                  </Select.Popover>
+                </Select>
+              )}
+            />
+            <Controller
+              control={control}
+              name="taxRate"
+              render={({ field }) => (
+                <Select
+                  fullWidth
+                  selectedKey={field.value}
+                  onSelectionChange={value => field.onChange(Number(value))}>
+                  <Label>KDV oranı</Label>
+                  <Select.Trigger>
+                    <Select.Value />
+                    <Select.Indicator />
+                  </Select.Trigger>
+                  <Select.Popover>
+                    <ListBox>
+                      {[0, 1, 10, 20].map(rate => (
+                        <ListBox.Item key={rate} id={rate}>
+                          %{rate}
+                          <ListBox.ItemIndicator />
+                        </ListBox.Item>
+                      ))}
+                    </ListBox>
+                  </Select.Popover>
+                </Select>
+              )}
+            />
+            <Controller
+              control={control}
+              name="categoryId"
+              render={({ field }) => (
+                <Select
+                  fullWidth
+                  placeholder="Kategori seçin (opsiyonel)"
+                  selectedKey={field.value}
+                  onSelectionChange={value => field.onChange(value || null)}>
+                  <Label>Kategori</Label>
+                  <Select.Trigger>
+                    <Select.Value />
+                    <Select.Indicator />
+                  </Select.Trigger>
+                  <Select.Popover>
+                    <ListBox>
+                      {categories
+                        .filter(
+                          category =>
+                            category.isActive || category.id === field.value
+                        )
+                        .map(category => (
+                          <ListBox.Item key={category.id} id={category.id}>
+                            {getCategoryPath(category.id, categories)}
+                            <ListBox.ItemIndicator />
+                          </ListBox.Item>
+                        ))}
+                    </ListBox>
+                  </Select.Popover>
+                </Select>
+              )}
+            />
+          </div>
+
+          <div className="space-y-4 rounded-xl bg-gray-50 p-4">
+            <Controller
+              control={control}
+              name="priceIncludesTax"
+              render={({ field }) => (
+                <div>
+                  <Tooltip delay={0} closeDelay={0}>
+                    <Tooltip.Trigger
+                      aria-label="Fiyat KDV dahil açıklaması"
+                      className="flex w-fit cursor-help">
+                      <Checkbox
+                        isSelected={field.value}
+                        onChange={isSelected => field.onChange(isSelected)}>
+                        <Checkbox.Content>
+                          <Checkbox.Control>
+                            <Checkbox.Indicator />
+                          </Checkbox.Control>
+                          Fiyat KDV dahil
+                        </Checkbox.Content>
+                      </Checkbox>
+                    </Tooltip.Trigger>
+                    <Tooltip.Content showArrow placement="right">
+                      <Tooltip.Arrow />
+                      Seçiliyse satış fiyatı KDV dahil kabul edilir. Seçili
+                      değilse girdiğiniz fiyat KDV hariç kabul edilir.
+                    </Tooltip.Content>
+                  </Tooltip>
+                </div>
+              )}
+            />
+            <Controller
+              control={control}
+              name="trackStock"
+              render={({ field }) => (
+                <div>
+                  <Tooltip delay={0} closeDelay={0}>
+                    <Tooltip.Trigger
+                      aria-label="Stok takibi açıklaması"
+                      className="flex w-fit cursor-help">
+                      <Checkbox
+                        isSelected={field.value}
+                        onChange={isSelected => field.onChange(isSelected)}>
+                        <Checkbox.Content>
+                          <Checkbox.Control>
+                            <Checkbox.Indicator />
+                          </Checkbox.Control>
+                          Bu ürünün stokunu takip et
+                        </Checkbox.Content>
+                      </Checkbox>
+                    </Tooltip.Trigger>
+                    <Tooltip.Content showArrow placement="right">
+                      <Tooltip.Arrow />
+                      Seçiliyse satış ve stok hareketleri ürün miktarını
+                      günceller. Seçili değilse ürünün stok miktarı değişmez.
+                    </Tooltip.Content>
+                  </Tooltip>
+                </div>
+              )}
+            />
+            <Controller
+              control={control}
+              name="isActive"
+              render={({ field }) => (
+                <div>
+                  <Tooltip delay={0} closeDelay={0}>
+                    <Tooltip.Trigger
+                      aria-label="Ürün satış durumu açıklaması"
+                      className="flex w-fit cursor-help">
+                      <Checkbox
+                        isSelected={field.value}
+                        onChange={isSelected => field.onChange(isSelected)}>
+                        <Checkbox.Content>
+                          <Checkbox.Control>
+                            <Checkbox.Indicator />
+                          </Checkbox.Control>
+                          Ürün satışa açık
+                        </Checkbox.Content>
+                      </Checkbox>
+                    </Tooltip.Trigger>
+                    <Tooltip.Content showArrow placement="right">
+                      <Tooltip.Arrow />
+                      Seçiliyse ürün satış ekranında seçilebilir. Seçili değilse
+                      ürün korunur ancak satışta kullanılamaz.
+                    </Tooltip.Content>
+                  </Tooltip>
+                </div>
+              )}
+            />
+            <Controller
+              control={control}
+              name="useCompanyLowStockThreshold"
+              render={({ field }) => (
+                <div>
+                  <Tooltip delay={0} closeDelay={0}>
+                    <Tooltip.Trigger
+                      aria-label="Varsayılan kritik stok seviyesi açıklaması"
+                      className="flex w-fit cursor-help">
+                      <Checkbox
+                        isSelected={field.value}
+                        onChange={isSelected => field.onChange(isSelected)}>
+                        <Checkbox.Content>
+                          <Checkbox.Control>
+                            <Checkbox.Indicator />
+                          </Checkbox.Control>
+                          Varsayılan kritik stok seviyesini kullan (
+                          {companyThreshold})
+                        </Checkbox.Content>
+                      </Checkbox>
+                    </Tooltip.Trigger>
+                    <Tooltip.Content showArrow placement="right">
+                      <Tooltip.Arrow />
+                      Seçiliyse şirket ayarlarındaki {companyThreshold} eşiği
+                      kullanılır. Seçili değilse bu ürün için aşağıdan özel bir
+                      kritik stok seviyesi belirleyebilirsiniz.
+                    </Tooltip.Content>
+                  </Tooltip>
+                </div>
+              )}
+            />
+            {!usesCompanyThreshold && (
+              <FormInput
+                control={control}
+                name="lowStockThreshold"
+                label="Bu ürün için kritik stok seviyesi"
+                type="number"
+                valueAsNumber
+              />
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 gap-6 border-t border-gray-100 pt-6">
+            <Controller
+              control={control}
+              name="note"
+              render={({ field }) => (
+                <label className="text-sm font-medium text-gray-700">
+                  Not
+                  <TextArea
+                    fullWidth
+                    rows={3}
+                    className="mt-2"
+                    value={field.value ?? ''}
+                    onChange={event =>
+                      field.onChange(event.target.value || null)
+                    }
+                    placeholder="Örn: Arka rafta"
+                  />
+                </label>
+              )}
+            />
+            <Controller
+              control={control}
+              name="description"
+              render={({ field }) => (
+                <label className="text-sm font-medium text-gray-700">
+                  Açıklama
+                  <TextArea
+                    fullWidth
+                    rows={4}
+                    className="mt-2"
+                    value={field.value ?? ''}
+                    onChange={event =>
+                      field.onChange(event.target.value || null)
+                    }
+                    placeholder="Ürünle ilgili ek bilgiler"
+                  />
+                </label>
+              )}
             />
           </div>
 
@@ -397,7 +740,12 @@ export const ProductFormView: React.FC = () => {
             <Button
               variant="primary"
               type="submit"
-              isDisabled={isSaving || !isValid}
+              isDisabled={
+                isSaving ||
+                !productName?.trim() ||
+                !Number.isFinite(salePrice) ||
+                salePrice < 0
+              }
               className="isDisabled:cursor-not-allowed px-8 disabled:opacity-50">
               {isSaving ? (
                 <Loader2 className="mr-2 animate-spin" size={20} />

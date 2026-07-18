@@ -113,7 +113,7 @@ const ScannerModal: React.FC<ScannerModalProps> = ({
         addToCart({
           inventoryId: item.id,
           name: item.name,
-          price: item.price,
+          price: item.salePrice ?? item.price ?? 0,
           quantity: 1
         });
         toast.success(`${item.name} sepete eklendi`);
