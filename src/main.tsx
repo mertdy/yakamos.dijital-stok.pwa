@@ -19,6 +19,9 @@ import {
   secondaryPrefetches
 } from './core/config/prefetchRegistry';
 import { runPrefetch } from './shared/utils/prefetch';
+import { initializeThemeMode } from './shared/hooks/useThemeMode';
+
+initializeThemeMode();
 
 // 1. PostHog Init
 if (ENV.POSTHOG_KEY && ENV.POSTHOG_HOST) {

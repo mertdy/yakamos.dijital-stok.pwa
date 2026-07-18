@@ -13,6 +13,7 @@ import { useNavigate } from 'react-router-dom';
 import { ROUTES } from '@/core/config/routes';
 import posthog from 'posthog-js';
 import { playBarcodeFeedback } from '@/shared/utils/barcodeFeedback';
+import { CameraOff } from 'lucide-react';
 
 interface ScannerModalProps {
   isOpen: boolean;
@@ -26,6 +27,7 @@ const ScannerModal: React.FC<ScannerModalProps> = ({
   onScan
 }) => {
   const [isScanning, setIsScanning] = useState(false);
+  const [scannerError, setScannerError] = useState<string | null>(null);
   const { items } = useInventoryStore();
   const { addToCart } = useSalesStore();
   const navigate = useNavigate();
@@ -155,8 +157,17 @@ const ScannerModal: React.FC<ScannerModalProps> = ({
     try {
       hasScannedRef.current = false;
       isScanningRef.current = true;
+      setScannerError(null);
       const isWeb = Capacitor.getPlatform() === 'web';
       if (isWeb) {
+        if (!navigator.mediaDevices?.getUserMedia) {
+          isScanningRef.current = false;
+          setScannerError(
+            'Bu cihazda kullanılabilir bir web kamerası bulunamadı.'
+          );
+          return;
+        }
+
         setIsScanning(true);
 
         if ('BarcodeDetector' in window) {
@@ -207,7 +218,13 @@ const ScannerModal: React.FC<ScannerModalProps> = ({
                 detectLoop();
               } catch (e) {
                 console.error('Camera access failed', e);
+                isScanningRef.current = false;
                 setIsScanning(false);
+                setScannerError(
+                  e instanceof DOMException && e.name === 'NotAllowedError'
+                    ? 'Kamera izni verilmedi. Tarayıcı ayarlarından izin verip tekrar deneyin.'
+                    : 'Bu cihazda kullanılabilir bir web kamerası bulunamadı.'
+                );
               }
             }
           }, 100);
@@ -237,7 +254,17 @@ const ScannerModal: React.FC<ScannerModalProps> = ({
                     controlsRef.current = controls;
                   }
                 })
-                .catch(console.error);
+                .catch(error => {
+                  console.error('Camera access failed', error);
+                  isScanningRef.current = false;
+                  setIsScanning(false);
+                  setScannerError(
+                    error instanceof DOMException &&
+                      error.name === 'NotAllowedError'
+                      ? 'Kamera izni verilmedi. Tarayıcı ayarlarından izin verip tekrar deneyin.'
+                      : 'Bu cihazda kullanılabilir bir web kamerası bulunamadı.'
+                  );
+                });
             }
           }, 100);
         }
@@ -271,7 +298,9 @@ const ScannerModal: React.FC<ScannerModalProps> = ({
       });
     } catch (error) {
       console.error('Scanner error', error);
+      isScanningRef.current = false;
       setIsScanning(false);
+      setScannerError('Kamera başlatılamadı. Lütfen tekrar deneyin.');
     }
   }, [onClose, handleBarcodeScanned]);
 
@@ -309,7 +338,24 @@ const ScannerModal: React.FC<ScannerModalProps> = ({
             </Modal.Header>
             <Modal.Body>
               <div className="flex flex-col items-center justify-center py-6">
-                {isScanning && Capacitor.getPlatform() === 'web' ? (
+                {scannerError ? (
+                  <div className="flex max-w-xs flex-col items-center gap-3 text-center">
+                    <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gray-100 text-gray-500">
+                      <CameraOff size={30} />
+                    </div>
+                    <div>
+                      <p className="text-base font-semibold text-gray-900">
+                        Kamera kullanılamıyor
+                      </p>
+                      <p className="mt-1 text-sm leading-5 text-gray-500">
+                        {scannerError}
+                      </p>
+                    </div>
+                    <Button variant="secondary" onPress={startScan}>
+                      Tekrar Dene
+                    </Button>
+                  </div>
+                ) : isScanning && Capacitor.getPlatform() === 'web' ? (
                   <div className="border-primary/50 relative flex h-64 w-64 flex-col items-center justify-center overflow-hidden rounded-3xl border-[3px] border-dashed bg-black">
                     <video
                       ref={videoRef}

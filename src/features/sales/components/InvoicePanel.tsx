@@ -244,8 +244,8 @@ export const InvoicePanel: React.FC<Props> = ({
               Toplam Tutar
             </p>
             <p className="text-primary mt-1 flex shrink-0 items-baseline gap-1 self-end leading-none">
-              <span className="text-xl font-bold">₺</span>
-              <span className="text-5xl font-black tracking-tight tabular-nums">
+              <span className="text-xl font-bold text-gray-900">₺</span>
+              <span className="text-5xl font-black tracking-tight text-gray-900 tabular-nums">
                 {formattedTotalPayable}
               </span>
             </p>

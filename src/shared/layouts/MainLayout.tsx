@@ -6,6 +6,7 @@ import { ROUTES } from '@/core/config/routes';
 import { PWAInstallButton } from '@/shared/components/PWAInstallButton';
 import { LazyRouteErrorBoundary } from '@/shared/components/LazyRouteErrorBoundary';
 import { useAppHotkeys } from '@/shared/hooks/useAppHotkeys';
+import { useThemeMode } from '@/shared/hooks/useThemeMode';
 import { useSecureLogout } from '@/shared/hooks/useSecureLogout';
 import { useSalesStore } from '@/features/sales';
 import { useConfirm } from '@/shared/contexts/ConfirmDialogContext';
@@ -32,7 +33,9 @@ import {
   CreditCard,
   CircleUserRound,
   LifeBuoy,
-  ExternalLink
+  ExternalLink,
+  Moon,
+  Sun
 } from 'lucide-react';
 import { useAuthStore } from '@/features/auth';
 import {
@@ -43,7 +46,8 @@ import {
   Modal,
   Spinner,
   Tooltip,
-  toast
+  toast,
+  Switch
 } from '@heroui/react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -111,6 +115,7 @@ export const MainLayout: React.FC = () => {
   const { cart, clearCart } = useSalesStore();
   const { confirm } = useConfirm();
   const logout = useSecureLogout();
+  const { isDark, setTheme } = useThemeMode();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isSidebarHovered, setIsSidebarHovered] = useState(false);
   const [newCompanyModalOpen, setNewCompanyModalOpen] = useState(false);
@@ -679,6 +684,34 @@ export const MainLayout: React.FC = () => {
               <Dropdown.Popover
                 placement={isCollapsed ? 'right' : 'top start'}
                 className="min-w-60">
+                <div className="border-b border-gray-100 px-3 py-2.5">
+                  <Switch
+                    size="sm"
+                    isSelected={isDark}
+                    onChange={isSelected =>
+                      setTheme(isSelected ? 'dark' : 'light')
+                    }
+                    aria-label="Koyu tema">
+                    {({ isSelected }) => (
+                      <Switch.Content className="w-full justify-between gap-3">
+                        <span className="text-sm font-medium text-gray-700">
+                          Koyu tema
+                        </span>
+                        <Switch.Control>
+                          <Switch.Thumb>
+                            <Switch.Icon>
+                              {isSelected ? (
+                                <Sun className="size-3 text-inherit" />
+                              ) : (
+                                <Moon className="size-3 text-inherit" />
+                              )}
+                            </Switch.Icon>
+                          </Switch.Thumb>
+                        </Switch.Control>
+                      </Switch.Content>
+                    )}
+                  </Switch>
+                </div>
                 <Dropdown.Menu
                   aria-label="Kullanıcı menüsü"
                   onAction={handleProfileMenuAction}>
