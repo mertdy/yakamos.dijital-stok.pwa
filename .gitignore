@@ -39,3 +39,6 @@ blob-report/
 .eslintcache
 # heroui-agents-md
 .heroui-docs/
+
+# Firebase Hosting CLI cache
+.firebase/
