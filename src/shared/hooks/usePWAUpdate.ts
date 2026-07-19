@@ -1,6 +1,8 @@
-import { useEffect } from 'react';
-import { toast } from '@heroui/react';
+import { useCallback, useEffect, useRef } from 'react';
 import { useSalesStore } from '@/features/sales/store/useSalesStore';
+import { toast } from '@heroui/react';
+
+const UPDATE_CHECK_INTERVAL_MS = 10 * 60 * 1000;
 
 /**
  * Hook to check for PWA updates when connection is restored,
@@ -8,6 +10,34 @@ import { useSalesStore } from '@/features/sales/store/useSalesStore';
  */
 export const usePWAUpdate = () => {
   const heldSalesCount = useSalesStore(state => state.heldSales.length);
+  const isSaleProcessing = useSalesStore(state => state.isProcessing);
+  const updateAvailableRef = useRef(false);
+  const hasShownUpdateToastRef = useRef(false);
+
+  const showUpdateToast = useCallback(() => {
+    if (
+      !updateAvailableRef.current ||
+      hasShownUpdateToastRef.current ||
+      isSaleProcessing ||
+      document.visibilityState !== 'visible'
+    ) {
+      return;
+    }
+
+    hasShownUpdateToastRef.current = true;
+    toast('Yeni sürüm hazır!', {
+      description:
+        'Uygulamanın yeni sürümü indirildi. Yeni özellikleri kullanmak için yenileyin.',
+      variant: 'accent',
+      timeout: 0,
+      actionProps: {
+        children: 'Şimdi yenile',
+        variant: 'primary',
+        size: 'sm',
+        onPress: () => window.location.reload()
+      }
+    });
+  }, [isSaleProcessing]);
 
   // 1. Update App Badge when heldSalesCount changes (PWA Badging API)
   useEffect(() => {
@@ -28,41 +58,75 @@ export const usePWAUpdate = () => {
     if (typeof window === 'undefined' || !('serviceWorker' in navigator))
       return;
 
-    // 1. Force check for updates when internet connection is restored
-    const handleOnline = () => {
-      navigator.serviceWorker.ready.then(registration => {
-        registration.update();
+    const checkForUpdate = () => {
+      if (navigator.onLine && document.visibilityState === 'visible') {
+        console.info('[PWA] Güncelleme kontrolü yapılıyor.');
+        void navigator.serviceWorker.ready.then(registration =>
+          registration.update()
+        );
+      } else {
+        console.info('[PWA] Güncelleme kontrolü atlandı.', {
+          online: navigator.onLine,
+          visibility: document.visibilityState
+        });
+      }
+    };
+
+    const markUpdateAvailable = () => {
+      updateAvailableRef.current = true;
+      showUpdateToast();
+    };
+
+    const observeRegistration = (registration: ServiceWorkerRegistration) => {
+      if (registration.waiting) markUpdateAvailable();
+      registration.addEventListener('updatefound', () => {
+        const installing = registration.installing;
+        if (!installing) return;
+        installing.addEventListener('statechange', () => {
+          if (
+            installing.state === 'installed' &&
+            navigator.serviceWorker.controller
+          ) {
+            markUpdateAvailable();
+          }
+        });
       });
     };
 
-    // 2. Notify the user to reload when a new service worker version activates
-    const handleControllerChange = () => {
-      toast('Yeni Sürüm Hazır!', {
-        description:
-          'Uygulama arka planda güncellendi. Yeni özellikleri kullanmak için lütfen sayfayı yenileyin.',
-        variant: 'accent',
-        timeout: 0, // Persistent toast that stays until dismissed or action clicked
-        actionProps: {
-          children: 'Yenile',
-          variant: 'primary',
-          size: 'sm',
-          onPress: () => window.location.reload()
-        }
-      });
+    void navigator.serviceWorker.ready.then(observeRegistration);
+    checkForUpdate();
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        checkForUpdate();
+        showUpdateToast();
+      }
     };
 
-    window.addEventListener('online', handleOnline);
+    const intervalId = window.setInterval(
+      checkForUpdate,
+      UPDATE_CHECK_INTERVAL_MS
+    );
+
+    window.addEventListener('online', checkForUpdate);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
     navigator.serviceWorker.addEventListener(
       'controllerchange',
-      handleControllerChange
+      markUpdateAvailable
     );
 
     return () => {
-      window.removeEventListener('online', handleOnline);
+      window.clearInterval(intervalId);
+      window.removeEventListener('online', checkForUpdate);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
       navigator.serviceWorker.removeEventListener(
         'controllerchange',
-        handleControllerChange
+        markUpdateAvailable
       );
     };
-  }, []);
+  }, [showUpdateToast]);
+
+  useEffect(() => {
+    showUpdateToast();
+  }, [isSaleProcessing, showUpdateToast]);
 };

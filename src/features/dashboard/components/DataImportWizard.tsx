@@ -15,10 +15,12 @@ import {
   Select,
   toast
 } from '@heroui/react';
-import { CheckCircle2, FileUp, Loader2 } from 'lucide-react';
+import { CheckCircle2, FileUp, Loader2, Search } from 'lucide-react';
 import { useAuthStore } from '@/features/auth';
 import { useInventoryStore } from '@/features/inventory';
 import { useCustomerStore } from '@/features/customers';
+import { useDebounce } from '@/shared/hooks/useDebounce';
+import { normalizeSearchText } from '@/shared/utils/searchText';
 import {
   IMPORT_FIELDS,
   MAX_IMPORT_DATA_ROWS,
@@ -67,20 +69,40 @@ export const DataImportWizard = ({
   const [isCloseWarningOpen, setIsCloseWarningOpen] = useState(false);
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
   const [previewPage, setPreviewPage] = useState(1);
+  const [previewSearch, setPreviewSearch] = useState('');
+  const debouncedPreviewSearch = useDebounce(previewSearch, 300);
   const rows = useMemo(
     () => (step >= 3 ? buildImportRows(rawRows, headers, mapping) : []),
     [rawRows, headers, mapping, step]
   );
+  const filteredPreviewRows = useMemo(() => {
+    const searchTerm = debouncedPreviewSearch.trim();
+    if (!searchTerm) return rows;
+
+    const normalizedSearchTerm = normalizeSearchText(searchTerm);
+    return rows.filter(row => {
+      const nameMatches = normalizeSearchText(String(row.name ?? '')).includes(
+        normalizedSearchTerm
+      );
+      const barcodeMatches =
+        type === 'inventory' && String(row.barcode ?? '').includes(searchTerm);
+
+      return nameMatches || barcodeMatches;
+    });
+  }, [debouncedPreviewSearch, rows, type]);
   const previewPageCount = Math.max(
     1,
-    Math.ceil(rows.length / PREVIEW_PAGE_SIZE)
+    Math.ceil(filteredPreviewRows.length / PREVIEW_PAGE_SIZE)
   );
   const previewStart = (previewPage - 1) * PREVIEW_PAGE_SIZE;
-  const previewRows = rows.slice(
+  const previewRows = filteredPreviewRows.slice(
     previewStart,
     previewStart + PREVIEW_PAGE_SIZE
   );
-  const previewEnd = Math.min(previewStart + PREVIEW_PAGE_SIZE, rows.length);
+  const previewEnd = Math.min(
+    previewStart + PREVIEW_PAGE_SIZE,
+    filteredPreviewRows.length
+  );
   const previewPageItems = useMemo(() => {
     const pages: Array<number | 'ellipsis'> = [];
 
@@ -102,6 +124,10 @@ export const DataImportWizard = ({
     pages.push(previewPageCount);
     return pages;
   }, [previewPage, previewPageCount]);
+
+  useEffect(() => {
+    setPreviewPage(1);
+  }, [debouncedPreviewSearch]);
 
   useEffect(() => {
     if (!busy) return;
@@ -626,14 +652,33 @@ export const DataImportWizard = ({
                         Önizleme
                       </p>
                       <p className="text-xs text-gray-500">
-                        {rows.length.toLocaleString('tr-TR')} kaydın{' '}
-                        {rows.length ? previewStart + 1 : 0}–
+                        {filteredPreviewRows.length.toLocaleString('tr-TR')}{' '}
+                        kayıt bulundu.{' '}
+                        {filteredPreviewRows.length ? previewStart + 1 : 0}–
                         {previewEnd.toLocaleString('tr-TR')} arası gösteriliyor.
                         İçe aktarma onaylandığında tüm kayıtlar işlenecek.
                       </p>
                     </div>
+                    <div className="relative">
+                      <Search
+                        className="absolute top-1/2 left-3 -translate-y-1/2 text-gray-400"
+                        size={16}
+                      />
+                      <Input
+                        type="text"
+                        fullWidth
+                        value={previewSearch}
+                        onChange={event => setPreviewSearch(event.target.value)}
+                        placeholder={
+                          type === 'inventory'
+                            ? 'Ürün adı veya barkod ara...'
+                            : 'Müşteri adı ara...'
+                        }
+                        className="pl-9"
+                      />
+                    </div>
                     <Separator variant="tertiary" />
-                    {rows.length > PREVIEW_PAGE_SIZE && (
+                    {filteredPreviewRows.length > PREVIEW_PAGE_SIZE && (
                       <Pagination className="flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                         <Pagination.Summary>
                           Sayfa {previewPage} / {previewPageCount}
@@ -691,15 +736,27 @@ export const DataImportWizard = ({
                           </tr>
                         </thead>
                         <tbody>
-                          {previewRows.map((row, index) => (
-                            <tr key={previewStart + index} className="border-t">
-                              {fields.map(([field]) => (
-                                <td key={field} className="p-2">
-                                  {String(row[field] ?? '')}
-                                </td>
-                              ))}
+                          {previewRows.length === 0 ? (
+                            <tr className="border-t">
+                              <td
+                                colSpan={fields.length}
+                                className="p-6 text-center text-gray-500">
+                                Aramanızla eşleşen kayıt bulunamadı.
+                              </td>
                             </tr>
-                          ))}
+                          ) : (
+                            previewRows.map((row, index) => (
+                              <tr
+                                key={previewStart + index}
+                                className="border-t">
+                                {fields.map(([field]) => (
+                                  <td key={field} className="p-2">
+                                    {String(row[field] ?? '')}
+                                  </td>
+                                ))}
+                              </tr>
+                            ))
+                          )}
                         </tbody>
                       </table>
                     </div>

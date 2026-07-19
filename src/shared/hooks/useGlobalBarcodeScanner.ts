@@ -2,6 +2,8 @@ import { useEffect, useRef } from 'react';
 
 interface UseGlobalBarcodeScannerProps {
   onScan: (barcode: string) => void;
+  /** Allows a scanner to work while a specific input (such as product search) is focused. */
+  shouldCaptureInput?: (element: HTMLElement) => boolean;
   // Maximum time between keystrokes to consider it a barcode scan (in milliseconds)
   // Scanners are usually very fast, often < 30ms per character.
   maxTimeBetweenKeystrokes?: number;
@@ -9,6 +11,7 @@ interface UseGlobalBarcodeScannerProps {
 
 export const useGlobalBarcodeScanner = ({
   onScan,
+  shouldCaptureInput,
   maxTimeBetweenKeystrokes = 50
 }: UseGlobalBarcodeScannerProps) => {
   const barcodeBuffer = useRef<string>('');
@@ -18,11 +21,15 @@ export const useGlobalBarcodeScanner = ({
     const handleKeyDown = (e: KeyboardEvent) => {
       // Ignore if the user is typing into an input or textarea
       const activeElement = document.activeElement;
-      if (
+      const isTypingTarget =
         activeElement &&
         (activeElement.tagName === 'INPUT' ||
           activeElement.tagName === 'TEXTAREA' ||
-          (activeElement as HTMLElement).isContentEditable)
+          (activeElement as HTMLElement).isContentEditable);
+
+      if (
+        isTypingTarget &&
+        !shouldCaptureInput?.(activeElement as HTMLElement)
       ) {
         return;
       }
@@ -79,5 +86,5 @@ export const useGlobalBarcodeScanner = ({
       document.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('mock-barcode-scan', handleMockScan);
     };
-  }, [onScan, maxTimeBetweenKeystrokes]);
+  }, [onScan, shouldCaptureInput, maxTimeBetweenKeystrokes]);
 };

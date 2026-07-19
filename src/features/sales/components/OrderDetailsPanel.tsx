@@ -137,7 +137,7 @@ export const OrderDetailsPanel: React.FC = () => {
                     </span>
                     <button
                       onClick={() => removeFromCart(item.inventoryId)}
-                      className="hover:text-danger p-1 text-gray-300 transition-colors"
+                      className="text-danger hover:bg-danger/10 rounded-lg p-1 transition-colors"
                       title="Ürünü Sil">
                       <Trash2 size={18} />
                     </button>

@@ -37,7 +37,7 @@ export const GlobalProductSearch: React.FC<Props> = ({ onOpenScanner }) => {
     addToCart({
       inventoryId: item.id,
       name: item.name,
-      price: item.price,
+      price: item.salePrice ?? item.price ?? 0,
       quantity: 1,
       barcode: item.barcode,
       imageUrl: item.imageUrl
@@ -48,35 +48,46 @@ export const GlobalProductSearch: React.FC<Props> = ({ onOpenScanner }) => {
 
   useGlobalBarcodeScanner({
     onScan: barcode => {
+      const item = useInventoryStore
+        .getState()
+        .items.find((i: any) => String(i.barcode) === barcode);
+
+      if (item) {
+        addToCart({
+          inventoryId: item.id,
+          name: item.name,
+          price: item.salePrice ?? item.price ?? 0,
+          quantity: 1,
+          barcode: item.barcode,
+          imageUrl: item.imageUrl
+        });
+        posthog.capture('barcode_scanner_item_added_to_cart', {
+          inventory_id: item.id,
+          barcode_length: barcode.length,
+          scan_mode: 'keyboard_scanner'
+        });
+        setQuery('');
+        setIsFocused(false);
+        playBarcodeFeedback();
+        toast.success(`${item.name} sepete eklendi`);
+        return;
+      }
+
       setQuery(barcode);
-      setIsFocused(true);
-
-      // Delay slightly so the user sees the barcode in the search bar
-      setTimeout(() => {
-        // Items reference might be slightly stale if destructured, but items array is generally stable here
-        const item = useInventoryStore
-          .getState()
-          .items.find((i: any) => String(i.barcode) === barcode);
-
-        if (item) {
-          handleSelectProduct(item);
-          playBarcodeFeedback();
-          toast.success(`${item.name} sepete eklendi`);
-        } else {
-          setIsFocused(false);
-          toast(`${barcode} sistemde kayıtlı değil`, {
-            variant: 'danger',
-            actionProps: {
-              children: 'Yeni Ürün Ekle',
-              onPress: () => {
-                setQuery('');
-                navigate(ROUTES.INVENTORY.NEW_WITH_BARCODE(barcode));
-              }
-            }
-          });
+      setIsFocused(false);
+      toast(`${barcode} sistemde kayıtlı değil`, {
+        variant: 'danger',
+        actionProps: {
+          children: 'Yeni Ürün Ekle',
+          onPress: () => {
+            setQuery('');
+            navigate(ROUTES.INVENTORY.NEW_WITH_BARCODE(barcode));
+          }
         }
-      }, 150);
-    }
+      });
+    },
+    shouldCaptureInput: element =>
+      Boolean(containerRef.current?.contains(element))
   });
 
   const normalizedQuery = normalizeSearchText(debouncedQuery);
