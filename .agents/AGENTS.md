@@ -68,6 +68,20 @@ Do not modify unrelated documentation.
 
 ---
 
+# User-Facing Changelog
+
+For every user-visible behavior or UX change, update
+`src/core/config/changelog.ts` as part of the same implementation task.
+
+- Do not add technical/developer notes or very small internal changes. Add only
+  behavior changes that users can notice and benefit from.
+- Group every qualifying change made on the same calendar day under one dated
+  changelog entry. Create a new entry only when the calendar date changes.
+- Write concise, plain Turkish from the user's perspective. Do not expose
+  implementation details, file names, or internal terminology.
+
+---
+
 # Development Rules
 
 Always:

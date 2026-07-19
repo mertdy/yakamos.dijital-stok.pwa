@@ -7,6 +7,7 @@ import { PWAInstallButton } from '@/shared/components/PWAInstallButton';
 import { LazyRouteErrorBoundary } from '@/shared/components/LazyRouteErrorBoundary';
 import { useAppHotkeys } from '@/shared/hooks/useAppHotkeys';
 import { useThemeMode } from '@/shared/hooks/useThemeMode';
+import { hasUnseenChangelog } from '@/core/config/changelog';
 import { useSecureLogout } from '@/shared/hooks/useSecureLogout';
 import { useSalesStore } from '@/features/sales';
 import { useConfirm } from '@/shared/contexts/ConfirmDialogContext';
@@ -35,7 +36,8 @@ import {
   LifeBuoy,
   ExternalLink,
   Moon,
-  Sun
+  Sun,
+  Sparkles
 } from 'lucide-react';
 import { useAuthStore } from '@/features/auth';
 import {
@@ -116,6 +118,7 @@ export const MainLayout: React.FC = () => {
   const { confirm } = useConfirm();
   const logout = useSecureLogout();
   const { isDark, setTheme } = useThemeMode();
+  const hasNewChangelog = hasUnseenChangelog();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isSidebarHovered, setIsSidebarHovered] = useState(false);
   const [newCompanyModalOpen, setNewCompanyModalOpen] = useState(false);
@@ -277,6 +280,10 @@ export const MainLayout: React.FC = () => {
 
     if (key === 'plans') {
       navigate(ROUTES.PRICING_PLANS);
+    }
+
+    if (key === 'changelog') {
+      navigate(ROUTES.CHANGELOG);
     }
 
     if (key === 'support') {
@@ -729,6 +736,18 @@ export const MainLayout: React.FC = () => {
                     <span className="flex items-center gap-2.5">
                       <CreditCard size={17} className="text-gray-500" />
                       <span>Planlar ve Fiyatlandırma</span>
+                    </span>
+                  </Dropdown.Item>
+                  <Dropdown.Item id="changelog" textValue="Yenilikler">
+                    <span className="flex w-full items-center gap-2.5">
+                      <Sparkles size={17} className="text-gray-500" />
+                      <span className="flex-1">Yenilikler</span>
+                      {hasNewChangelog && (
+                        <span
+                          className="bg-primary h-2 w-2 rounded-full"
+                          aria-label="Yeni yenilikler var"
+                        />
+                      )}
                     </span>
                   </Dropdown.Item>
                   <Dropdown.Item id="support" textValue="Destek">

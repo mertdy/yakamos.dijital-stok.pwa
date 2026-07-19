@@ -11,3 +11,6 @@ export const AccountSettingsView = lazy(() =>
     default: m.AccountSettingsView
   }))
 );
+export const ChangelogView = lazy(() =>
+  import('./views/ChangelogView').then(m => ({ default: m.ChangelogView }))
+);

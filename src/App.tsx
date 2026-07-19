@@ -12,7 +12,8 @@ import { useAuthStore } from '@/features/auth';
 import {
   LoginView,
   OnboardingView,
-  AccountSettingsView
+  AccountSettingsView,
+  ChangelogView
 } from '@/features/auth/routes';
 import {
   CustomerListView,
@@ -188,6 +189,7 @@ function App() {
             path={ROUTES.ACCOUNT_SETTINGS}
             element={<AccountSettingsView />}
           />
+          <Route path={ROUTES.CHANGELOG} element={<ChangelogView />} />
           <Route path={ROUTES.PRICING_PLANS} element={<PricingPlansView />} />
           <Route path={ROUTES.CUSTOMERS.INDEX} element={<CustomerListView />} />
           <Route

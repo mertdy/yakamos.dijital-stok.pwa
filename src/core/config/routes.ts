@@ -6,6 +6,7 @@ export const ROUTES = {
   SALES_HISTORY: '/satis-gecmisi',
   COMPANY_SETTINGS: '/sirket-ayarlari',
   ACCOUNT_SETTINGS: '/hesap-ayarlari',
+  CHANGELOG: '/yenilikler',
   PRICING_PLANS: '/planlar-ve-fiyatlandirma',
   CATEGORIES: '/kategoriler',
   CUSTOMERS: {
