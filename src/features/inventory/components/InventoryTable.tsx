@@ -31,7 +31,8 @@ import {
   Search,
   CheckSquare,
   Printer,
-  X
+  X,
+  Copy
 } from 'lucide-react';
 import {
   Button,
@@ -51,6 +52,7 @@ import { createInternalBarcode } from '../domain/labelPrinting';
 import { playBarcodeFeedback } from '@/shared/utils/barcodeFeedback';
 import { useDebounce } from '@/shared/hooks/useDebounce';
 import { normalizeSearchText } from '@/shared/utils/searchText';
+import { copyToClipboard } from '@/shared/utils/clipboard';
 
 const LabelPrintModal = lazy(() =>
   import('./LabelPrintModal').then(module => ({
@@ -215,9 +217,27 @@ export const InventoryTable: React.FC<InventoryTableProps> = ({
       }),
       columnHelper.accessor('barcode', {
         header: 'Barkod',
-        cell: info => (
-          <span className="text-gray-500">{info.getValue() || '-'}</span>
-        )
+        cell: info => {
+          const barcode = info.getValue();
+          return barcode ? (
+            <div
+              className="flex items-center gap-1 text-gray-500"
+              onClick={event => event.stopPropagation()}>
+              <span>{barcode}</span>
+              <button
+                type="button"
+                className="hover:text-primary focus-visible:ring-primary/40 inline-flex size-7 items-center justify-center rounded-md bg-transparent text-gray-400 transition-colors focus-visible:ring-2 focus-visible:outline-none"
+                aria-label={`${barcode} barkodunu kopyala`}
+                onClick={() =>
+                  void copyToClipboard(barcode, 'Barkod kopyalandı.')
+                }>
+                <Copy size={15} />
+              </button>
+            </div>
+          ) : (
+            <span className="text-gray-500">-</span>
+          );
+        }
       }),
       columnHelper.accessor('stock', {
         header: 'Stok',

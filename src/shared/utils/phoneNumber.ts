@@ -29,3 +29,13 @@ export const normalizePhoneNumber = (
   const phoneNumber = parsePhoneNumberFromString(value.trim(), defaultCountry);
   return phoneNumber?.isValid() ? phoneNumber.number : null;
 };
+
+export const formatPhoneNumber = (
+  value?: string,
+  defaultCountry: CountryCode = DEFAULT_PHONE_COUNTRY
+): string => {
+  if (!value?.trim()) return '';
+
+  const phoneNumber = parsePhoneNumberFromString(value.trim(), defaultCountry);
+  return phoneNumber?.isValid() ? phoneNumber.formatInternational() : value;
+};

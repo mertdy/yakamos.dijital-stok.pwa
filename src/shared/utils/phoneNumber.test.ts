@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   isValidPhoneNumber,
+  formatPhoneNumber,
   normalizePhoneNumber,
   optionalPhoneNumberSchema
 } from './phoneNumber';
@@ -12,6 +13,10 @@ describe('phoneNumber utilities', () => {
 
   it('keeps valid international numbers in E.164 format', () => {
     expect(normalizePhoneNumber('+1 (202) 555-0123')).toBe('+12025550123');
+  });
+
+  it('formats valid numbers for display', () => {
+    expect(formatPhoneNumber('+905551234567')).toBe('+90 555 123 45 67');
   });
 
   it('accepts empty optional values and rejects invalid numbers', () => {

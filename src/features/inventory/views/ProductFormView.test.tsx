@@ -12,7 +12,8 @@ vi.mock('lucide-react', () => ({
   Search: () => <div data-testid="icon-search" />,
   Image: () => <div data-testid="icon-image" />,
   Loader2: () => <div data-testid="icon-loader2" />,
-  Printer: () => <div data-testid="icon-printer" />
+  Printer: () => <div data-testid="icon-printer" />,
+  Copy: () => <div data-testid="icon-copy" />
 }));
 
 vi.mock('react-router-dom', () => ({
@@ -188,6 +189,42 @@ describe('ProductFormView', () => {
       expect(nameInput.value).toBe('Fanta Exotic');
       expect(screen.getByText('API Bilgileri Bulundu')).toBeInTheDocument();
       expect(screen.getByText(/Coca Cola Company/i)).toBeInTheDocument();
+    });
+  });
+
+  it('copies the barcode currently in the form', async () => {
+    Object.assign(navigator, {
+      clipboard: { writeText: vi.fn().mockResolvedValue(undefined) }
+    });
+    render(<ProductFormView />);
+
+    const barcodeInput = screen.getByPlaceholderText(
+      'Barkod okutun veya girin'
+    );
+    fireEvent.change(barcodeInput, { target: { value: '987654' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Barkodu kopyala' }));
+
+    await waitFor(() => {
+      expect(navigator.clipboard.writeText).toHaveBeenCalledWith('987654');
+      expect(toast.success).toHaveBeenCalledWith('Barkod kopyalandı.');
+    });
+  });
+
+  it('copies the product name currently in the form', async () => {
+    Object.assign(navigator, {
+      clipboard: { writeText: vi.fn().mockResolvedValue(undefined) }
+    });
+    render(<ProductFormView />);
+
+    const productNameInput = screen.getByPlaceholderText(
+      'Örn: Coca Cola 330ml'
+    );
+    fireEvent.change(productNameInput, { target: { value: 'Coca Cola' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Ürün adını kopyala' }));
+
+    await waitFor(() => {
+      expect(navigator.clipboard.writeText).toHaveBeenCalledWith('Coca Cola');
+      expect(toast.success).toHaveBeenCalledWith('Ürün adı kopyalandı.');
     });
   });
 

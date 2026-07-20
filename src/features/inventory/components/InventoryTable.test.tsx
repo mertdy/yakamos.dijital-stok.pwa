@@ -6,6 +6,11 @@ import { useConfirm } from '@/shared/contexts/ConfirmDialogContext';
 import { useNavigate } from 'react-router-dom';
 import { ROUTES } from '@/core/config/routes';
 
+const mocks = vi.hoisted(() => ({
+  toastSuccess: vi.fn(),
+  toastDanger: vi.fn()
+}));
+
 vi.mock('lucide-react', () => ({
   Edit: () => <div data-testid="icon-edit" />,
   Trash2: () => <div data-testid="icon-trash" />,
@@ -15,7 +20,8 @@ vi.mock('lucide-react', () => ({
   Search: () => <div data-testid="icon-search" />,
   Printer: () => <div data-testid="icon-printer" />,
   CheckSquare: () => <div data-testid="icon-check-square" />,
-  X: () => <div data-testid="icon-x" />
+  X: () => <div data-testid="icon-x" />,
+  Copy: () => <div data-testid="icon-copy" />
 }));
 
 vi.mock('react-router-dom', () => ({
@@ -63,7 +69,8 @@ vi.mock('@heroui/react', async importOriginal => {
 
   return {
     ...original,
-    Checkbox: MockCheckbox
+    Checkbox: MockCheckbox,
+    toast: { success: mocks.toastSuccess, danger: mocks.toastDanger }
   };
 });
 
@@ -142,6 +149,23 @@ describe('InventoryTable', () => {
     expect(screen.getByText('₺1.20')).toBeInTheDocument();
     expect(screen.getByText('₺0.80')).toBeInTheDocument();
     expect(screen.getByText('₺3.50')).toBeInTheDocument();
+  });
+
+  it('copies a barcode without opening the product form', async () => {
+    Object.assign(navigator, {
+      clipboard: { writeText: vi.fn().mockResolvedValue(undefined) }
+    });
+    render(<InventoryTable />);
+
+    fireEvent.click(
+      screen.getByRole('button', { name: '111 barkodunu kopyala' })
+    );
+
+    await waitFor(() => {
+      expect(navigator.clipboard.writeText).toHaveBeenCalledWith('111');
+      expect(mocks.toastSuccess).toHaveBeenCalledWith('Barkod kopyalandı.');
+    });
+    expect(navigateMock).not.toHaveBeenCalled();
   });
 
   it('filters items when search input is typed in', async () => {

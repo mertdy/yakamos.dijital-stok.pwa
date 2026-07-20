@@ -77,6 +77,7 @@ For every user-visible behavior or UX change, update
   behavior changes that users can notice and benefit from.
 - Group every qualifying change made on the same calendar day under one dated
   changelog entry. Create a new entry only when the calendar date changes.
+- Within each entry, list item types in `new`, `improved`, then `fixed` order.
 - Write concise, plain Turkish from the user's perspective. Do not expose
   implementation details, file names, or internal terminology.
 

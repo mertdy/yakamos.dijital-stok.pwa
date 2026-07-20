@@ -11,15 +11,27 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
     id: '2026-07-20',
     date: '20 Temmuz 2026',
-    title: 'Koyu tema iyileştirmeleri',
+    title: 'Kullanım iyileştirmeleri',
     items: [
       {
-        type: 'fixed',
-        text: 'Beklenmeyen hata ekranının koyu temadaki okunabilirliği iyileştirildi.'
+        type: 'new',
+        text: 'Kategori hiyerarşinizi ve durum bilgilerini Excel veya CSV olarak dışa aktarabilirsiniz.'
+      },
+      {
+        type: 'improved',
+        text: 'Müşteri telefon numaralarından arama, SMS, WhatsApp ve kopyalama işlemlerine hızlıca erişebilirsiniz.'
+      },
+      {
+        type: 'improved',
+        text: 'Envanter listesi ve ürün formundaki barkodları ile ürün adlarını tek tıkla kopyalayabilirsiniz.'
       },
       {
         type: 'improved',
         text: 'Etiket, dışa aktarma ve ekstre seçimleri ile tarih alanları daha erişilebilir hale getirildi.'
+      },
+      {
+        type: 'fixed',
+        text: 'Beklenmeyen hata ekranının koyu temadaki okunabilirliği iyileştirildi.'
       }
     ]
   },
@@ -34,12 +46,12 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
         text: 'İçe aktarma önizlemesinde ürün adı ve barkoda göre arama yapabilirsiniz.'
       },
       {
-        type: 'fixed',
-        text: 'Barkod cihazıyla okutulan ürünler doğrudan sepete eklenir.'
-      },
-      {
         type: 'improved',
         text: 'Satış tutarı ve sepet düzeni daha okunaklı hale getirildi.'
+      },
+      {
+        type: 'fixed',
+        text: 'Barkod cihazıyla okutulan ürünler doğrudan sepete eklenir.'
       }
     ]
   }

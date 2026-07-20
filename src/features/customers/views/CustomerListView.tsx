@@ -3,13 +3,14 @@ import { clsx } from 'clsx';
 import { useNavigate } from 'react-router-dom';
 import { ROUTES } from '@/core/config/routes';
 import { useCustomerStore } from '../store/useCustomerStore';
-import { Plus, Search, User, Phone, Edit2, Eye } from 'lucide-react';
+import { Plus, Search, User, Edit2, Eye } from 'lucide-react';
 import { Button, Input, Pagination } from '@heroui/react';
 import posthog from 'posthog-js';
 
 import { useAuthStore } from '@/features/auth/store/useAuthStore';
 import { useDebounce } from '@/shared/hooks/useDebounce';
 import { normalizeSearchText } from '@/shared/utils/searchText';
+import { PhoneContactMenu } from '@/shared/components/PhoneContactMenu';
 
 const CUSTOMER_PAGE_SIZE = 25;
 
@@ -222,17 +223,17 @@ export const CustomerListView: React.FC = () => {
                               <p className="font-semibold text-gray-900">
                                 {customer.name} {customer.surname || ''}
                               </p>
-                              <p className="mt-0.5 text-xs text-gray-500 sm:hidden">
-                                {customer.phone}
-                              </p>
+                              <div className="mt-0.5 text-xs text-gray-500 sm:hidden">
+                                <PhoneContactMenu phone={customer.phone} />
+                              </div>
                             </div>
                           </div>
                         </td>
                         <td className="hidden px-6 py-4 text-sm sm:table-cell">
-                          <div className="flex items-center gap-1.5 text-gray-600">
-                            <Phone size={14} className="text-gray-400" />
-                            {customer.phone || '-'}
-                          </div>
+                          <PhoneContactMenu
+                            phone={customer.phone}
+                            className="text-gray-600"
+                          />
                         </td>
                         <td className="px-6 py-4 text-right text-sm">
                           <span className="font-medium text-gray-900">

@@ -78,7 +78,11 @@ describe('CustomerDetailView', () => {
     renderComponent();
 
     expect(screen.getByText('Ali Yılmaz')).toBeInTheDocument();
-    expect(screen.getByText('5551234567')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', {
+        name: '+90 555 123 45 67 için iletişim seçeneklerini aç'
+      })
+    ).toBeInTheDocument();
 
     // Check debts
     expect(screen.getByText(/500,00/)).toBeInTheDocument();

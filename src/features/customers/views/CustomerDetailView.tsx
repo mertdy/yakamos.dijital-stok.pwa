@@ -5,7 +5,6 @@ import { ROUTES } from '@/core/config/routes';
 import {
   ArrowLeft,
   User,
-  Phone,
   Mail,
   CreditCard,
   Banknote,
@@ -27,6 +26,7 @@ import { ShareStatementModal } from '../components/ShareStatementModal';
 import { useAuthStore } from '@/features/auth';
 import posthog from 'posthog-js';
 import { normalizeWhatsAppPhone } from '../domain/customerStatement';
+import { PhoneContactMenu } from '@/shared/components/PhoneContactMenu';
 
 export const CustomerDetailView: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -143,10 +143,11 @@ export const CustomerDetailView: React.FC = () => {
             </div>
             <div className="min-w-0 flex-1 space-y-2">
               {customer.phone && (
-                <div className="flex items-center gap-2 text-sm text-gray-600">
-                  <Phone size={16} className="flex-shrink-0 text-gray-400" />
-                  <span className="truncate">{customer.phone}</span>
-                </div>
+                <PhoneContactMenu
+                  phone={customer.phone}
+                  className="truncate text-sm text-gray-600"
+                  iconClassName="flex-shrink-0"
+                />
               )}
               {customer.email && (
                 <div className="flex items-center gap-2 text-sm text-gray-600">

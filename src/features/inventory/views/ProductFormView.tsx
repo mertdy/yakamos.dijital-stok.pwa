@@ -41,11 +41,13 @@ import {
   Search,
   Image,
   Loader2,
-  Printer
+  Printer,
+  Copy
 } from 'lucide-react';
 import { toast } from '@heroui/react';
 import posthog from 'posthog-js';
 import { createInternalBarcode } from '../domain/labelPrinting';
+import { copyToClipboard } from '@/shared/utils/clipboard';
 
 const LabelPrintModal = lazy(() =>
   import('../components/LabelPrintModal').then(module => ({
@@ -127,6 +129,7 @@ export const ProductFormView: React.FC = () => {
   const usesCompanyThreshold = watch('useCompanyLowStockThreshold');
   const productName = watch('name');
   const salePrice = watch('salePrice');
+  const barcode = watch('barcode');
   const companyThreshold = getCompanyLowStockThreshold(activeCompany);
 
   useEffect(() => {
@@ -373,6 +376,23 @@ export const ProductFormView: React.FC = () => {
             label="Ürün Adı"
             isRequired
             placeholder="Örn: Coca Cola 330ml"
+            endContent={
+              <Button
+                type="button"
+                variant="tertiary"
+                isIconOnly
+                className="!size-10 !min-w-10 rounded-lg p-0"
+                onPress={() =>
+                  void copyToClipboard(
+                    productName || '',
+                    'Ürün adı kopyalandı.'
+                  )
+                }
+                isDisabled={!productName?.trim()}
+                aria-label="Ürün adını kopyala">
+                <Copy size={18} />
+              </Button>
+            }
           />
 
           <FormInput
@@ -381,10 +401,24 @@ export const ProductFormView: React.FC = () => {
             label="Barkod (Opsiyonel)"
             placeholder="Barkod okutun veya girin"
             endContent={
-              <>
+              <div className="flex shrink-0 items-center gap-1">
                 <Button
                   type="button"
-                  variant="secondary"
+                  variant="tertiary"
+                  isIconOnly
+                  className="!size-10 !min-w-10 rounded-lg p-0"
+                  onPress={() =>
+                    void copyToClipboard(barcode || '', 'Barkod kopyalandı.')
+                  }
+                  isDisabled={!barcode?.trim()}
+                  aria-label="Barkodu kopyala">
+                  <Copy size={18} />
+                </Button>
+                <Button
+                  type="button"
+                  variant="tertiary"
+                  isIconOnly
+                  className="!size-10 !min-w-10 rounded-lg p-0"
                   onPress={() => setIsScannerOpen(true)}
                   aria-label="Kamera ile barkod okut">
                   <ScanBarcode className="text-xl" />
@@ -392,6 +426,8 @@ export const ProductFormView: React.FC = () => {
                 <Button
                   type="button"
                   variant="tertiary"
+                  isIconOnly
+                  className="!size-10 !min-w-10 rounded-lg p-0"
                   onPress={() =>
                     searchProductByBarcode(getValues('barcode') || '')
                   }
@@ -403,7 +439,7 @@ export const ProductFormView: React.FC = () => {
                     <Search className="text-xl" />
                   )}
                 </Button>
-              </>
+              </div>
             }
           />
 

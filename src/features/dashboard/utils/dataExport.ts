@@ -8,6 +8,7 @@ export type ExportDataKey =
   | 'company'
   | 'team'
   | 'inventory'
+  | 'categories'
   | 'customers'
   | 'sales'
   | 'saleItems'
@@ -40,6 +41,11 @@ export const EXPORT_OPTIONS: {
     key: 'inventory',
     label: 'Envanter',
     description: 'Ürünler, stoklar ve fiyatlar'
+  },
+  {
+    key: 'categories',
+    label: 'Kategoriler',
+    description: 'Ürün kategori hiyerarşisi ve durumları'
   },
   {
     key: 'customers',
@@ -112,7 +118,8 @@ export const loadExportDatasets = async (
     salesSnap,
     paymentsSnap,
     membershipsSnap,
-    invitationsSnap
+    invitationsSnap,
+    categoriesSnap
   ] = await Promise.all([
     hasSelected('inventory') ? scoped('inventory') : emptySnapshot,
     hasSelected('customers', 'sales', 'payments', 'statements')
@@ -123,7 +130,8 @@ export const loadExportDatasets = async (
       : emptySnapshot,
     hasSelected('payments', 'statements') ? scoped('payments') : emptySnapshot,
     hasSelected('team') ? scoped('memberships') : emptySnapshot,
-    hasSelected('team') ? scoped('invitations') : emptySnapshot
+    hasSelected('team') ? scoped('invitations') : emptySnapshot,
+    hasSelected('categories') ? scoped('productCategories') : emptySnapshot
   ]);
   const toRecord = (snapshot: { id: string; data: () => unknown }) =>
     ({
@@ -134,6 +142,7 @@ export const loadExportDatasets = async (
   const customers = customersSnap.docs.map(toRecord);
   const sales = salesSnap.docs.map(toRecord);
   const payments = paymentsSnap.docs.map(toRecord);
+  const categories = categoriesSnap.docs.map(toRecord);
   const customerNames = new Map(
     customers.map(customer => [
       customer.id,
@@ -206,6 +215,27 @@ export const loadExportDatasets = async (
         Açıklama: item.description ?? '',
         'Güncellenme Tarihi': formatDate(item.updatedAt)
       }))
+    },
+    {
+      key: 'categories',
+      label: 'Kategoriler',
+      fileName: 'kategoriler',
+      rows: categories.map(category => {
+        const parent = category.parentId
+          ? categories.find(item => item.id === category.parentId)
+          : null;
+        return {
+          ID: category.id,
+          'Kategori Adı': category.name || '',
+          'Üst Kategori ID': category.parentId || '',
+          'Üst Kategori': parent?.name || '',
+          Seviye: category.parentId ? 'Alt kategori' : 'Ana kategori',
+          Durum: category.isActive !== false ? 'Aktif' : 'Pasif',
+          'Sıra Numarası': category.sortOrder ?? 0,
+          'Oluşturulma Tarihi': formatDate(category.createdAt),
+          'Güncellenme Tarihi': formatDate(category.updatedAt)
+        };
+      })
     },
     {
       key: 'customers',
