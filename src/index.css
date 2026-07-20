@@ -49,6 +49,10 @@ body {
 html.dark {
   color-scheme: dark;
   --color-background: #111827;
+  --field-border-width: 1px;
+  --field-border: #475569;
+  --field-border-hover: #64748b;
+  --field-border-focus: #60a5fa;
 }
 
 html.dark body,

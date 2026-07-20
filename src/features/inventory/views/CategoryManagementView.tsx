@@ -262,20 +262,20 @@ export const CategoryManagementView = () => {
               <Package size={17} className="text-primary" />
               Bu kategorideki ürünler
             </div>
-            <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+            <div className="divide-y divide-gray-100 overflow-hidden rounded-xl border border-gray-100 bg-white">
               {products.map(product => (
                 <Button
                   key={product.id}
-                  variant="secondary"
+                  variant="ghost"
                   onPress={() => navigate(ROUTES.INVENTORY.EDIT(product.id))}
-                  className="h-auto min-h-0 justify-start px-3 py-3 text-left">
+                  className="h-auto min-h-0 w-full justify-start rounded-none px-4 py-3 text-left hover:bg-gray-50">
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-sm font-semibold text-gray-800">
                       {product.name}
                     </span>
-                    <span className="mt-0.5 block text-xs font-normal text-gray-500">
-                      Stok: {product.stock} {product.unit ?? 'adet'}
-                    </span>
+                  </span>
+                  <span className="ml-4 shrink-0 text-xs font-normal text-gray-500">
+                    Stok: {product.stock} {product.unit ?? 'adet'}
                   </span>
                 </Button>
               ))}

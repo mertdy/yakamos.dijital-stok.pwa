@@ -101,6 +101,15 @@ const JOB_TITLE_OPTIONS: {
   { id: 'MANAGER', label: 'Müdür' }
 ];
 
+const JOB_TITLE_PERMISSION_PRESETS: Record<
+  Exclude<JobTitleOption, 'OTHER'>,
+  PermissionKey[]
+> = {
+  EMPLOYEE: [],
+  CASHIER: ['MANAGE_CUSTOMERS', 'TAKE_PAYMENT'],
+  MANAGER: AVAILABLE_PERMISSIONS.map(permission => permission.key)
+};
+
 const getJobTitle = (option: JobTitleOption, customTitle: string): string =>
   option === 'OTHER'
     ? customTitle.trim()
@@ -272,6 +281,13 @@ export const CompanySettingsView = () => {
     setSelectedInvitePerms(prev =>
       prev.includes(perm) ? prev.filter(p => p !== perm) : [...prev, perm]
     );
+  };
+
+  const handleInviteJobTitleChange = (option: JobTitleOption) => {
+    setInviteJobTitleOption(option);
+    if (option !== 'OTHER') {
+      setSelectedInvitePerms(JOB_TITLE_PERMISSION_PRESETS[option]);
+    }
   };
 
   const handleToggleEditPerm = (perm: PermissionKey) => {
@@ -448,20 +464,20 @@ export const CompanySettingsView = () => {
           {/* Pending Invitations list */}
           {invitations.length > 0 && (
             <div className="mb-5 space-y-3">
-              <h4 className="text-xs font-bold tracking-wider text-orange-600 uppercase">
+              <h4 className="text-xs font-bold tracking-wider text-orange-600 uppercase dark:!text-amber-400">
                 Bekleyen Davetiyeler ({invitations.length})
               </h4>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 {invitations.map(invite => (
                   <Card
                     key={invite.id}
-                    className="relative flex flex-col items-start rounded-2xl border border-orange-200/50 bg-orange-50/30 p-4 text-left">
+                    className="relative flex flex-col items-start rounded-2xl border border-orange-200/50 bg-orange-50/30 p-4 text-left dark:!border-amber-400/40 dark:!bg-slate-800">
                     <div className="min-w-0 space-y-2 pr-8">
                       <div>
-                        <p className="truncate text-sm font-bold text-gray-800">
+                        <p className="truncate text-sm font-bold text-gray-800 dark:!text-slate-100">
                           {invite.employeeName || 'Çalışan adı belirtilmedi'}
                         </p>
-                        <p className="mt-0.5 flex items-center gap-1.5 truncate text-xs text-gray-600">
+                        <p className="mt-0.5 flex items-center gap-1.5 truncate text-xs text-gray-600 dark:!text-slate-300">
                           <Mail size={14} className="text-orange-500" />
                           {invite.email}
                         </p>
@@ -470,7 +486,7 @@ export const CompanySettingsView = () => {
                         <span className="bg-primary/10 text-primary rounded-full px-2 py-0.5 text-[10px] font-bold">
                           {invite.jobTitle || 'Çalışan'}
                         </span>
-                        <span className="rounded-full bg-orange-100/60 px-2 py-0.5 text-[10px] font-bold text-orange-700">
+                        <span className="rounded-full bg-orange-100/60 px-2 py-0.5 text-[10px] font-bold text-orange-700 dark:!bg-amber-400/15 dark:!text-amber-300">
                           Davet Edildi
                         </span>
                       </div>
@@ -483,7 +499,7 @@ export const CompanySettingsView = () => {
                           invite.permissions.map(permission => (
                             <span
                               key={permission}
-                              className="rounded border border-orange-200/70 bg-white/70 px-2 py-0.5 text-[10px] font-bold text-gray-600">
+                              className="rounded border border-orange-200/70 bg-white/70 px-2 py-0.5 text-[10px] font-bold text-gray-600 dark:!border-slate-600 dark:!bg-slate-700 dark:!text-slate-200">
                               {PERMISSION_META[permission].shortLabel}
                             </span>
                           ))
@@ -689,7 +705,7 @@ export const CompanySettingsView = () => {
                       fullWidth
                       selectedKey={inviteJobTitleOption}
                       onSelectionChange={value =>
-                        setInviteJobTitleOption(value as JobTitleOption)
+                        handleInviteJobTitleChange(value as JobTitleOption)
                       }>
                       <Label>Ünvan</Label>
                       <Select.Trigger>

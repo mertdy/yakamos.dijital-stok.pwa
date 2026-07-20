@@ -20,6 +20,22 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
       {
         type: 'improved',
         text: 'Hızlı ekle menüsü yüklenirken ürünler hazır olana kadar yükleme durumunu görebilirsiniz.'
+      },
+      {
+        type: 'improved',
+        text: 'Koyu temada form alanlarının çerçevelerini daha belirgin görebilirsiniz.'
+      },
+      {
+        type: 'improved',
+        text: 'Kategorilerdeki ürünleri daha kompakt bir liste halinde görüntüleyebilirsiniz.'
+      },
+      {
+        type: 'improved',
+        text: 'Çalışan davetinde seçtiğiniz hazır ünvana uygun yetkiler otomatik olarak belirlenir.'
+      },
+      {
+        type: 'fixed',
+        text: 'Koyu temada bekleyen davetiyelerin bilgi ve yetki etiketleri daha okunaklı hale getirildi.'
       }
     ]
   },
