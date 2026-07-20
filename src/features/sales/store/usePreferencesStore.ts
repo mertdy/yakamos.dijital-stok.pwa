@@ -11,6 +11,7 @@ interface PreferencesState {
   companyQuickAddCompanyId: string | null;
   quickAddScope: 'personal' | 'company';
   isLoading: boolean;
+  isCompanyQuickAddLoading: boolean;
   loadPreferences: (companyId?: string | null) => Promise<void>;
   loadCompanyQuickAddItems: (companyId?: string | null) => Promise<void>;
   saveQuickAddItems: (items: string[]) => Promise<void>;
@@ -30,6 +31,7 @@ export const usePreferencesStore = getSingletonStore('preferences', () => {
     companyQuickAddCompanyId: null,
     quickAddScope: 'personal',
     isLoading: false,
+    isCompanyQuickAddLoading: false,
 
     loadPreferences: async requestedCompanyId => {
       const requestId = ++latestLoadRequest;
@@ -123,11 +125,19 @@ export const usePreferencesStore = getSingletonStore('preferences', () => {
       const companyId =
         requestedCompanyId ?? useAuthStore.getState().profile?.activeCompanyId;
       if (!companyId) {
-        set({ companyQuickAddItems: [], companyQuickAddCompanyId: null });
+        set({
+          companyQuickAddItems: [],
+          companyQuickAddCompanyId: null,
+          isCompanyQuickAddLoading: false
+        });
         return;
       }
 
-      set({ companyQuickAddItems: [], companyQuickAddCompanyId: companyId });
+      set({
+        companyQuickAddItems: [],
+        companyQuickAddCompanyId: companyId,
+        isCompanyQuickAddLoading: true
+      });
       try {
         const snapshot = await getDoc(doc(db, 'companyPreferences', companyId));
         if (useAuthStore.getState().profile?.activeCompanyId !== companyId) {
@@ -141,6 +151,10 @@ export const usePreferencesStore = getSingletonStore('preferences', () => {
         });
       } catch (error) {
         console.error('Error loading company quick add items:', error);
+      } finally {
+        if (useAuthStore.getState().profile?.activeCompanyId === companyId) {
+          set({ isCompanyQuickAddLoading: false });
+        }
       }
     },
 
@@ -245,7 +259,9 @@ export const usePreferencesStore = getSingletonStore('preferences', () => {
         quickAddCompanyId: null,
         companyQuickAddItems: [],
         companyQuickAddCompanyId: null,
-        quickAddScope: 'personal'
+        quickAddScope: 'personal',
+        isLoading: false,
+        isCompanyQuickAddLoading: false
       });
     }
   }));

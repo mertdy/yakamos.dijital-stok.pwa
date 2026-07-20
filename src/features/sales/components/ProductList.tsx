@@ -1,6 +1,6 @@
 import React, { useMemo, useEffect, useState } from 'react';
 import { Package, Settings2 } from 'lucide-react';
-import { Tabs } from '@heroui/react';
+import { Spinner, Tabs } from '@heroui/react';
 import { useInventoryStore } from '@/features/inventory';
 import { useSalesStore } from '../store/useSalesStore';
 import { usePreferencesStore } from '../store/usePreferencesStore';
@@ -16,6 +16,8 @@ export const ProductList: React.FC = () => {
     companyQuickAddItems,
     companyQuickAddCompanyId,
     quickAddScope,
+    isLoading,
+    isCompanyQuickAddLoading,
     loadPreferences,
     loadCompanyQuickAddItems,
     saveQuickAddScope
@@ -54,6 +56,11 @@ export const ProductList: React.FC = () => {
   const canManageCompanyQuickAdd =
     activeMembership?.role === 'OWNER' ||
     activeMembership?.permissions.includes('MANAGE_COMPANY_QUICK_ADD');
+  const isQuickAddLoading =
+    Boolean(activeCompanyId) &&
+    (quickAddScope === 'company'
+      ? isCompanyQuickAddLoading || companyQuickAddCompanyId !== activeCompanyId
+      : isLoading || quickAddCompanyId !== activeCompanyId);
 
   return (
     <div className="flex h-full flex-col overflow-hidden rounded-3xl border border-gray-100 bg-white shadow-sm">
@@ -75,7 +82,12 @@ export const ProductList: React.FC = () => {
 
       {/* Grid */}
       <div className="flex-1 overflow-y-auto p-3">
-        {shortcutItems.length === 0 ? (
+        {isQuickAddLoading ? (
+          <div className="flex h-full flex-col items-center justify-center gap-3 text-gray-400">
+            <Spinner size="sm" />
+            <p className="text-sm font-medium">Hızlı menü yükleniyor...</p>
+          </div>
+        ) : shortcutItems.length === 0 ? (
           <div className="flex h-full flex-col items-center justify-center gap-3 text-gray-400">
             <Package className="text-5xl opacity-20" />
             <p className="text-sm font-medium">Kısayol bulunmuyor</p>

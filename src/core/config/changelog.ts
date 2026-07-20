@@ -9,6 +9,21 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-07-21',
+    date: '21 Temmuz 2026',
+    title: 'Kullanım iyileştirmeleri',
+    items: [
+      {
+        type: 'improved',
+        text: 'Hızlı ekle menüsünü düzenlerken ürün aramasını sabit tutup iki listeyi ayrı ayrı kaydırabilirsiniz.'
+      },
+      {
+        type: 'improved',
+        text: 'Hızlı ekle menüsü yüklenirken ürünler hazır olana kadar yükleme durumunu görebilirsiniz.'
+      }
+    ]
+  },
+  {
     id: '2026-07-20',
     date: '20 Temmuz 2026',
     title: 'Kullanım iyileştirmeleri',

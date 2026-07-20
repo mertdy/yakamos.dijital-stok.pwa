@@ -100,7 +100,8 @@ const SortableItem = ({
       </div>
       <button
         onClick={() => onRemove(id)}
-        className="hover:text-danger hover:bg-danger/10 rounded-lg p-2 text-gray-400 transition-colors">
+        className="bg-danger/10 text-danger hover:bg-danger/20 rounded-lg p-2 transition-colors"
+        aria-label={`${item?.name || 'Ürün'} kısayolunu kaldır`}>
         <Minus size={16} />
       </button>
     </div>
@@ -206,7 +207,7 @@ export const QuickAddEditModal: React.FC<Props> = ({
       }}>
       <button style={{ display: 'none' }} aria-hidden="true" tabIndex={-1} />
       <Modal.Backdrop>
-        <Modal.Container>
+        <Modal.Container scroll="inside">
           <Modal.Dialog className="relative flex h-[80vh] w-full max-w-5xl flex-col overflow-hidden rounded-3xl bg-white shadow-xl outline-none">
             <Modal.CloseTrigger />
             <Modal.Header>
@@ -222,7 +223,7 @@ export const QuickAddEditModal: React.FC<Props> = ({
               </div>
             </Modal.Header>
 
-            <Modal.Body>
+            <Modal.Body className="flex min-h-0 flex-1 overflow-hidden p-0">
               <div className="flex min-h-0 flex-1 flex-row overflow-hidden bg-gray-50/30">
                 {/* Left Panel: Search & Add */}
                 <div className="flex min-h-0 w-1/2 flex-col border-r border-gray-200 bg-white">
@@ -302,7 +303,7 @@ export const QuickAddEditModal: React.FC<Props> = ({
 
                 {/* Right Panel: Current Shortcuts & Sort */}
                 <div className="flex min-h-0 w-1/2 flex-col">
-                  <div className="flex items-center justify-between border-b border-gray-200 bg-gray-50 p-4">
+                  <div className="flex items-center justify-between border-b border-gray-200 bg-gray-50 p-5">
                     <h3 className="font-semibold text-gray-700">
                       Seçili Kısayollar ({localQuickAddItems.length})
                     </h3>
