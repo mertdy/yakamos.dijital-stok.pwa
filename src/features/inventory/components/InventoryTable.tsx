@@ -29,6 +29,7 @@ import {
   ArrowUp,
   ArrowDown,
   CheckSquare,
+  ListChecks,
   Printer,
   X,
   Copy
@@ -575,21 +576,18 @@ export const InventoryTable: React.FC<InventoryTableProps> = ({
                     variant="tertiary"
                     isIconOnly
                     size="sm"
-                    onPress={() =>
-                      void openLabelPrint(
-                        filteredItems.filter(item =>
-                          selectedIds.includes(item.id)
-                        )
-                      )
-                    }
-                    aria-label="Seçili Ürünlere Etiket Bas">
-                    <Printer size={18} />
+                    onPress={() => {
+                      table.toggleAllPageRowsSelected(true);
+                    }}
+                    aria-label="Bu Sayfadakileri Seç">
+                    <CheckSquare size={18} />
                   </Button>
                   <Tooltip.Content showArrow>
                     <Tooltip.Arrow />
-                    Seçili ürünlere etiket bas
+                    Bu sayfadakileri seç
                   </Tooltip.Content>
                 </Tooltip>
+
                 <Tooltip delay={0} closeDelay={0}>
                   <Button
                     variant="tertiary"
@@ -602,12 +600,12 @@ export const InventoryTable: React.FC<InventoryTableProps> = ({
                       });
                       setRowSelection(newSelection);
                     }}
-                    aria-label="Tümünü Seç">
-                    <CheckSquare size={18} />
+                    aria-label="Filtrelenenlerin Tümünü Seç">
+                    <ListChecks size={18} />
                   </Button>
                   <Tooltip.Content showArrow>
                     <Tooltip.Arrow />
-                    Tümünü Seç ({filteredItems.length})
+                    Filtrelenenlerin tümünü seç ({filteredItems.length})
                   </Tooltip.Content>
                 </Tooltip>
 
@@ -623,6 +621,27 @@ export const InventoryTable: React.FC<InventoryTableProps> = ({
                   <Tooltip.Content showArrow>
                     <Tooltip.Arrow />
                     Seçimi Temizle
+                  </Tooltip.Content>
+                </Tooltip>
+
+                <Tooltip delay={0} closeDelay={0}>
+                  <Button
+                    variant="tertiary"
+                    isIconOnly
+                    size="sm"
+                    onPress={() =>
+                      void openLabelPrint(
+                        filteredItems.filter(item =>
+                          selectedIds.includes(item.id)
+                        )
+                      )
+                    }
+                    aria-label="Seçili Ürünlere Etiket Bas">
+                    <Printer size={18} />
+                  </Button>
+                  <Tooltip.Content showArrow>
+                    <Tooltip.Arrow />
+                    Seçili ürünlere etiket bas
                   </Tooltip.Content>
                 </Tooltip>
 

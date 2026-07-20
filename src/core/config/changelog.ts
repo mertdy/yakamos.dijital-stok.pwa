@@ -19,6 +19,10 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
       },
       {
         type: 'new',
+        text: 'Envanterde filtrelediğiniz tüm ürünleri, sayfalama dışındaki kayıtlar dahil, tek işlemle seçebilirsiniz.'
+      },
+      {
+        type: 'new',
         text: 'Kategori hiyerarşinizi ve durum bilgilerini Excel veya CSV olarak dışa aktarabilirsiniz.'
       },
       {

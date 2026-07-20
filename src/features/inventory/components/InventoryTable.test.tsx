@@ -20,6 +20,7 @@ vi.mock('lucide-react', () => ({
   Search: () => <div data-testid="icon-search" />,
   Printer: () => <div data-testid="icon-printer" />,
   CheckSquare: () => <div data-testid="icon-check-square" />,
+  ListChecks: () => <div data-testid="icon-list-checks" />,
   X: () => <div data-testid="icon-x" />,
   Copy: () => <div data-testid="icon-copy" />,
   Filter: () => <div data-testid="icon-filter" />
@@ -292,12 +293,41 @@ describe('InventoryTable', () => {
         screen.getByRole('button', { name: 'Seçimleri Sil' })
       ).toBeInTheDocument();
       expect(
-        screen.getByRole('button', { name: 'Tümünü Seç' })
+        screen.getByRole('button', { name: 'Bu Sayfadakileri Seç' })
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', { name: 'Filtrelenenlerin Tümünü Seç' })
       ).toBeInTheDocument();
       expect(
         screen.getByRole('button', { name: 'Seçimi Temizle' })
       ).toBeInTheDocument();
     });
+  });
+
+  it('selects every filtered item, including items outside the current page', async () => {
+    const manyItems = Array.from({ length: 30 }, (_, index) => ({
+      id: String(index + 1),
+      name: `Ürün ${index + 1}`,
+      barcode: String(1000 + index),
+      stock: 10,
+      price: 5
+    }));
+    mockUseInventoryStore.mockReturnValue({
+      items: manyItems,
+      deleteItem: deleteItemMock,
+      deleteItems: deleteItemsMock,
+      updateItem: updateItemMock
+    });
+    render(<InventoryTable />);
+
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Ürün 1 seç' }));
+    fireEvent.click(
+      await screen.findByRole('button', {
+        name: 'Filtrelenenlerin Tümünü Seç'
+      })
+    );
+
+    expect(await screen.findByText('30 ürün seçildi')).toBeInTheDocument();
   });
 
   it('bulk deletes selected items when confirmed', async () => {
