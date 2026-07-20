@@ -114,6 +114,18 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
         text: 'Fiyatını görüntülediğiniz ürünü inceleyebilir veya tek adet olarak sepete ekleyebilirsiniz.'
       },
       {
+        type: 'improved',
+        text: 'Tema, hızlı ekleme sekmesi ve barkod okutma modu tercihleriniz hesabınızla hatırlanır.'
+      },
+      {
+        type: 'improved',
+        text: 'Giriş ekranında koyu temayı daha rahat kullanabilir ve tema tercihinizi değiştirebilirsiniz.'
+      },
+      {
+        type: 'improved',
+        text: 'Giriş ekranındaki uygulama logosu yenilendi.'
+      },
+      {
         type: 'fixed',
         text: 'Beklenmeyen hata ekranının koyu temadaki okunabilirliği iyileştirildi.'
       },
@@ -132,6 +144,10 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
       {
         type: 'fixed',
         text: 'Barkod okutma modunu değiştirdikten sonra ürünler doğru işleme aktarılır.'
+      },
+      {
+        type: 'fixed',
+        text: 'Giriş ekranındaki tema anahtarının çalışması düzeltildi.'
       }
     ]
   },

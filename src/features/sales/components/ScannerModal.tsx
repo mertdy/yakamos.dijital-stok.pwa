@@ -7,6 +7,8 @@ import {
   LensFacing
 } from '@capacitor-mlkit/barcode-scanning';
 import { Capacitor } from '@capacitor/core';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { db, auth } from '@/core/firebase/config';
 import { useInventoryStore, type InventoryItem } from '@/features/inventory';
 import { toast, Button, Modal, Tabs, Tooltip } from '@heroui/react';
 import { useSalesStore } from '../store/useSalesStore';
@@ -519,6 +521,22 @@ const ScannerModal: React.FC<ScannerModalProps> = ({
       setScannerError(null);
       setIsCameraAccessRequested(false);
 
+      const user = auth.currentUser;
+      if (user) {
+        void getDoc(doc(db, 'userPreferences', user.uid)).then(snapshot => {
+          const savedMode = snapshot.data()?.scannerMode;
+          if (
+            savedMode === 'single' ||
+            savedMode === 'multiple' ||
+            savedMode === 'price'
+          ) {
+            scanModeRef.current = savedMode;
+            setScanMode(savedMode);
+            localStorage.setItem(SCAN_MODE_STORAGE_KEY, savedMode);
+          }
+        });
+      }
+
       void BarcodeScanner.checkPermissions()
         .then(({ camera }) => {
           if (!isCancelled && (camera === 'granted' || camera === 'limited')) {
@@ -559,6 +577,14 @@ const ScannerModal: React.FC<ScannerModalProps> = ({
     setScanMode(mode);
     setPriceViewedItem(null);
     localStorage.setItem(SCAN_MODE_STORAGE_KEY, mode);
+    const user = auth.currentUser;
+    if (user) {
+      void setDoc(
+        doc(db, 'userPreferences', user.uid),
+        { scannerMode: mode },
+        { merge: true }
+      );
+    }
   };
 
   const requestCameraAccess = () => {

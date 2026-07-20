@@ -9,11 +9,13 @@ interface PreferencesState {
   quickAddCompanyId: string | null;
   companyQuickAddItems: string[];
   companyQuickAddCompanyId: string | null;
+  quickAddScope: 'personal' | 'company';
   isLoading: boolean;
   loadPreferences: (companyId?: string | null) => Promise<void>;
   loadCompanyQuickAddItems: (companyId?: string | null) => Promise<void>;
   saveQuickAddItems: (items: string[]) => Promise<void>;
   saveCompanyQuickAddItems: (items: string[]) => Promise<void>;
+  saveQuickAddScope: (scope: 'personal' | 'company') => Promise<void>;
   removeQuickAddItems: (itemIds: string[]) => Promise<void>;
   clearPreferences: () => void;
 }
@@ -26,6 +28,7 @@ export const usePreferencesStore = getSingletonStore('preferences', () => {
     quickAddCompanyId: null,
     companyQuickAddItems: [],
     companyQuickAddCompanyId: null,
+    quickAddScope: 'personal',
     isLoading: false,
 
     loadPreferences: async requestedCompanyId => {
@@ -64,13 +67,18 @@ export const usePreferencesStore = getSingletonStore('preferences', () => {
         if (docSnap.exists()) {
           const data = docSnap.data();
           const quickAddItemsByCompany = data.quickAddItemsByCompany;
+          const quickAddScope =
+            data.quickAddScopeByCompany?.[companyId] === 'company'
+              ? 'company'
+              : 'personal';
 
           if (quickAddItemsByCompany) {
             if (isCurrentRequest()) {
               set({
                 quickAddItems: Array.isArray(quickAddItemsByCompany[companyId])
                   ? quickAddItemsByCompany[companyId]
-                  : []
+                  : [],
+                quickAddScope
               });
             }
             return;
@@ -191,6 +199,18 @@ export const usePreferencesStore = getSingletonStore('preferences', () => {
       }
     },
 
+    saveQuickAddScope: async scope => {
+      const user = auth.currentUser;
+      const companyId = useAuthStore.getState().profile?.activeCompanyId;
+      if (!user || !companyId) return;
+      set({ quickAddScope: scope });
+      await setDoc(
+        doc(db, 'userPreferences', user.uid),
+        { quickAddScopeByCompany: { [companyId]: scope } },
+        { merge: true }
+      );
+    },
+
     removeQuickAddItems: async itemIds => {
       const user = auth.currentUser;
       const companyId = useAuthStore.getState().profile?.activeCompanyId;
@@ -224,7 +244,8 @@ export const usePreferencesStore = getSingletonStore('preferences', () => {
         quickAddItems: [],
         quickAddCompanyId: null,
         companyQuickAddItems: [],
-        companyQuickAddCompanyId: null
+        companyQuickAddCompanyId: null,
+        quickAddScope: 'personal'
       });
     }
   }));

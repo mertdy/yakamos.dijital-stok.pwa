@@ -4,8 +4,9 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod/v4';
 import { useAuthStore } from '../store/useAuthStore';
-import { Package, Eye, EyeOff, ArrowLeft, CheckCircle } from 'lucide-react';
-import { Button, Input, Label } from '@heroui/react';
+import { Eye, EyeOff, ArrowLeft, CheckCircle, Moon, Sun } from 'lucide-react';
+import { Button, Input, Label, Switch } from '@heroui/react';
+import { useThemeMode } from '@/shared/hooks/useThemeMode';
 
 // ─── Schemas ─────────────────────────────────────────────────────────────────
 
@@ -473,6 +474,7 @@ export const LoginView: React.FC = () => {
   const [activeTab, setActiveTab] = useState<ActiveTab>('login');
   const [showForgot, setShowForgot] = useState(false);
   const { clearError } = useAuthStore();
+  const { isDark, setTheme } = useThemeMode();
 
   const handleTabChange = (tab: ActiveTab) => {
     clearError();
@@ -491,13 +493,34 @@ export const LoginView: React.FC = () => {
   };
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-blue-50 via-white to-indigo-50 p-4">
-      <div className="animate-appearance-in flex w-full max-w-md flex-col rounded-[32px] bg-white p-8 shadow-xl ring-1 ring-gray-100">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-blue-50 via-white to-indigo-50 p-4 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
+      <div className="animate-appearance-in relative flex w-full max-w-md flex-col rounded-[32px] bg-white p-8 shadow-xl ring-1 ring-gray-100 dark:bg-slate-800 dark:ring-slate-700">
+        <div className="absolute top-5 right-5">
+          <Switch
+            size="lg"
+            isSelected={isDark}
+            onChange={isSelected => setTheme(isSelected ? 'dark' : 'light')}
+            aria-label="Koyu tema">
+            {({ isSelected }) => (
+              <Switch.Content className="gap-0">
+                <Switch.Control>
+                  <Switch.Thumb>
+                    <Switch.Icon>
+                      {isSelected ? <Sun size={13} /> : <Moon size={13} />}
+                    </Switch.Icon>
+                  </Switch.Thumb>
+                </Switch.Control>
+              </Switch.Content>
+            )}
+          </Switch>
+        </div>
         {/* Logo */}
         <div className="mb-6 flex flex-col items-center text-center">
-          <div className="bg-primary/10 text-primary mb-4 flex h-16 w-16 items-center justify-center rounded-3xl shadow-inner">
-            <Package size={32} />
-          </div>
+          <img
+            src="/favicon.svg"
+            alt="Dijital Stok"
+            className="mb-4 h-16 w-16"
+          />
           <h1 className="text-2xl font-extrabold tracking-tight text-gray-900">
             Dijital Stok
           </h1>
@@ -515,7 +538,7 @@ export const LoginView: React.FC = () => {
             <div
               role="tablist"
               aria-label="Giriş yöntemi seçimi"
-              className="mb-6 flex rounded-2xl bg-gray-100 p-1">
+              className="mb-6 flex rounded-2xl bg-gray-100 p-1 dark:bg-slate-700">
               <button
                 type="button"
                 role="tab"
@@ -526,7 +549,7 @@ export const LoginView: React.FC = () => {
                 className={clsx(
                   'flex-1 rounded-xl py-2.5 text-sm font-semibold transition-all',
                   activeTab === 'login'
-                    ? 'bg-white text-gray-900 shadow-sm'
+                    ? 'bg-white text-gray-900 shadow-sm dark:bg-slate-800 dark:text-white'
                     : 'text-gray-500 hover:text-gray-700'
                 )}>
                 Giriş Yap
@@ -541,7 +564,7 @@ export const LoginView: React.FC = () => {
                 className={clsx(
                   'flex-1 rounded-xl py-2.5 text-sm font-semibold transition-all',
                   activeTab === 'register'
-                    ? 'bg-white text-gray-900 shadow-sm'
+                    ? 'bg-white text-gray-900 shadow-sm dark:bg-slate-800 dark:text-white'
                     : 'text-gray-500 hover:text-gray-700'
                 )}>
                 Kayıt Ol

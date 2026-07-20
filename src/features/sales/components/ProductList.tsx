@@ -15,13 +15,14 @@ export const ProductList: React.FC = () => {
     quickAddCompanyId,
     companyQuickAddItems,
     companyQuickAddCompanyId,
+    quickAddScope,
     loadPreferences,
-    loadCompanyQuickAddItems
+    loadCompanyQuickAddItems,
+    saveQuickAddScope
   } = usePreferencesStore();
   const activeCompanyId = useAuthStore(state => state.profile?.activeCompanyId);
   const activeMembership = useAuthStore(state => state.activeMembership);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [scope, setScope] = useState<'personal' | 'company'>('personal');
 
   useEffect(() => {
     loadPreferences(activeCompanyId);
@@ -30,7 +31,7 @@ export const ProductList: React.FC = () => {
 
   const shortcutItems = useMemo(() => {
     const activeQuickAddItems =
-      scope === 'company'
+      quickAddScope === 'company'
         ? companyQuickAddCompanyId === activeCompanyId
           ? companyQuickAddItems
           : []
@@ -48,7 +49,7 @@ export const ProductList: React.FC = () => {
     companyQuickAddItems,
     companyQuickAddCompanyId,
     activeCompanyId,
-    scope
+    quickAddScope
   ]);
   const canManageCompanyQuickAdd =
     activeMembership?.role === 'OWNER' ||
@@ -62,7 +63,7 @@ export const ProductList: React.FC = () => {
           <Package className="text-primary" size={18} />
           Hızlı Ekle
         </h2>
-        {(scope === 'personal' || canManageCompanyQuickAdd) && (
+        {(quickAddScope === 'personal' || canManageCompanyQuickAdd) && (
           <button
             onClick={() => setIsEditModalOpen(true)}
             className="text-primary bg-primary/10 hover:bg-primary/20 flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors">
@@ -78,7 +79,7 @@ export const ProductList: React.FC = () => {
           <div className="flex h-full flex-col items-center justify-center gap-3 text-gray-400">
             <Package className="text-5xl opacity-20" />
             <p className="text-sm font-medium">Kısayol bulunmuyor</p>
-            {(scope === 'personal' || canManageCompanyQuickAdd) && (
+            {(quickAddScope === 'personal' || canManageCompanyQuickAdd) && (
               <button
                 onClick={() => setIsEditModalOpen(true)}
                 className="text-primary mt-1 text-xs font-semibold hover:underline">
@@ -128,8 +129,10 @@ export const ProductList: React.FC = () => {
       </div>
 
       <Tabs
-        selectedKey={scope}
-        onSelectionChange={key => setScope(key as 'personal' | 'company')}
+        selectedKey={quickAddScope}
+        onSelectionChange={key =>
+          void saveQuickAddScope(key as 'personal' | 'company')
+        }
         className="border-t border-gray-100 bg-gray-50/50 p-2">
         <Tabs.ListContainer>
           <Tabs.List aria-label="Hızlı ekleme menüsü" className="w-full">
@@ -148,7 +151,7 @@ export const ProductList: React.FC = () => {
       <QuickAddEditModal
         isOpen={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
-        scope={scope}
+        scope={quickAddScope}
       />
     </div>
   );
