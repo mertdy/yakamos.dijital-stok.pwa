@@ -124,13 +124,15 @@ export class AppErrorBoundary extends Component<
       return (
         <main
           aria-live="assertive"
-          className="flex min-h-screen items-center justify-center bg-slate-50 p-6 text-center text-slate-900">
-          <section className="w-full max-w-md rounded-3xl border border-slate-200 bg-white p-8 shadow-xl shadow-slate-200/60">
-            <div className="mx-auto mb-5 flex size-14 items-center justify-center rounded-2xl bg-amber-100 text-2xl">
+          className="flex min-h-screen items-center justify-center bg-slate-50 p-6 text-center text-slate-900 dark:bg-slate-950 dark:text-slate-50">
+          <section className="w-full max-w-md rounded-3xl border border-slate-200 bg-white p-8 shadow-xl shadow-slate-200/60 dark:border-slate-700 dark:bg-slate-800 dark:shadow-black/30">
+            <div className="mx-auto mb-5 flex size-14 items-center justify-center rounded-2xl bg-amber-100 text-2xl text-amber-900 dark:bg-amber-100 dark:text-amber-900">
               !
             </div>
-            <h1 className="text-xl font-bold">Bir sorun yaşıyoruz</h1>
-            <p className="mt-3 text-sm leading-6 text-slate-600">
+            <h1 className="text-xl font-bold dark:text-slate-50">
+              Bir sorun yaşıyoruz
+            </h1>
+            <p className="mt-3 text-sm leading-6 text-slate-600 dark:text-slate-300">
               İnceleme kaydı alınmıştır. Lütfen daha sonra tekrar deneyiniz.
             </p>
             <div className="mt-7 flex flex-col gap-3 sm:flex-row">
@@ -144,7 +146,7 @@ export class AppErrorBoundary extends Component<
                 href={this.props.contactUrl ?? CONTACT_URL}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex flex-1 items-center justify-center rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50">
+                className="inline-flex flex-1 items-center justify-center rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 dark:border-slate-500 dark:text-slate-200 dark:hover:bg-slate-700">
                 İletişime Geç
               </a>
             </div>

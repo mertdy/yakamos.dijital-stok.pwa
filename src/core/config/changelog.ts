@@ -9,6 +9,17 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-07-20',
+    date: '20 Temmuz 2026',
+    title: 'Koyu tema iyileştirmeleri',
+    items: [
+      {
+        type: 'fixed',
+        text: 'Beklenmeyen hata ekranının koyu temadaki okunabilirliği iyileştirildi.'
+      }
+    ]
+  },
+  {
     id: '2026-07-19',
     date: '19 Temmuz 2026',
     title: 'Satış ekranı ve kullanım kolaylığı',

@@ -2,6 +2,8 @@
 @plugin '@tailwindcss/forms';
 @import '@heroui/styles';
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   --font-sans: 'Inter', system-ui, sans-serif;
   --color-primary: #1a73e8;
