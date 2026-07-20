@@ -30,6 +30,14 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
         text: 'Barkod okutmayı başlatmadan önce kamera erişimini istediğiniz anda açabilirsiniz.'
       },
       {
+        type: 'new',
+        text: 'Hızlı ekle alanında kişisel ve şirket ortak menüleri arasında geçiş yapabilirsiniz.'
+      },
+      {
+        type: 'new',
+        text: 'Barkod okutarak ürünün satış fiyatını görebilir ve son baktığınız ürünü sepete ekleyebilirsiniz.'
+      },
+      {
         type: 'improved',
         text: 'Müşteri telefon numaralarından arama, SMS, WhatsApp ve kopyalama işlemlerine hızlıca erişebilirsiniz.'
       },
@@ -90,6 +98,22 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
         text: 'İçe aktarmada envanter ve müşteri verisi seçimi daha anlaşılır hale getirildi.'
       },
       {
+        type: 'improved',
+        text: 'Yetkili çalışanlar şirketin ortak hızlı ekleme menüsünü düzenleyebilir.'
+      },
+      {
+        type: 'improved',
+        text: 'Kamera izni daha önce verildiyse barkod okuyucu doğrudan açılır.'
+      },
+      {
+        type: 'improved',
+        text: 'Barkod okutma tekli ve çoklu modları daha kolay seçilebilir hale getirildi.'
+      },
+      {
+        type: 'improved',
+        text: 'Fiyatını görüntülediğiniz ürünü inceleyebilir veya tek adet olarak sepete ekleyebilirsiniz.'
+      },
+      {
         type: 'fixed',
         text: 'Beklenmeyen hata ekranının koyu temadaki okunabilirliği iyileştirildi.'
       },
@@ -100,6 +124,14 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
       {
         type: 'fixed',
         text: 'Satışı sıfırladığınızda ödeme yöntemi nakit seçeneğine geri döner.'
+      },
+      {
+        type: 'fixed',
+        text: 'Hızlı ekle menüsünü açarken oluşan beklenmeyen hata giderildi.'
+      },
+      {
+        type: 'fixed',
+        text: 'Barkod okutma modunu değiştirdikten sonra ürünler doğru işleme aktarılır.'
       }
     ]
   },

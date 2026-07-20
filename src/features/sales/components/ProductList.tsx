@@ -1,5 +1,6 @@
 import React, { useMemo, useEffect, useState } from 'react';
 import { Package, Settings2 } from 'lucide-react';
+import { Tabs } from '@heroui/react';
 import { useInventoryStore } from '@/features/inventory';
 import { useSalesStore } from '../store/useSalesStore';
 import { usePreferencesStore } from '../store/usePreferencesStore';
@@ -9,23 +10,49 @@ import { useAuthStore } from '@/features/auth';
 export const ProductList: React.FC = () => {
   const { items } = useInventoryStore();
   const { addToCart } = useSalesStore();
-  const { quickAddItems, quickAddCompanyId, loadPreferences } =
-    usePreferencesStore();
+  const {
+    quickAddItems,
+    quickAddCompanyId,
+    companyQuickAddItems,
+    companyQuickAddCompanyId,
+    loadPreferences,
+    loadCompanyQuickAddItems
+  } = usePreferencesStore();
   const activeCompanyId = useAuthStore(state => state.profile?.activeCompanyId);
+  const activeMembership = useAuthStore(state => state.activeMembership);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [scope, setScope] = useState<'personal' | 'company'>('personal');
 
   useEffect(() => {
     loadPreferences(activeCompanyId);
-  }, [activeCompanyId, loadPreferences]);
+    loadCompanyQuickAddItems(activeCompanyId);
+  }, [activeCompanyId, loadCompanyQuickAddItems, loadPreferences]);
 
   const shortcutItems = useMemo(() => {
     const activeQuickAddItems =
-      quickAddCompanyId === activeCompanyId ? quickAddItems : [];
+      scope === 'company'
+        ? companyQuickAddCompanyId === activeCompanyId
+          ? companyQuickAddItems
+          : []
+        : quickAddCompanyId === activeCompanyId
+          ? quickAddItems
+          : [];
 
     return activeQuickAddItems
       .map(id => items.find(i => i.id === id))
       .filter(Boolean);
-  }, [items, quickAddItems, quickAddCompanyId, activeCompanyId]);
+  }, [
+    items,
+    quickAddItems,
+    quickAddCompanyId,
+    companyQuickAddItems,
+    companyQuickAddCompanyId,
+    activeCompanyId,
+    scope
+  ]);
+  const canManageCompanyQuickAdd =
+    activeMembership?.role === 'OWNER' ||
+    activeMembership?.permissions.includes('MANAGE_COMPANY_QUICK_ADD');
 
   return (
     <div className="flex h-full flex-col overflow-hidden rounded-3xl border border-gray-100 bg-white shadow-sm">
@@ -35,12 +62,14 @@ export const ProductList: React.FC = () => {
           <Package className="text-primary" size={18} />
           Hızlı Ekle
         </h2>
-        <button
-          onClick={() => setIsEditModalOpen(true)}
-          className="text-primary bg-primary/10 hover:bg-primary/20 flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors">
-          <Settings2 size={14} />
-          Düzenle
-        </button>
+        {(scope === 'personal' || canManageCompanyQuickAdd) && (
+          <button
+            onClick={() => setIsEditModalOpen(true)}
+            className="text-primary bg-primary/10 hover:bg-primary/20 flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors">
+            <Settings2 size={14} />
+            Düzenle
+          </button>
+        )}
       </div>
 
       {/* Grid */}
@@ -49,11 +78,13 @@ export const ProductList: React.FC = () => {
           <div className="flex h-full flex-col items-center justify-center gap-3 text-gray-400">
             <Package className="text-5xl opacity-20" />
             <p className="text-sm font-medium">Kısayol bulunmuyor</p>
-            <button
-              onClick={() => setIsEditModalOpen(true)}
-              className="text-primary mt-1 text-xs font-semibold hover:underline">
-              Hemen ürün eklemek için tıklayın
-            </button>
+            {(scope === 'personal' || canManageCompanyQuickAdd) && (
+              <button
+                onClick={() => setIsEditModalOpen(true)}
+                className="text-primary mt-1 text-xs font-semibold hover:underline">
+                Hemen ürün eklemek için tıklayın
+              </button>
+            )}
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-2">
@@ -96,9 +127,28 @@ export const ProductList: React.FC = () => {
         )}
       </div>
 
+      <Tabs
+        selectedKey={scope}
+        onSelectionChange={key => setScope(key as 'personal' | 'company')}
+        className="border-t border-gray-100 bg-gray-50/50 p-2">
+        <Tabs.ListContainer>
+          <Tabs.List aria-label="Hızlı ekleme menüsü" className="w-full">
+            <Tabs.Tab id="personal" className="flex-1 justify-center">
+              Kişisel
+              <Tabs.Indicator />
+            </Tabs.Tab>
+            <Tabs.Tab id="company" className="flex-1 justify-center">
+              Ortak
+              <Tabs.Indicator />
+            </Tabs.Tab>
+          </Tabs.List>
+        </Tabs.ListContainer>
+      </Tabs>
+
       <QuickAddEditModal
         isOpen={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
+        scope={scope}
       />
     </div>
   );

@@ -52,6 +52,12 @@ export const PERMISSION_META: Record<PermissionKey, PermissionMeta> = {
     shortLabel: 'Satış İptali',
     description:
       'Geçmiş satış faturalarını iptal edebilir ve stoğu geri yükleyebilir.'
+  },
+  MANAGE_COMPANY_QUICK_ADD: {
+    label: 'Şirket Hızlı Menüsünü Yönet',
+    shortLabel: 'Hızlı Menü',
+    description:
+      'Şirketin ortak hızlı ekleme menüsündeki ürünleri ekleyebilir, çıkarabilir ve sıralayabilir.'
   }
 };
 

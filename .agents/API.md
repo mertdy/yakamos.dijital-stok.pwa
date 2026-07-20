@@ -60,6 +60,12 @@ settings
 
 Company configuration.
 
+companyPreferences
+
+Company-scoped shared interface preferences. The quick-add menu is stored in
+`quickAddItems`; read access is available to company members, while writes
+require the `MANAGE_COMPANY_QUICK_ADD` permission or company ownership.
+
 ---
 
 # Authentication

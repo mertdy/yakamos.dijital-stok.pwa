@@ -8,7 +8,7 @@ import {
 } from '@capacitor-mlkit/barcode-scanning';
 import { Capacitor } from '@capacitor/core';
 import { useInventoryStore, type InventoryItem } from '@/features/inventory';
-import { toast, Button, Modal, Tooltip } from '@heroui/react';
+import { toast, Button, Modal, Tabs, Tooltip } from '@heroui/react';
 import { useSalesStore } from '../store/useSalesStore';
 import { useNavigate } from 'react-router-dom';
 import { ROUTES } from '@/core/config/routes';
@@ -33,7 +33,7 @@ interface ScannerModalProps {
   onScan?: (barcode: string) => void;
 }
 
-type ScanMode = 'single' | 'multiple';
+type ScanMode = 'single' | 'multiple' | 'price';
 type CameraFacing = 'environment' | 'user';
 
 interface CameraTrackCapabilities {
@@ -119,13 +119,18 @@ const ScannerModal: React.FC<ScannerModalProps> = ({
   const [isScanning, setIsScanning] = useState(false);
   const [isCameraAccessRequested, setIsCameraAccessRequested] = useState(false);
   const [scannerError, setScannerError] = useState<string | null>(null);
-  const [scanMode, setScanMode] = useState<ScanMode>(() =>
-    localStorage.getItem(SCAN_MODE_STORAGE_KEY) === 'multiple'
-      ? 'multiple'
-      : 'single'
-  );
+  const [scanMode, setScanMode] = useState<ScanMode>(() => {
+    const savedMode = localStorage.getItem(SCAN_MODE_STORAGE_KEY);
+    return savedMode === 'multiple' || savedMode === 'price'
+      ? savedMode
+      : 'single';
+  });
+  const scanModeRef = useRef<ScanMode>(scanMode);
   const [scannedItems, setScannedItems] = useState<ScannedItem[]>([]);
   const [lastScannedItemId, setLastScannedItemId] = useState<string | null>(
+    null
+  );
+  const [priceViewedItem, setPriceViewedItem] = useState<InventoryItem | null>(
     null
   );
   const [canFlipCamera, setCanFlipCamera] = useState(false);
@@ -144,6 +149,9 @@ const ScannerModal: React.FC<ScannerModalProps> = ({
   const streamRef = useRef<MediaStream | null>(null);
   const animationFrameRef = useRef<number | null>(null);
   const startTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const startScanRef = useRef<(facing?: CameraFacing) => Promise<void>>(
+    async () => {}
+  );
 
   const updateWebCameraCapabilities = useCallback(
     async (stream: MediaStream) => {
@@ -237,8 +245,9 @@ const ScannerModal: React.FC<ScannerModalProps> = ({
 
   const handleBarcodeScanned = useCallback(
     (barcode: string) => {
+      const activeScanMode = scanModeRef.current;
       if (
-        (onScan || scanMode === 'single') &&
+        (onScan || activeScanMode === 'single') &&
         hasHandledSingleScanRef.current
       ) {
         return;
@@ -275,8 +284,10 @@ const ScannerModal: React.FC<ScannerModalProps> = ({
           scan_mode: onScan ? 'form_fill' : 'cart_add',
           platform: Capacitor.getPlatform()
         });
-        if (scanMode === 'multiple') {
+        if (activeScanMode === 'multiple') {
           addScannedItem(item);
+        } else if (activeScanMode === 'price') {
+          setPriceViewedItem(item);
         } else {
           hasHandledSingleScanRef.current = true;
           addItemToCart(item);
@@ -311,16 +322,7 @@ const ScannerModal: React.FC<ScannerModalProps> = ({
         });
       }
     },
-    [
-      onScan,
-      stopScan,
-      onClose,
-      items,
-      navigate,
-      scanMode,
-      addItemToCart,
-      addScannedItem
-    ]
+    [onScan, stopScan, onClose, items, navigate, addItemToCart, addScannedItem]
   );
 
   const startScan = useCallback(
@@ -499,9 +501,16 @@ const ScannerModal: React.FC<ScannerModalProps> = ({
   );
 
   useEffect(() => {
+    startScanRef.current = startScan;
+  }, [startScan]);
+
+  useEffect(() => {
+    let isCancelled = false;
+
     if (isOpen) {
       setScannedItems([]);
       setLastScannedItemId(null);
+      setPriceViewedItem(null);
       lastScannedRef.current = null;
       cameraFacingRef.current = 'environment';
       setCanFlipCamera(false);
@@ -509,11 +518,24 @@ const ScannerModal: React.FC<ScannerModalProps> = ({
       setIsFlashOn(false);
       setScannerError(null);
       setIsCameraAccessRequested(false);
+
+      void BarcodeScanner.checkPermissions()
+        .then(({ camera }) => {
+          if (!isCancelled && (camera === 'granted' || camera === 'limited')) {
+            setIsCameraAccessRequested(true);
+            void startScanRef.current();
+          }
+        })
+        .catch(() => {
+          // Permission status cannot be read on every browser; show the
+          // explanatory camera access step in that case.
+        });
     } else {
       stopScan();
     }
 
     return () => {
+      isCancelled = true;
       stopScan();
     };
   }, [isOpen, stopScan]);
@@ -533,7 +555,9 @@ const ScannerModal: React.FC<ScannerModalProps> = ({
   );
 
   const handleScanModeChange = (mode: ScanMode) => {
+    scanModeRef.current = mode;
     setScanMode(mode);
+    setPriceViewedItem(null);
     localStorage.setItem(SCAN_MODE_STORAGE_KEY, mode);
   };
 
@@ -613,6 +637,15 @@ const ScannerModal: React.FC<ScannerModalProps> = ({
     }
   };
 
+  const openPriceViewedProduct = () => {
+    if (!priceViewedItem) return;
+    if (Capacitor.getPlatform() !== 'web') {
+      void stopScan();
+    }
+    onClose();
+    navigate(ROUTES.INVENTORY.EDIT(priceViewedItem.id));
+  };
+
   return (
     <Modal
       isOpen={isOpen}
@@ -632,29 +665,32 @@ const ScannerModal: React.FC<ScannerModalProps> = ({
               <div className="flex w-full items-center justify-between gap-3">
                 <div>
                   <Modal.Heading className="text-xl">Barkod Okut</Modal.Heading>
-                  <p className="mt-1 text-sm text-gray-500">
-                    {scanMode === 'single'
-                      ? 'Ürün bulunduğunda sepete eklenir.'
-                      : 'Okunan ürünler onayınızla sepete aktarılır.'}
-                  </p>
-                </div>
-                <div className="flex rounded-xl bg-gray-100 p-1">
-                  <Button
-                    size="sm"
-                    variant={scanMode === 'single' ? 'primary' : 'tertiary'}
-                    onPress={() => handleScanModeChange('single')}>
-                    Tekli
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant={scanMode === 'multiple' ? 'primary' : 'tertiary'}
-                    onPress={() => handleScanModeChange('multiple')}>
-                    Çoklu
-                  </Button>
                 </div>
               </div>
             </Modal.Header>
             <Modal.Body>
+              <Tabs
+                selectedKey={scanMode}
+                onSelectionChange={key =>
+                  handleScanModeChange(key as ScanMode)
+                }>
+                <Tabs.ListContainer>
+                  <Tabs.List aria-label="Barkod okutma modu" className="w-full">
+                    <Tabs.Tab id="single" className="flex-1 justify-center">
+                      Tekli
+                      <Tabs.Indicator />
+                    </Tabs.Tab>
+                    <Tabs.Tab id="multiple" className="flex-1 justify-center">
+                      Çoklu
+                      <Tabs.Indicator />
+                    </Tabs.Tab>
+                    <Tabs.Tab id="price" className="flex-1 justify-center">
+                      Fiyat Gör
+                      <Tabs.Indicator />
+                    </Tabs.Tab>
+                  </Tabs.List>
+                </Tabs.ListContainer>
+              </Tabs>
               <div className="flex flex-col items-center justify-center py-4">
                 {!isCameraAccessRequested ? (
                   <div className="flex max-w-xs flex-col items-center gap-4 text-center">
@@ -722,6 +758,47 @@ const ScannerModal: React.FC<ScannerModalProps> = ({
                   </div>
                 )}
               </div>
+              {scanMode === 'price' && (
+                <div className="border-t border-gray-100 pt-4">
+                  {priceViewedItem ? (
+                    <button
+                      type="button"
+                      onClick={openPriceViewedProduct}
+                      className="border-primary/20 from-primary/10 to-primary/5 hover:border-primary/40 hover:from-primary/15 hover:to-primary/10 w-full cursor-pointer rounded-2xl border bg-gradient-to-br p-4 text-left transition-colors">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="min-w-0">
+                          <p className="text-xs font-semibold tracking-wide text-gray-500 uppercase">
+                            Son okunan ürün
+                          </p>
+                          <h3 className="mt-1 truncate text-lg font-bold text-gray-900">
+                            {priceViewedItem.name}
+                          </h3>
+                          <p className="mt-1 text-sm text-gray-600">
+                            Barkod: {priceViewedItem.barcode || 'Tanımlı değil'}
+                          </p>
+                        </div>
+                        <div className="shrink-0 rounded-xl bg-white px-3 py-2 text-right shadow-sm">
+                          <p className="text-xs font-medium text-gray-500">
+                            Satış fiyatı
+                          </p>
+                          <p className="text-primary text-xl font-bold">
+                            ₺
+                            {(
+                              priceViewedItem.salePrice ??
+                              priceViewedItem.price ??
+                              0
+                            ).toFixed(2)}
+                          </p>
+                        </div>
+                      </div>
+                    </button>
+                  ) : (
+                    <p className="rounded-2xl bg-gray-50 p-4 text-center text-sm text-gray-500">
+                      Satış fiyatını görmek için bir ürün okutun.
+                    </p>
+                  )}
+                </div>
+              )}
               {scanMode === 'multiple' && (
                 <div className="border-t border-gray-100 pt-4">
                   <div className="mb-3 flex items-center justify-between gap-3">
@@ -885,6 +962,23 @@ const ScannerModal: React.FC<ScannerModalProps> = ({
                       Sepete Aktar
                     </Button>
                   </div>
+                </div>
+              ) : scanMode === 'price' ? (
+                <div className="flex w-full justify-end gap-2">
+                  <Button variant="ghost" onPress={onClose}>
+                    İptal Et
+                  </Button>
+                  <Button
+                    variant="primary"
+                    isDisabled={!priceViewedItem}
+                    onPress={() => {
+                      if (!priceViewedItem) return;
+                      addItemToCart(priceViewedItem);
+                      toast.success(`${priceViewedItem.name} sepete eklendi`);
+                    }}>
+                    <ShoppingCart size={17} className="mr-2" />1 Adet Sepete
+                    Ekle
+                  </Button>
                 </div>
               ) : (
                 <Button variant="ghost" onPress={onClose}>

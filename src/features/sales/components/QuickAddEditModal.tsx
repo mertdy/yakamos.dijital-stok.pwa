@@ -36,6 +36,7 @@ import { CSS } from '@dnd-kit/utilities';
 interface Props {
   isOpen: boolean;
   onClose: () => void;
+  scope: 'personal' | 'company';
 }
 
 // Sortable Item Component for the Right Panel
@@ -106,12 +107,19 @@ const SortableItem = ({
   );
 };
 
-export const QuickAddEditModal: React.FC<Props> = ({ isOpen, onClose }) => {
+export const QuickAddEditModal: React.FC<Props> = ({
+  isOpen,
+  onClose,
+  scope
+}) => {
   const { items } = useInventoryStore();
   const {
     quickAddItems: savedItems,
     quickAddCompanyId,
     saveQuickAddItems,
+    companyQuickAddItems,
+    companyQuickAddCompanyId,
+    saveCompanyQuickAddItems,
     isLoading
   } = usePreferencesStore();
   const activeCompanyId = useAuthStore(state => state.profile?.activeCompanyId);
@@ -125,7 +133,13 @@ export const QuickAddEditModal: React.FC<Props> = ({ isOpen, onClose }) => {
   useEffect(() => {
     if (isOpen) {
       setLocalQuickAddItems(
-        quickAddCompanyId === activeCompanyId ? [...savedItems] : []
+        scope === 'company'
+          ? companyQuickAddCompanyId === activeCompanyId
+            ? [...companyQuickAddItems]
+            : []
+          : quickAddCompanyId === activeCompanyId
+            ? [...savedItems]
+            : []
       );
       setSearchQuery('');
     }
@@ -172,7 +186,11 @@ export const QuickAddEditModal: React.FC<Props> = ({ isOpen, onClose }) => {
 
   const handleSave = async () => {
     try {
-      await saveQuickAddItems(localQuickAddItems);
+      if (scope === 'company') {
+        await saveCompanyQuickAddItems(localQuickAddItems);
+      } else {
+        await saveQuickAddItems(localQuickAddItems);
+      }
       toast.success('Kısayollar başarıyla kaydedildi.');
       onClose();
     } catch {
@@ -194,7 +212,9 @@ export const QuickAddEditModal: React.FC<Props> = ({ isOpen, onClose }) => {
             <Modal.Header>
               <div>
                 <Modal.Heading className="text-xl">
-                  Hızlı Ekle Kısayollarını Düzenle
+                  {scope === 'company'
+                    ? 'Şirket Hızlı Menüsünü Düzenle'
+                    : 'Hızlı Ekle Kısayollarını Düzenle'}
                 </Modal.Heading>
                 <p className="mt-1 text-sm font-normal text-gray-500">
                   Ürünleri arayın, sağ tarafa ekleyin ve sürükleyerek sıralayın.
