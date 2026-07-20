@@ -282,7 +282,7 @@ export const DataExportWizard = ({ isOpen, onClose, company }: Props) => {
                 </div>
               )}
             </Modal.Body>
-            <Modal.Footer>
+            <Modal.Footer className="pt-4">
               <Button
                 variant="ghost"
                 onPress={() => (step === 1 ? onClose() : setStep(step - 1))}

@@ -127,7 +127,13 @@ describe('InvoicePanel', () => {
       />
     );
 
-    expect(screen.getByText('Müşteri: Alice Smith')).toBeInTheDocument();
+    const customerName = screen.getByText('Alice Smith');
+    expect(customerName).toBeInTheDocument();
+    expect(customerName).toHaveClass(
+      'border-primary',
+      'bg-primary/10',
+      'text-foreground'
+    );
     expect(screen.getByText('Mevcut Borç: ₺100.00')).toBeInTheDocument();
     expect(screen.getByText('Limit: ₺200.00')).toBeInTheDocument();
 

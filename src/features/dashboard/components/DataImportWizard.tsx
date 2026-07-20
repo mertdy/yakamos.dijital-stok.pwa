@@ -763,7 +763,7 @@ export const DataImportWizard = ({
                   </>
                 )}
               </Modal.Body>
-              <Modal.Footer>
+              <Modal.Footer className="pt-4">
                 {importResult ? (
                   <Button variant="primary" onPress={closeWizard}>
                     Kapat

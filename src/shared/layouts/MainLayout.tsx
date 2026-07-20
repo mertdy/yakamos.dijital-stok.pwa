@@ -891,7 +891,7 @@ export const MainLayout: React.FC = () => {
                   />
                 </Modal.Body>
 
-                <Modal.Footer className="flex gap-3 pt-6">
+                <Modal.Footer className="flex gap-3 pt-4">
                   <Button
                     type="button"
                     variant="ghost"

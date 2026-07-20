@@ -750,7 +750,7 @@ export const CompanySettingsView = () => {
                   </div>
                 </Modal.Body>
 
-                <Modal.Footer className="flex flex-none gap-3 border-t border-gray-100 p-4 pb-2">
+                <Modal.Footer className="flex flex-none gap-3 border-t border-gray-100 pt-4">
                   <Button
                     type="button"
                     variant="ghost"
@@ -893,7 +893,7 @@ export const CompanySettingsView = () => {
                   </div>
                 </Modal.Body>
 
-                <Modal.Footer className="flex gap-3 pt-6">
+                <Modal.Footer className="flex gap-3 pt-4">
                   <Button
                     type="button"
                     variant="ghost"

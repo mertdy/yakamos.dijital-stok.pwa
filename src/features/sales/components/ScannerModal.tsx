@@ -658,7 +658,7 @@ const ScannerModal: React.FC<ScannerModalProps> = ({
                 </div>
               )}
             </Modal.Body>
-            <Modal.Footer className="flex justify-end border-t border-gray-100 bg-white p-6">
+            <Modal.Footer className="flex justify-end border-t border-gray-100 bg-white pt-4">
               {scanMode === 'multiple' ? (
                 <div className="flex w-full items-center justify-between gap-3">
                   <div className="min-w-0">

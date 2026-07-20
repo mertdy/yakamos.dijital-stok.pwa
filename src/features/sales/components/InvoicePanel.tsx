@@ -147,8 +147,14 @@ export const InvoicePanel: React.FC<Props> = ({
       <div className="space-y-3 p-4">
         {/* Customer Selection */}
         <div className="flex gap-2">
-          <div className="flex flex-1 items-center rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-500">
-            {customerId ? `Müşteri: ${customerDisplayName}` : 'Müşteri Seçin'}
+          <div
+            className={clsx(
+              'flex flex-1 items-center rounded-xl border px-3 py-2 text-sm transition-colors',
+              customerId
+                ? 'border-primary bg-primary/10 text-foreground font-semibold'
+                : 'border-gray-200 bg-gray-50 text-gray-500'
+            )}>
+            {customerId ? customerDisplayName : 'Müşteri Seçin'}
           </div>
           <Button
             variant="secondary"

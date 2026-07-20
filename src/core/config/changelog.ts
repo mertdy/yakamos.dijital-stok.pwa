@@ -58,6 +58,10 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
         text: 'Satış ekranında müşteri, indirim, ödeme ve para üstü seçimlerini tek adımda varsayılan hale getirebilirsiniz.'
       },
       {
+        type: 'improved',
+        text: 'Satışta seçtiğiniz müşteri adı artık daha belirgin gösterilir.'
+      },
+      {
         type: 'fixed',
         text: 'Beklenmeyen hata ekranının koyu temadaki okunabilirliği iyileştirildi.'
       },

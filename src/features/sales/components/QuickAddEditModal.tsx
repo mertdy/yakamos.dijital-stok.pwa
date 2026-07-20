@@ -329,7 +329,7 @@ export const QuickAddEditModal: React.FC<Props> = ({ isOpen, onClose }) => {
               </div>
             </Modal.Body>
 
-            <Modal.Footer className="flex justify-end gap-3 border-t border-gray-100 bg-white p-6">
+            <Modal.Footer className="flex justify-end gap-3 border-t border-gray-100 bg-white pt-4">
               <Button
                 variant="secondary"
                 onPress={onClose}

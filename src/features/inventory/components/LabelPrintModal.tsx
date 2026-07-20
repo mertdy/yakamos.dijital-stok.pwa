@@ -276,7 +276,7 @@ export const LabelPrintModal = ({
               </div>
             </Modal.Body>
 
-            <Modal.Footer className="flex gap-3 border-t border-gray-100 p-6">
+            <Modal.Footer className="flex gap-3 border-t border-gray-100 pt-4">
               <Button variant="secondary" className="flex-1" onPress={onClose}>
                 Vazgeç
               </Button>

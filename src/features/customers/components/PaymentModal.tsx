@@ -224,7 +224,7 @@ export const PaymentModal: React.FC<Props> = ({
                 )}
               </Modal.Body>
 
-              <Modal.Footer className="flex gap-3 border-t border-gray-100 p-6">
+              <Modal.Footer className="flex gap-3 border-t border-gray-100 pt-4">
                 <Button
                   type="button"
                   variant="secondary"
