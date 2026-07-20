@@ -1,3 +1,6 @@
+import { Capacitor } from '@capacitor/core';
+import { Haptics, ImpactStyle } from '@capacitor/haptics';
+
 let audioContext: AudioContext | null = null;
 
 const getAudioContext = () => {
@@ -11,7 +14,27 @@ export const preloadBarcodeFeedback = () => {
   getAudioContext();
 };
 
+/** Gives a short confirmation vibration when a barcode is successfully read. */
+export const triggerBarcodeHapticFeedback = () => {
+  if (typeof window === 'undefined') return;
+
+  const fallbackToWebVibration = () => {
+    window.navigator.vibrate?.(30);
+  };
+
+  if (Capacitor.getPlatform() === 'web') {
+    fallbackToWebVibration();
+    return;
+  }
+
+  void Haptics.impact({ style: ImpactStyle.Light }).catch(
+    fallbackToWebVibration
+  );
+};
+
 export const playBarcodeFeedback = () => {
+  triggerBarcodeHapticFeedback();
+
   const context = getAudioContext();
   if (!context) return;
 
