@@ -3,6 +3,8 @@ import { clsx } from 'clsx';
 import {
   Checkbox,
   Button,
+  Description,
+  Label,
   Modal,
   Radio,
   RadioGroup,
@@ -196,29 +198,39 @@ export const DataExportWizard = ({ isOpen, onClose, company }: Props) => {
                   <p className="text-sm font-medium text-gray-700">
                     Dosya biçimini ve teslim şeklini belirleyin
                   </p>
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <button
-                      onClick={() => setFormat('xlsx')}
-                      className={`rounded-2xl border p-4 text-left ${format === 'xlsx' ? 'border-primary bg-primary/5 ring-primary/20 ring-1' : 'border-gray-200'}`}>
-                      <FileSpreadsheet
-                        className="text-primary mb-2"
-                        size={22}
-                      />
-                      <p className="font-semibold">Excel</p>
-                      <p className="mt-1 text-xs text-gray-500">
-                        Biçimli çalışma sayfaları
-                      </p>
-                    </button>
-                    <button
-                      onClick={() => setFormat('csv')}
-                      className={`rounded-2xl border p-4 text-left ${format === 'csv' ? 'border-primary bg-primary/5 ring-primary/20 ring-1' : 'border-gray-200'}`}>
-                      <FileText className="text-primary mb-2" size={22} />
-                      <p className="font-semibold">CSV</p>
-                      <p className="mt-1 text-xs text-gray-500">
-                        Hızlı ve sade veri dosyaları
-                      </p>
-                    </button>
-                  </div>
+                  <RadioGroup
+                    name="export-format"
+                    value={format}
+                    onChange={value => setFormat(value as ExportFormat)}>
+                    <Label className="sr-only">Dosya biçimi</Label>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <Radio value="xlsx">
+                        <Radio.Content className="data-[selected=true]:border-primary data-[selected=true]:bg-primary/5 data-[selected=true]:ring-primary/20 relative flex w-full flex-col gap-1 rounded-2xl border border-gray-200 p-4 text-left transition-colors hover:bg-gray-50 data-[selected=true]:ring-1">
+                          <Radio.Control className="absolute top-4 right-4 size-5">
+                            <Radio.Indicator />
+                          </Radio.Control>
+                          <FileSpreadsheet
+                            className="text-primary mb-2"
+                            size={22}
+                          />
+                          <span className="font-semibold">Excel</span>
+                          <Description>Biçimli çalışma sayfaları</Description>
+                        </Radio.Content>
+                      </Radio>
+                      <Radio value="csv">
+                        <Radio.Content className="data-[selected=true]:border-primary data-[selected=true]:bg-primary/5 data-[selected=true]:ring-primary/20 relative flex w-full flex-col gap-1 rounded-2xl border border-gray-200 p-4 text-left transition-colors hover:bg-gray-50 data-[selected=true]:ring-1">
+                          <Radio.Control className="absolute top-4 right-4 size-5">
+                            <Radio.Indicator />
+                          </Radio.Control>
+                          <FileText className="text-primary mb-2" size={22} />
+                          <span className="font-semibold">CSV</span>
+                          <Description>
+                            Hızlı ve sade veri dosyaları
+                          </Description>
+                        </Radio.Content>
+                      </Radio>
+                    </div>
+                  </RadioGroup>
                   <div className="rounded-2xl bg-gray-50 p-4">
                     <p className="mb-3 text-sm font-medium text-gray-700">
                       Teslim şekli

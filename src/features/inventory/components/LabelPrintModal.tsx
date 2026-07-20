@@ -5,11 +5,15 @@ import {
   Checkbox,
   Input,
   Label,
+  ListBox,
   Modal,
+  Radio,
+  RadioGroup,
+  Select,
   TextField,
   toast
 } from '@heroui/react';
-import { Check, Printer, Tag } from 'lucide-react';
+import { Printer, Tag } from 'lucide-react';
 import type { InventoryItem } from '../store/useInventoryStore';
 import {
   DEFAULT_LABEL_FIELDS,
@@ -135,52 +139,52 @@ export const LabelPrintModal = ({
             <Modal.Body className="grid gap-6 lg:grid-cols-[1fr_1.1fr]">
               <div className="space-y-6">
                 <section>
-                  <h3 className="mb-2 text-sm font-semibold text-gray-700">
-                    Etiket türü
-                  </h3>
-                  <div className="grid grid-cols-2 gap-2">
-                    {LABEL_TEMPLATES.map(option => (
-                      <button
-                        key={option.id}
-                        type="button"
-                        aria-pressed={template === option.id}
-                        onClick={() => selectTemplate(option.id)}
-                        className={`rounded-2xl border p-3 text-left transition-colors ${
-                          template === option.id
-                            ? 'border-primary bg-primary/5 ring-primary/20 ring-1'
-                            : 'border-gray-200 hover:bg-gray-50'
-                        }`}>
-                        <span className="flex items-center justify-between text-sm font-semibold text-gray-800">
-                          {option.label}
-                          {template === option.id && (
-                            <Check className="text-primary" size={16} />
-                          )}
-                        </span>
-                        <span className="mt-1 block text-xs text-gray-500">
-                          {option.description}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
+                  <RadioGroup
+                    name="label-template"
+                    value={template}
+                    onChange={value => selectTemplate(value as LabelTemplate)}>
+                    <Label>Etiket türü</Label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {LABEL_TEMPLATES.map(option => (
+                        <Radio key={option.id} value={option.id}>
+                          <Radio.Content className="data-[selected=true]:border-primary data-[selected=true]:bg-primary/5 data-[selected=true]:ring-primary/20 relative flex w-full flex-col gap-1 rounded-2xl border border-gray-200 p-3 text-left transition-colors hover:bg-gray-50 data-[selected=true]:ring-1">
+                            <Radio.Control className="absolute top-3 right-3 size-4">
+                              <Radio.Indicator />
+                            </Radio.Control>
+                            <span className="pr-5 text-sm font-semibold text-gray-800">
+                              {option.label}
+                            </span>
+                            <span className="text-xs text-gray-500">
+                              {option.description}
+                            </span>
+                          </Radio.Content>
+                        </Radio>
+                      ))}
+                    </div>
+                  </RadioGroup>
                 </section>
 
                 <section>
-                  <label
-                    className="mb-2 block text-sm font-semibold text-gray-700"
-                    htmlFor="label-size">
-                    Etiket ölçüsü
-                  </label>
-                  <select
-                    id="label-size"
-                    value={sizeId}
-                    onChange={event => setSizeId(event.target.value)}
-                    className="focus:border-primary focus:ring-primary/20 h-10 w-full rounded-xl border border-gray-200 bg-white px-3 text-sm text-gray-800 outline-none focus:ring-2">
-                    {LABEL_SIZES.map(option => (
-                      <option key={option.id} value={option.id}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
+                  <Select
+                    fullWidth
+                    selectedKey={sizeId}
+                    onSelectionChange={value => setSizeId(String(value))}>
+                    <Label>Etiket ölçüsü</Label>
+                    <Select.Trigger>
+                      <Select.Value />
+                      <Select.Indicator />
+                    </Select.Trigger>
+                    <Select.Popover>
+                      <ListBox>
+                        {LABEL_SIZES.map(option => (
+                          <ListBox.Item key={option.id} id={option.id}>
+                            {option.label}
+                            <ListBox.ItemIndicator />
+                          </ListBox.Item>
+                        ))}
+                      </ListBox>
+                    </Select.Popover>
+                  </Select>
                 </section>
 
                 <section>

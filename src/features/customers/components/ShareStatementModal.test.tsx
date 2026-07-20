@@ -118,7 +118,7 @@ describe('ShareStatementModal', () => {
   it('removes deselected summary fields from the message preview', () => {
     renderModal();
 
-    fireEvent.click(screen.getByRole('button', { name: /Devir/i }));
+    fireEvent.click(screen.getByRole('checkbox', { name: /Devir/i }));
 
     expect(screen.queryByText(/Devir bakiyesi:/)).not.toBeInTheDocument();
     expect(screen.getByText(/Veresiye alışlar:/)).toBeInTheDocument();

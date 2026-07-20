@@ -16,6 +16,10 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
       {
         type: 'fixed',
         text: 'Beklenmeyen hata ekranının koyu temadaki okunabilirliği iyileştirildi.'
+      },
+      {
+        type: 'improved',
+        text: 'Etiket, dışa aktarma ve ekstre seçimleri ile tarih alanları daha erişilebilir hale getirildi.'
       }
     ]
   },

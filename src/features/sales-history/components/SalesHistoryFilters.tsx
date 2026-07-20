@@ -3,7 +3,7 @@ import { clsx } from 'clsx';
 import { useSalesHistoryStore } from '../store/useSalesHistoryStore';
 import { useCustomerStore } from '@/features/customers';
 import { Search, Filter, X } from 'lucide-react';
-import { Button, Input } from '@heroui/react';
+import { Button, Input, ListBox, Select } from '@heroui/react';
 import {
   DateRangePicker,
   DateField,
@@ -76,48 +76,75 @@ export const SalesHistoryFilters: React.FC = () => {
 
       {showAdvanced && (
         <div className="grid grid-cols-1 gap-4 border-t border-gray-100 pt-4 md:grid-cols-2 lg:grid-cols-4">
-          <div className="space-y-1.5">
-            <label className="ml-1 text-xs font-semibold text-gray-500">
-              Müşteri
-            </label>
-            <select
-              className="focus:ring-primary/20 w-full rounded-xl border-none bg-gray-50 px-3 py-2 text-sm focus:ring-2"
-              value={localFilters.customerId || ''}
-              onChange={e =>
-                setLocalFilters({
-                  ...localFilters,
-                  customerId: e.target.value || undefined
-                })
-              }>
-              <option value="">Tümü</option>
-              {customers.map(c => (
-                <option key={c.id} value={c.id}>
-                  {c.name} {c.surname}
-                </option>
-              ))}
-            </select>
-          </div>
+          <Select
+            fullWidth
+            selectedKey={localFilters.customerId || 'all'}
+            onSelectionChange={value =>
+              setLocalFilters({
+                ...localFilters,
+                customerId: value === 'all' ? undefined : String(value)
+              })
+            }>
+            <Label>Müşteri</Label>
+            <Select.Trigger>
+              <Select.Value />
+              <Select.Indicator />
+            </Select.Trigger>
+            <Select.Popover>
+              <ListBox>
+                <ListBox.Item id="all">
+                  Tümü
+                  <ListBox.ItemIndicator />
+                </ListBox.Item>
+                {customers.map(customer => (
+                  <ListBox.Item key={customer.id} id={customer.id}>
+                    {customer.name} {customer.surname}
+                    <ListBox.ItemIndicator />
+                  </ListBox.Item>
+                ))}
+              </ListBox>
+            </Select.Popover>
+          </Select>
 
-          <div className="space-y-1.5">
-            <label className="ml-1 text-xs font-semibold text-gray-500">
-              Ödeme Yöntemi
-            </label>
-            <select
-              className="focus:ring-primary/20 w-full rounded-xl border-none bg-gray-50 px-3 py-2 text-sm focus:ring-2"
-              value={localFilters.paymentMethod || ''}
-              onChange={e =>
-                setLocalFilters({
-                  ...localFilters,
-                  paymentMethod: e.target.value || undefined
-                })
-              }>
-              <option value="">Tümü</option>
-              <option value="Cash">Nakit</option>
-              <option value="Card">Kart</option>
-              <option value="Credit">Veresiye</option>
-              <option value="Scan">QR Kod</option>
-            </select>
-          </div>
+          <Select
+            fullWidth
+            selectedKey={localFilters.paymentMethod || 'all'}
+            onSelectionChange={value =>
+              setLocalFilters({
+                ...localFilters,
+                paymentMethod: value === 'all' ? undefined : String(value)
+              })
+            }>
+            <Label>Ödeme Yöntemi</Label>
+            <Select.Trigger>
+              <Select.Value />
+              <Select.Indicator />
+            </Select.Trigger>
+            <Select.Popover>
+              <ListBox>
+                <ListBox.Item id="all">
+                  Tümü
+                  <ListBox.ItemIndicator />
+                </ListBox.Item>
+                <ListBox.Item id="Cash">
+                  Nakit
+                  <ListBox.ItemIndicator />
+                </ListBox.Item>
+                <ListBox.Item id="Card">
+                  Kart
+                  <ListBox.ItemIndicator />
+                </ListBox.Item>
+                <ListBox.Item id="Credit">
+                  Veresiye
+                  <ListBox.ItemIndicator />
+                </ListBox.Item>
+                <ListBox.Item id="Scan">
+                  QR Kod
+                  <ListBox.ItemIndicator />
+                </ListBox.Item>
+              </ListBox>
+            </Select.Popover>
+          </Select>
 
           <div className="space-y-1.5">
             <label className="ml-1 text-xs font-semibold text-gray-500">

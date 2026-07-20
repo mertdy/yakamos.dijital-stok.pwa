@@ -2,10 +2,12 @@ import { useEffect, useMemo, useState } from 'react';
 import { clsx } from 'clsx';
 import {
   Button,
+  Calendar,
   Checkbox,
+  DateField,
+  DatePicker,
   Description,
   FieldError,
-  Input,
   Label,
   Modal,
   TextArea,
@@ -40,6 +42,7 @@ import {
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
+import { parseDate } from '@internationalized/date';
 
 interface ShareStatementModalProps {
   isOpen: boolean;
@@ -149,6 +152,9 @@ export const ShareStatementModal = ({
     () => ({ startDate, endDate }),
     [endDate, startDate]
   );
+  const startDateValue = startDate ? parseDate(startDate) : null;
+  const endDateValue = endDate ? parseDate(endDate) : null;
+  const todayValue = parseDate(toIstanbulDateString(new Date()));
 
   const earliestDate = useMemo(() => {
     const validDates = transactions
@@ -299,31 +305,109 @@ export const ShareStatementModal = ({
                   ))}
                 </div>
                 <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <TextField
-                    fullWidth
+                  <DatePicker
+                    className="w-full"
                     name="startDate"
-                    value={range.startDate}
-                    onChange={value => updateCustomRange('startDate', value)}
+                    value={startDateValue}
+                    maxValue={endDateValue ?? undefined}
+                    onChange={value =>
+                      updateCustomRange('startDate', value?.toString() ?? '')
+                    }
                     isInvalid={Boolean(errors.startDate)}>
                     <Label>Başlangıç</Label>
-                    <Input type="date" fullWidth max={range.endDate} />
+                    <DateField.Group fullWidth>
+                      <DateField.Input>
+                        {segment => <DateField.Segment segment={segment} />}
+                      </DateField.Input>
+                      <DateField.Suffix>
+                        <DatePicker.Trigger>
+                          <DatePicker.TriggerIndicator />
+                        </DatePicker.Trigger>
+                      </DateField.Suffix>
+                    </DateField.Group>
+                    <DatePicker.Popover>
+                      <Calendar aria-label="Başlangıç tarihi">
+                        <Calendar.Header>
+                          <Calendar.YearPickerTrigger>
+                            <Calendar.YearPickerTriggerHeading />
+                            <Calendar.YearPickerTriggerIndicator />
+                          </Calendar.YearPickerTrigger>
+                          <Calendar.NavButton slot="previous" />
+                          <Calendar.NavButton slot="next" />
+                        </Calendar.Header>
+                        <Calendar.Grid>
+                          <Calendar.GridHeader>
+                            {day => (
+                              <Calendar.HeaderCell>{day}</Calendar.HeaderCell>
+                            )}
+                          </Calendar.GridHeader>
+                          <Calendar.GridBody>
+                            {date => <Calendar.Cell date={date} />}
+                          </Calendar.GridBody>
+                        </Calendar.Grid>
+                        <Calendar.YearPickerGrid>
+                          <Calendar.YearPickerGridBody>
+                            {({ year }) => (
+                              <Calendar.YearPickerCell year={year} />
+                            )}
+                          </Calendar.YearPickerGridBody>
+                        </Calendar.YearPickerGrid>
+                      </Calendar>
+                    </DatePicker.Popover>
                     <FieldError>{errors.startDate?.message}</FieldError>
-                  </TextField>
-                  <TextField
-                    fullWidth
+                  </DatePicker>
+                  <DatePicker
+                    className="w-full"
                     name="endDate"
-                    value={range.endDate}
-                    onChange={value => updateCustomRange('endDate', value)}
+                    value={endDateValue}
+                    minValue={startDateValue ?? undefined}
+                    maxValue={todayValue}
+                    onChange={value =>
+                      updateCustomRange('endDate', value?.toString() ?? '')
+                    }
                     isInvalid={Boolean(errors.endDate)}>
                     <Label>Bitiş</Label>
-                    <Input
-                      type="date"
-                      fullWidth
-                      min={range.startDate}
-                      max={toIstanbulDateString(new Date())}
-                    />
+                    <DateField.Group fullWidth>
+                      <DateField.Input>
+                        {segment => <DateField.Segment segment={segment} />}
+                      </DateField.Input>
+                      <DateField.Suffix>
+                        <DatePicker.Trigger>
+                          <DatePicker.TriggerIndicator />
+                        </DatePicker.Trigger>
+                      </DateField.Suffix>
+                    </DateField.Group>
+                    <DatePicker.Popover>
+                      <Calendar aria-label="Bitiş tarihi">
+                        <Calendar.Header>
+                          <Calendar.YearPickerTrigger>
+                            <Calendar.YearPickerTriggerHeading />
+                            <Calendar.YearPickerTriggerIndicator />
+                          </Calendar.YearPickerTrigger>
+                          <Calendar.NavButton slot="previous" />
+                          <Calendar.NavButton slot="next" />
+                        </Calendar.Header>
+                        <Calendar.Grid>
+                          <Calendar.GridHeader>
+                            {day => (
+                              <Calendar.HeaderCell>{day}</Calendar.HeaderCell>
+                            )}
+                          </Calendar.GridHeader>
+                          <Calendar.GridBody>
+                            {date => <Calendar.Cell date={date} />}
+                          </Calendar.GridBody>
+                        </Calendar.Grid>
+                        <Calendar.YearPickerGrid>
+                          <Calendar.YearPickerGridBody>
+                            {({ year }) => (
+                              <Calendar.YearPickerCell year={year} />
+                            )}
+                          </Calendar.YearPickerGridBody>
+                        </Calendar.YearPickerGrid>
+                      </Calendar>
+                    </DatePicker.Popover>
                     <FieldError>{errors.endDate?.message}</FieldError>
-                  </TextField>
+                  </DatePicker>
                 </div>
               </section>
 
@@ -332,38 +416,28 @@ export const ShareStatementModal = ({
                   Mesaja eklenecek özet alanları
                 </p>
                 <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-                  {SUMMARY_OPTIONS.map(option => {
-                    const isSelected = selectedSummaryFields.includes(
-                      option.key
-                    );
-                    return (
-                      <button
-                        key={option.key}
-                        type="button"
-                        aria-pressed={isSelected}
-                        onClick={() => toggleSummaryField(option.key)}
-                        className={clsx(
-                          'rounded-2xl border p-3 text-left transition-colors',
-                          isSelected
-                            ? 'border-primary bg-primary/5 ring-primary/20 ring-1'
-                            : 'border-gray-100 bg-gray-50 opacity-60 hover:opacity-100'
-                        )}>
-                        <span className="flex items-center justify-between gap-2 text-xs font-medium text-gray-500">
+                  {SUMMARY_OPTIONS.map(option => (
+                    <Checkbox
+                      key={option.key}
+                      isSelected={selectedSummaryFields.includes(option.key)}
+                      onChange={() => toggleSummaryField(option.key)}>
+                      <Checkbox.Content className="data-[selected=true]:border-primary data-[selected=true]:bg-primary/5 data-[selected=true]:ring-primary/20 relative flex w-full flex-col items-start gap-1 rounded-2xl border border-gray-100 bg-gray-50 p-3 text-left transition-colors hover:opacity-100 data-[selected=false]:opacity-60 data-[selected=true]:ring-1">
+                        <Checkbox.Control className="absolute top-3 right-3 size-4">
+                          <Checkbox.Indicator />
+                        </Checkbox.Control>
+                        <Label className="w-full pr-5 text-left text-xs font-medium text-gray-500">
                           {option.label}
-                          {isSelected && (
-                            <Check size={14} className="text-primary" />
-                          )}
-                        </span>
+                        </Label>
                         <span
                           className={clsx(
-                            'mt-1 block text-base font-bold',
+                            'w-full text-left text-base font-bold',
                             option.color
                           )}>
                           {formatMinor(option.getValue(statement))}
                         </span>
-                      </button>
-                    );
-                  })}
+                      </Checkbox.Content>
+                    </Checkbox>
+                  ))}
                 </div>
               </section>
 

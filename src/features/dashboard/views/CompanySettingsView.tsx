@@ -7,8 +7,12 @@ import {
   Card,
   Checkbox,
   Description,
+  Input,
   Label,
+  ListBox,
   Modal,
+  Select,
+  TextField,
   toast
 } from '@heroui/react';
 import { useAuthStore } from '@/features/auth';
@@ -681,40 +685,44 @@ export const CompanySettingsView = () => {
                   />
 
                   <div>
-                    <label
-                      className="mb-1 block text-sm font-medium text-gray-700"
-                      htmlFor="invite-job-title">
-                      Ünvan
-                    </label>
-                    <select
-                      id="invite-job-title"
-                      value={inviteJobTitleOption}
-                      onChange={event =>
-                        setInviteJobTitleOption(
-                          event.target.value as JobTitleOption
-                        )
-                      }
-                      className="focus:border-primary focus:ring-primary/20 h-10 w-full rounded-xl border border-gray-200 bg-white px-3 text-sm text-gray-800 outline-none focus:ring-2">
-                      {JOB_TITLE_OPTIONS.map(option => (
-                        <option key={option.id} value={option.id}>
-                          {option.label}
-                        </option>
-                      ))}
-                      <option value="OTHER">Diğer</option>
-                    </select>
+                    <Select
+                      fullWidth
+                      selectedKey={inviteJobTitleOption}
+                      onSelectionChange={value =>
+                        setInviteJobTitleOption(value as JobTitleOption)
+                      }>
+                      <Label>Ünvan</Label>
+                      <Select.Trigger>
+                        <Select.Value />
+                        <Select.Indicator />
+                      </Select.Trigger>
+                      <Select.Popover>
+                        <ListBox>
+                          {JOB_TITLE_OPTIONS.map(option => (
+                            <ListBox.Item key={option.id} id={option.id}>
+                              {option.label}
+                              <ListBox.ItemIndicator />
+                            </ListBox.Item>
+                          ))}
+                          <ListBox.Item id="OTHER">
+                            Diğer
+                            <ListBox.ItemIndicator />
+                          </ListBox.Item>
+                        </ListBox>
+                      </Select.Popover>
+                    </Select>
                     <p className="bg-warning/10 text-warning-700 mt-2 rounded-lg px-3 py-2 text-xs font-medium">
                       Çalışanınız bu ünvanı profil rozetinde görecektir.
                     </p>
                     {inviteJobTitleOption === 'OTHER' && (
-                      <input
+                      <TextField
+                        className="mt-2"
+                        fullWidth
                         value={inviteCustomJobTitle}
-                        onChange={event =>
-                          setInviteCustomJobTitle(event.target.value)
-                        }
-                        aria-label="Özel ünvan"
-                        placeholder="Ünvanı yazın"
-                        className="focus:border-primary focus:ring-primary/20 mt-2 h-10 w-full rounded-xl border border-gray-200 bg-white px-3 text-sm text-gray-800 outline-none focus:ring-2"
-                      />
+                        onChange={setInviteCustomJobTitle}>
+                        <Label>Özel ünvan</Label>
+                        <Input placeholder="Ünvanı yazın" />
+                      </TextField>
                     )}
                   </div>
 
@@ -817,62 +825,48 @@ export const CompanySettingsView = () => {
                   )}
 
                   <div className="grid gap-4 sm:grid-cols-2">
-                    <div>
-                      <label
-                        className="mb-1 block text-sm font-medium text-gray-700"
-                        htmlFor="edit-employee-name">
-                        Çalışanın Adı
-                      </label>
-                      <input
-                        id="edit-employee-name"
-                        value={editingEmployeeName}
-                        onChange={event =>
-                          setEditingEmployeeName(event.target.value)
-                        }
-                        className="focus:border-primary focus:ring-primary/20 h-10 w-full rounded-xl border border-gray-200 bg-white px-3 text-sm text-gray-800 outline-none focus:ring-2"
-                      />
-                    </div>
-                    <div>
-                      <label
-                        className="mb-1 block text-sm font-medium text-gray-700"
-                        htmlFor="edit-job-title">
-                        Ünvan
-                      </label>
-                      <select
-                        id="edit-job-title"
-                        value={editingJobTitleOption}
-                        onChange={event =>
-                          setEditingJobTitleOption(
-                            event.target.value as JobTitleOption
-                          )
-                        }
-                        className="focus:border-primary focus:ring-primary/20 h-10 w-full rounded-xl border border-gray-200 bg-white px-3 text-sm text-gray-800 outline-none focus:ring-2">
-                        {JOB_TITLE_OPTIONS.map(option => (
-                          <option key={option.id} value={option.id}>
-                            {option.label}
-                          </option>
-                        ))}
-                        <option value="OTHER">Diğer</option>
-                      </select>
-                    </div>
+                    <TextField
+                      fullWidth
+                      value={editingEmployeeName}
+                      onChange={setEditingEmployeeName}>
+                      <Label>Çalışanın Adı</Label>
+                      <Input />
+                    </TextField>
+                    <Select
+                      fullWidth
+                      selectedKey={editingJobTitleOption}
+                      onSelectionChange={value =>
+                        setEditingJobTitleOption(value as JobTitleOption)
+                      }>
+                      <Label>Ünvan</Label>
+                      <Select.Trigger>
+                        <Select.Value />
+                        <Select.Indicator />
+                      </Select.Trigger>
+                      <Select.Popover>
+                        <ListBox>
+                          {JOB_TITLE_OPTIONS.map(option => (
+                            <ListBox.Item key={option.id} id={option.id}>
+                              {option.label}
+                              <ListBox.ItemIndicator />
+                            </ListBox.Item>
+                          ))}
+                          <ListBox.Item id="OTHER">
+                            Diğer
+                            <ListBox.ItemIndicator />
+                          </ListBox.Item>
+                        </ListBox>
+                      </Select.Popover>
+                    </Select>
                   </div>
                   {editingJobTitleOption === 'OTHER' && (
-                    <div>
-                      <label
-                        className="mb-1 block text-sm font-medium text-gray-700"
-                        htmlFor="edit-custom-job-title">
-                        Özel Ünvan
-                      </label>
-                      <input
-                        id="edit-custom-job-title"
-                        value={editingCustomJobTitle}
-                        onChange={event =>
-                          setEditingCustomJobTitle(event.target.value)
-                        }
-                        placeholder="Ünvanı yazın"
-                        className="focus:border-primary focus:ring-primary/20 h-10 w-full rounded-xl border border-gray-200 bg-white px-3 text-sm text-gray-800 outline-none focus:ring-2"
-                      />
-                    </div>
+                    <TextField
+                      fullWidth
+                      value={editingCustomJobTitle}
+                      onChange={setEditingCustomJobTitle}>
+                      <Label>Özel Ünvan</Label>
+                      <Input placeholder="Ünvanı yazın" />
+                    </TextField>
                   )}
 
                   {/* Permissions Selection Checklist */}
