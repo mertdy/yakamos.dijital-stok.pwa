@@ -21,6 +21,7 @@ import { Printer } from 'lucide-react';
 import { ReceiptTemplate } from './ReceiptTemplate';
 import { useRef } from 'react';
 import posthog from 'posthog-js';
+import { useHotkeys } from 'react-hotkeys-hook';
 
 interface Props {
   onOpenCustomerDrawer: () => void;
@@ -128,6 +129,72 @@ export const InvoicePanel: React.FC<Props> = ({
     }
     setDiscount(discountType, val);
   };
+
+  const isDialogOpen = () => Boolean(document.querySelector('[role="dialog"]'));
+
+  useHotkeys(
+    'f5',
+    event => {
+      event.preventDefault();
+      if (!isDialogOpen()) setPaymentMethod('Cash');
+    },
+    { enableOnFormTags: false }
+  );
+  useHotkeys(
+    'f6',
+    event => {
+      event.preventDefault();
+      if (!isDialogOpen()) setPaymentMethod('Card');
+    },
+    { enableOnFormTags: false }
+  );
+  useHotkeys(
+    'f7',
+    event => {
+      event.preventDefault();
+      if (!isDialogOpen()) setPaymentMethod('Scan');
+    },
+    { enableOnFormTags: false }
+  );
+  useHotkeys(
+    'f8',
+    event => {
+      event.preventDefault();
+      if (!isDialogOpen() && !isCreditLimitExceeded) {
+        setPaymentMethod('Credit');
+      }
+    },
+    { enableOnFormTags: false }
+  );
+  useHotkeys(
+    'f9',
+    event => {
+      event.preventDefault();
+      if (!isDialogOpen() && cart.length > 0 && !isProcessing) {
+        holdSale();
+        setGivenAmount('');
+        toast.success('Satış beklemeye alındı');
+      }
+    },
+    { enableOnFormTags: false }
+  );
+  useHotkeys(
+    'f10',
+    event => {
+      event.preventDefault();
+      if (!isDialogOpen()) onOpenHeldSalesDrawer();
+    },
+    { enableOnFormTags: false }
+  );
+  useHotkeys(
+    'enter',
+    event => {
+      if (isDialogOpen() || cart.length === 0 || isProcessing) return;
+      event.preventDefault();
+      void handleCheckout();
+    },
+    { enableOnFormTags: false }
+  );
 
   return (
     <div className="flex flex-col overflow-hidden rounded-3xl border border-gray-100 bg-white shadow-sm">

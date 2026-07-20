@@ -10,6 +10,7 @@ import { ROUTES } from '@/core/config/routes';
 import { Input, toast } from '@heroui/react';
 import posthog from 'posthog-js';
 import { playBarcodeFeedback } from '@/shared/utils/barcodeFeedback';
+import { useHotkeys } from 'react-hotkeys-hook';
 
 interface Props {
   onOpenScanner: () => void;
@@ -18,6 +19,7 @@ interface Props {
 export const GlobalProductSearch: React.FC<Props> = ({ onOpenScanner }) => {
   const [query, setQuery] = useState('');
   const [isFocused, setIsFocused] = useState(false);
+  const [selectedIndex, setSelectedIndex] = useState(0);
   const debouncedQuery = useDebounce(query, 300);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -45,6 +47,21 @@ export const GlobalProductSearch: React.FC<Props> = ({ onOpenScanner }) => {
     setQuery('');
     setIsFocused(false);
   };
+
+  const focusSearch = () => {
+    const input = containerRef.current?.querySelector('input');
+    input?.focus();
+    setIsFocused(true);
+  };
+
+  useHotkeys(
+    'ctrl+f',
+    event => {
+      event.preventDefault();
+      focusSearch();
+    },
+    { enableOnFormTags: true }
+  );
 
   useGlobalBarcodeScanner({
     onScan: barcode => {
@@ -121,6 +138,41 @@ export const GlobalProductSearch: React.FC<Props> = ({ onOpenScanner }) => {
 
   const showDropdown = isFocused && debouncedQuery.trim().length > 0;
 
+  useEffect(() => {
+    setSelectedIndex(0);
+  }, [debouncedQuery]);
+
+  const handleSearchKeyDown = (
+    event: React.KeyboardEvent<HTMLInputElement>
+  ) => {
+    if (event.key === 'Escape') {
+      setQuery('');
+      setIsFocused(false);
+      return;
+    }
+
+    if (searchResults.length === 0) return;
+
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      setSelectedIndex(index => (index + 1) % searchResults.length);
+      return;
+    }
+
+    if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      setSelectedIndex(
+        index => (index - 1 + searchResults.length) % searchResults.length
+      );
+      return;
+    }
+
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      handleSelectProduct(searchResults[selectedIndex]);
+    }
+  };
+
   return (
     <div className="relative z-10 flex-shrink-0" ref={containerRef}>
       <Search
@@ -134,6 +186,7 @@ export const GlobalProductSearch: React.FC<Props> = ({ onOpenScanner }) => {
         value={query}
         onChange={e => setQuery(e.target.value)}
         onFocus={() => setIsFocused(true)}
+        onKeyDown={handleSearchKeyDown}
         className="pr-14 pl-11"
       />
       <button
@@ -148,11 +201,14 @@ export const GlobalProductSearch: React.FC<Props> = ({ onOpenScanner }) => {
         <div className="absolute top-full right-0 left-0 mt-2 max-h-[300px] overflow-hidden overflow-y-auto rounded-2xl border border-gray-100 bg-white shadow-xl">
           {searchResults.length > 0 ? (
             <div className="flex flex-col py-2">
-              {searchResults.map(item => (
+              {searchResults.map((item, index) => (
                 <button
                   key={item.id}
                   onClick={() => handleSelectProduct(item)}
-                  className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-gray-50">
+                  onMouseEnter={() => setSelectedIndex(index)}
+                  className={`flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-gray-50 ${
+                    index === selectedIndex ? 'bg-gray-50' : ''
+                  }`}>
                   <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center overflow-hidden rounded-lg bg-gray-100 text-gray-400">
                     {item.imageUrl ? (
                       <img

@@ -15,6 +15,10 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
     items: [
       {
         type: 'new',
+        text: 'Satış, ödeme, arama ve sepet işlemlerini klavye kısayollarıyla daha hızlı yapabilir; profil menüsünden tüm kısayolları görüntüleyebilirsiniz.'
+      },
+      {
+        type: 'new',
         text: 'Kategori hiyerarşinizi ve durum bilgilerini Excel veya CSV olarak dışa aktarabilirsiniz.'
       },
       {

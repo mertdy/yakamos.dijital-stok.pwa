@@ -37,7 +37,8 @@ import {
   ExternalLink,
   Moon,
   Sun,
-  Sparkles
+  Sparkles,
+  Keyboard
 } from 'lucide-react';
 import { useAuthStore } from '@/features/auth';
 import {
@@ -56,6 +57,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { FormInput } from '@/shared/components/FormInput';
 import { PhoneInput } from '@/shared/components/PhoneInput';
+import { KeyboardShortcutsModal } from '@/shared/components/KeyboardShortcutsModal';
 import {
   normalizePhoneNumber,
   optionalPhoneNumberSchema
@@ -122,6 +124,7 @@ export const MainLayout: React.FC = () => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isSidebarHovered, setIsSidebarHovered] = useState(false);
   const [newCompanyModalOpen, setNewCompanyModalOpen] = useState(false);
+  const [keyboardShortcutsOpen, setKeyboardShortcutsOpen] = useState(false);
   const [isCreatingCompany, setIsCreatingCompany] = useState(false);
   const [isSwitching, setIsSwitching] = useState(false);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -289,6 +292,10 @@ export const MainLayout: React.FC = () => {
 
     if (key === 'changelog') {
       navigate(ROUTES.CHANGELOG);
+    }
+
+    if (key === 'keyboard-shortcuts') {
+      setKeyboardShortcutsOpen(true);
     }
 
     if (key === 'support') {
@@ -740,6 +747,14 @@ export const MainLayout: React.FC = () => {
                       )}
                     </span>
                   </Dropdown.Item>
+                  <Dropdown.Item
+                    id="keyboard-shortcuts"
+                    textValue="Klavye kısayolları">
+                    <span className="flex items-center gap-2.5">
+                      <Keyboard size={17} className="text-gray-500" />
+                      <span>Klavye kısayolları</span>
+                    </span>
+                  </Dropdown.Item>
                   <Dropdown.Item id="support" textValue="Destek">
                     <span className="flex w-full items-center gap-2.5">
                       <LifeBuoy size={17} className="text-gray-500" />
@@ -921,6 +936,11 @@ export const MainLayout: React.FC = () => {
           </Modal.Container>
         </Modal.Backdrop>
       </Modal>
+
+      <KeyboardShortcutsModal
+        isOpen={keyboardShortcutsOpen}
+        onOpenChange={setKeyboardShortcutsOpen}
+      />
     </div>
   );
 };

@@ -61,10 +61,46 @@ export const OrderDetailsPanel: React.FC = () => {
 
             {/* Table Body */}
             <div className="divide-y divide-gray-50">
-              {cart.map(item => (
+              {cart.map((item, index) => (
                 <div
                   key={item.inventoryId}
-                  className="group grid grid-cols-12 items-center gap-4 p-4 transition-colors hover:bg-gray-50/50">
+                  tabIndex={0}
+                  aria-label={`${item.name} sepet satırı`}
+                  onKeyDown={event => {
+                    if (event.key === '+' || event.key === '=') {
+                      event.preventDefault();
+                      updateQuantity(item.inventoryId, item.quantity + 1);
+                      return;
+                    }
+
+                    if (event.key === '-') {
+                      event.preventDefault();
+                      if (item.quantity > 1) {
+                        updateQuantity(item.inventoryId, item.quantity - 1);
+                      } else {
+                        removeFromCart(item.inventoryId);
+                      }
+                      return;
+                    }
+
+                    if (event.key === 'Delete') {
+                      event.preventDefault();
+                      removeFromCart(item.inventoryId);
+                      return;
+                    }
+
+                    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+                      event.preventDefault();
+                      const nextIndex =
+                        event.key === 'ArrowDown'
+                          ? Math.min(index + 1, cart.length - 1)
+                          : Math.max(index - 1, 0);
+                      const nextRow = event.currentTarget.parentElement
+                        ?.children[nextIndex] as HTMLElement | undefined;
+                      nextRow?.focus();
+                    }
+                  }}
+                  className="group focus-visible:bg-primary/5 grid grid-cols-12 items-center gap-4 p-4 transition-colors hover:bg-gray-50/50 focus-visible:outline-none">
                   {/* Product Column */}
                   <div className="col-span-5 flex items-center gap-3">
                     <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-gray-100 text-gray-400">
