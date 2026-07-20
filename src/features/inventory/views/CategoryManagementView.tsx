@@ -27,10 +27,12 @@ import {
 } from '../store/useCategoryStore';
 import { useDebounce } from '@/shared/hooks/useDebounce';
 import { normalizeSearchText } from '@/shared/utils/searchText';
+import { useAuthStore } from '@/features/auth/store/useAuthStore';
 
 export const CategoryManagementView = () => {
   const {
     categories,
+    isLoading,
     loadCategories,
     addCategory,
     updateCategory,
@@ -38,6 +40,7 @@ export const CategoryManagementView = () => {
     deleteCategory
   } = useCategoryStore();
   const { items } = useInventoryStore();
+  const activeCompanyId = useAuthStore(state => state.profile?.activeCompanyId);
   const navigate = useNavigate();
   const [query, setQuery] = useState('');
   const debouncedQuery = useDebounce(query, 300);
@@ -53,8 +56,8 @@ export const CategoryManagementView = () => {
   const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
-    loadCategories();
-  }, [loadCategories]);
+    if (activeCompanyId) loadCategories();
+  }, [activeCompanyId, loadCategories]);
 
   const roots = useMemo(
     () =>
@@ -279,7 +282,24 @@ export const CategoryManagementView = () => {
         </div>
 
         <div className="overflow-y-auto">
-          {roots.length ? (
+          {isLoading ? (
+            <div className="animate-pulse divide-y divide-gray-100">
+              {Array.from({ length: 5 }, (_, index) => (
+                <div
+                  key={index}
+                  data-testid="category-loading-skeleton"
+                  className="flex flex-wrap items-center gap-3 px-4 py-3">
+                  <div className="min-w-0 flex-1 space-y-2">
+                    <div className="h-4 w-36 rounded bg-gray-200" />
+                    <div className="h-3 w-16 rounded bg-gray-100" />
+                  </div>
+                  <div className="h-8 w-24 rounded bg-gray-100" />
+                  <div className="h-8 w-8 rounded bg-gray-100" />
+                  <div className="h-8 w-8 rounded bg-gray-100" />
+                </div>
+              ))}
+            </div>
+          ) : roots.length ? (
             roots.map(root => (
               <div key={root.id}>
                 {row(root)}

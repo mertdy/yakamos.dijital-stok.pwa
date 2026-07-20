@@ -84,7 +84,8 @@ const getPageItems = (pageCount: number, currentPage: number) => {
 export const InventoryTable: React.FC<InventoryTableProps> = ({
   initialPrintItemId = null
 }) => {
-  const { items, deleteItem, deleteItems, updateItem } = useInventoryStore();
+  const { items, isLoading, deleteItem, deleteItems, updateItem } =
+    useInventoryStore();
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState('');
   const [isImmediateSearch, setIsImmediateSearch] = useState(false);
@@ -365,7 +366,9 @@ export const InventoryTable: React.FC<InventoryTableProps> = ({
     [currentPage, pageCount]
   );
 
-  if (items.length === 0) {
+  const isInitialLoading = isLoading && items.length === 0;
+
+  if (items.length === 0 && !isInitialLoading) {
     return (
       <div className="flex flex-col items-center justify-center rounded-[28px] border-none bg-white py-24 text-gray-400 shadow-sm">
         <Package className="mb-4 text-6xl opacity-30" />
@@ -534,31 +537,71 @@ export const InventoryTable: React.FC<InventoryTableProps> = ({
             ))}
           </thead>
           <tbody>
-            {table.getRowModel().rows.map(row => (
-              <tr
-                key={row.id}
-                className={clsx(
-                  'border-b border-gray-100 transition-colors hover:bg-gray-50/50',
-                  row.getIsSelected() && 'bg-primary-50/20'
-                )}>
-                {row.getVisibleCells().map(cell => {
-                  const isSelection = cell.column.id === 'selection';
-                  return (
-                    <td
-                      key={cell.id}
-                      className={clsx(
-                        isSelection ? 'w-12 px-4' : 'px-6',
-                        'py-4 text-sm'
-                      )}>
-                      {flexRender(
-                        cell.column.columnDef.cell,
-                        cell.getContext()
-                      )}
-                    </td>
-                  );
-                })}
-              </tr>
-            ))}
+            {isInitialLoading
+              ? Array.from({ length: 5 }, (_, rowIndex) => (
+                  <tr
+                    key={rowIndex}
+                    data-testid="inventory-loading-skeleton"
+                    className="animate-pulse border-b border-gray-100">
+                    {table.getVisibleLeafColumns().map(column => (
+                      <td
+                        key={column.id}
+                        className={clsx(
+                          column.id === 'selection' ? 'w-12 px-4' : 'px-6',
+                          'py-4'
+                        )}>
+                        <div
+                          className={clsx(
+                            'h-4 rounded bg-gray-200',
+                            column.id === 'selection'
+                              ? 'w-5 bg-gray-100'
+                              : column.id === 'name'
+                                ? 'w-40'
+                                : column.id === 'stock'
+                                  ? 'w-12 bg-gray-100'
+                                  : column.id === 'actions'
+                                    ? 'ml-auto h-8 w-16 bg-gray-100'
+                                    : 'w-24'
+                          )}
+                        />
+                      </td>
+                    ))}
+                  </tr>
+                ))
+              : table.getRowModel().rows.map(row => (
+                  <tr
+                    key={row.id}
+                    className={clsx(
+                      'cursor-pointer border-b border-gray-100 transition-colors hover:bg-gray-50/50',
+                      row.getIsSelected() && 'bg-primary-50/20'
+                    )}
+                    onClick={() =>
+                      navigate(ROUTES.INVENTORY.EDIT(row.original.id))
+                    }>
+                    {row.getVisibleCells().map(cell => {
+                      const isSelection = cell.column.id === 'selection';
+                      const isAction = cell.column.id === 'actions';
+                      return (
+                        <td
+                          key={cell.id}
+                          className={clsx(
+                            isSelection ? 'w-12 px-4' : 'px-6',
+                            'py-4 text-sm'
+                          )}
+                          onClick={
+                            isSelection || isAction
+                              ? event => event.stopPropagation()
+                              : undefined
+                          }>
+                          {flexRender(
+                            cell.column.columnDef.cell,
+                            cell.getContext()
+                          )}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
           </tbody>
         </table>
       </div>

@@ -111,6 +111,23 @@ describe('InventoryTable', () => {
     expect(screen.getByText('Envanterde hiç ürün yok.')).toBeInTheDocument();
   });
 
+  it('shows loading skeleton rows during the initial inventory load', () => {
+    mockUseInventoryStore.mockReturnValue({
+      items: [],
+      isLoading: true,
+      deleteItem: deleteItemMock,
+      deleteItems: deleteItemsMock,
+      updateItem: updateItemMock
+    });
+
+    render(<InventoryTable />);
+
+    expect(screen.getAllByTestId('inventory-loading-skeleton')).toHaveLength(5);
+    expect(
+      screen.queryByText('Envanterde hiç ürün yok.')
+    ).not.toBeInTheDocument();
+  });
+
   it('renders table headers and rows correctly', () => {
     render(<InventoryTable />);
 
@@ -178,6 +195,14 @@ describe('InventoryTable', () => {
 
     const editBtns = screen.getAllByRole('button', { name: 'Düzenle' });
     fireEvent.click(editBtns[0]); // Apple edit
+
+    expect(navigateMock).toHaveBeenCalledWith(ROUTES.INVENTORY.EDIT('1'));
+  });
+
+  it('navigates to edit product view when a product row is clicked', () => {
+    render(<InventoryTable />);
+
+    fireEvent.click(screen.getByText('Apple'));
 
     expect(navigateMock).toHaveBeenCalledWith(ROUTES.INVENTORY.EDIT('1'));
   });
