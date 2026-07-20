@@ -3,7 +3,8 @@ import { clsx } from 'clsx';
 import { BrowserMultiFormatReader } from '@zxing/browser';
 import {
   BarcodeScanner,
-  BarcodeFormat
+  BarcodeFormat,
+  LensFacing
 } from '@capacitor-mlkit/barcode-scanning';
 import { Capacitor } from '@capacitor/core';
 import { useInventoryStore, type InventoryItem } from '@/features/inventory';
@@ -15,10 +16,13 @@ import posthog from 'posthog-js';
 import { playBarcodeFeedback } from '@/shared/utils/barcodeFeedback';
 import {
   CameraOff,
+  Flashlight,
+  FlashlightOff,
   Minus,
   Plus,
   RotateCcw,
   ShoppingCart,
+  SwitchCamera,
   Trash2
 } from 'lucide-react';
 
@@ -29,13 +33,82 @@ interface ScannerModalProps {
 }
 
 type ScanMode = 'single' | 'multiple';
+type CameraFacing = 'environment' | 'user';
+
+interface CameraTrackCapabilities {
+  torch?: boolean;
+}
+
+type CameraTrack = MediaStreamTrack & {
+  getCapabilities?: () => CameraTrackCapabilities;
+};
 
 interface ScannedItem {
   item: InventoryItem;
   quantity: number;
 }
 
+interface ScannerCameraControlsProps {
+  canFlipCamera: boolean;
+  isFlashAvailable: boolean;
+  isFlashOn: boolean;
+  onFlipCamera: () => void;
+  onToggleFlash: () => void;
+}
+
 const SCAN_MODE_STORAGE_KEY = 'sales-scanner-mode';
+
+const ScannerCameraControls = ({
+  canFlipCamera,
+  isFlashAvailable,
+  isFlashOn,
+  onFlipCamera,
+  onToggleFlash
+}: ScannerCameraControlsProps) => {
+  if (!canFlipCamera && !isFlashAvailable) return null;
+
+  return (
+    <div className="absolute top-3 right-3 z-10 flex items-center gap-1 rounded-xl bg-black/55 p-1 backdrop-blur-sm">
+      {canFlipCamera && (
+        <Tooltip delay={0} closeDelay={0}>
+          <Button
+            variant="tertiary"
+            isIconOnly
+            size="sm"
+            className="text-white hover:bg-white/15"
+            onPress={onFlipCamera}
+            aria-label="Kamerayı değiştir">
+            <SwitchCamera size={18} />
+          </Button>
+          <Tooltip.Content showArrow>
+            <Tooltip.Arrow />
+            Kamerayı değiştir
+          </Tooltip.Content>
+        </Tooltip>
+      )}
+      {isFlashAvailable && (
+        <Tooltip delay={0} closeDelay={0}>
+          <Button
+            variant="tertiary"
+            isIconOnly
+            size="sm"
+            className={clsx(
+              'text-white hover:bg-white/15',
+              isFlashOn && 'bg-white/20 text-yellow-300'
+            )}
+            onPress={onToggleFlash}
+            aria-label={isFlashOn ? 'Flaşı kapat' : 'Flaşı aç'}>
+            {isFlashOn ? <Flashlight size={18} /> : <FlashlightOff size={18} />}
+          </Button>
+          <Tooltip.Content showArrow>
+            <Tooltip.Arrow />
+            {isFlashOn ? 'Flaşı kapat' : 'Flaşı aç'}
+          </Tooltip.Content>
+        </Tooltip>
+      )}
+    </div>
+  );
+};
 
 const ScannerModal: React.FC<ScannerModalProps> = ({
   isOpen,
@@ -53,6 +126,9 @@ const ScannerModal: React.FC<ScannerModalProps> = ({
   const [lastScannedItemId, setLastScannedItemId] = useState<string | null>(
     null
   );
+  const [canFlipCamera, setCanFlipCamera] = useState(false);
+  const [isFlashAvailable, setIsFlashAvailable] = useState(false);
+  const [isFlashOn, setIsFlashOn] = useState(false);
   const { items } = useInventoryStore();
   const { addToCart } = useSalesStore();
   const navigate = useNavigate();
@@ -60,15 +136,38 @@ const ScannerModal: React.FC<ScannerModalProps> = ({
   const codeReaderRef = useRef<BrowserMultiFormatReader | null>(null);
   const controlsRef = useRef<any>(null);
   const isScanningRef = useRef(false);
+  const cameraFacingRef = useRef<CameraFacing>('environment');
   const hasHandledSingleScanRef = useRef(false);
   const lastScannedRef = useRef<{ barcode: string; time: number } | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const animationFrameRef = useRef<number | null>(null);
   const startTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const updateWebCameraCapabilities = useCallback(
+    async (stream: MediaStream) => {
+      const cameraTrack = stream.getVideoTracks()[0] as CameraTrack | undefined;
+      const capabilities = cameraTrack?.getCapabilities?.() as
+        | CameraTrackCapabilities
+        | undefined;
+      setIsFlashAvailable(Boolean(capabilities?.torch));
+      setIsFlashOn(false);
+
+      try {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        setCanFlipCamera(
+          devices.filter(device => device.kind === 'videoinput').length > 1
+        );
+      } catch {
+        setCanFlipCamera(false);
+      }
+    },
+    []
+  );
+
   const stopScan = useCallback(async () => {
     isScanningRef.current = false;
     setIsScanning(false);
+    setIsFlashOn(false);
 
     if (startTimeoutRef.current) {
       clearTimeout(startTimeoutRef.current);
@@ -222,161 +321,186 @@ const ScannerModal: React.FC<ScannerModalProps> = ({
     ]
   );
 
-  const startScan = useCallback(async () => {
-    try {
-      hasHandledSingleScanRef.current = false;
-      isScanningRef.current = true;
-      setScannerError(null);
-      const isWeb = Capacitor.getPlatform() === 'web';
-      if (isWeb) {
-        if (!navigator.mediaDevices?.getUserMedia) {
-          isScanningRef.current = false;
-          setScannerError(
-            'Bu cihazda kullanılabilir bir web kamerası bulunamadı.'
-          );
+  const startScan = useCallback(
+    async (facing = cameraFacingRef.current) => {
+      try {
+        hasHandledSingleScanRef.current = false;
+        isScanningRef.current = true;
+        setScannerError(null);
+        const isWeb = Capacitor.getPlatform() === 'web';
+        if (isWeb) {
+          if (!navigator.mediaDevices?.getUserMedia) {
+            isScanningRef.current = false;
+            setScannerError(
+              'Bu cihazda kullanılabilir bir web kamerası bulunamadı.'
+            );
+            return;
+          }
+
+          setIsScanning(true);
+
+          if ('BarcodeDetector' in window) {
+            // Native Barcode Detection API (Chrome/Edge Android & Desktop)
+            if (startTimeoutRef.current) clearTimeout(startTimeoutRef.current);
+            startTimeoutRef.current = setTimeout(async () => {
+              if (videoRef.current && isScanningRef.current) {
+                try {
+                  const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: { ideal: facing } }
+                  });
+
+                  // If modal closed while waiting for camera permissions
+                  if (!isScanningRef.current) {
+                    stream.getTracks().forEach(track => track.stop());
+                    return;
+                  }
+
+                  streamRef.current = stream;
+                  await updateWebCameraCapabilities(stream);
+                  videoRef.current.srcObject = stream;
+                  await videoRef.current.play();
+
+                  const barcodeDetector = new (window as any).BarcodeDetector({
+                    formats: ['qr_code', 'ean_13', 'ean_8']
+                  });
+
+                  const detectLoop = async () => {
+                    if (!isScanningRef.current) return;
+                    if (
+                      videoRef.current &&
+                      videoRef.current.readyState ===
+                        videoRef.current.HAVE_ENOUGH_DATA
+                    ) {
+                      try {
+                        const barcodes = await barcodeDetector.detect(
+                          videoRef.current
+                        );
+                        if (barcodes.length > 0) {
+                          handleBarcodeScanned(barcodes[0].rawValue);
+                        }
+                      } catch {
+                        // Ignored during loop
+                      }
+                    }
+                    animationFrameRef.current =
+                      requestAnimationFrame(detectLoop);
+                  };
+                  detectLoop();
+                } catch (e) {
+                  console.error('Camera access failed', e);
+                  isScanningRef.current = false;
+                  setIsScanning(false);
+                  setScannerError(
+                    e instanceof DOMException && e.name === 'NotAllowedError'
+                      ? 'Kamera izni verilmedi. Tarayıcı ayarlarından izin verip tekrar deneyin.'
+                      : 'Bu cihazda kullanılabilir bir web kamerası bulunamadı.'
+                  );
+                }
+              }
+            }, 100);
+          } else {
+            // ZXing Fallback
+            if (!codeReaderRef.current) {
+              codeReaderRef.current = new BrowserMultiFormatReader();
+            }
+
+            if (startTimeoutRef.current) clearTimeout(startTimeoutRef.current);
+            startTimeoutRef.current = setTimeout(() => {
+              if (
+                videoRef.current &&
+                codeReaderRef.current &&
+                isScanningRef.current
+              ) {
+                codeReaderRef.current
+                  .decodeFromConstraints(
+                    { video: { facingMode: { ideal: facing } } },
+                    videoRef.current,
+                    result => {
+                      if (result) {
+                        handleBarcodeScanned(result.getText());
+                      }
+                    }
+                  )
+                  .then(controls => {
+                    if (!isScanningRef.current) {
+                      controls.stop();
+                    } else {
+                      controlsRef.current = controls;
+                      const stream = videoRef.current?.srcObject;
+                      if (stream instanceof MediaStream) {
+                        streamRef.current = stream;
+                        void updateWebCameraCapabilities(stream);
+                      }
+                    }
+                  })
+                  .catch(error => {
+                    console.error('Camera access failed', error);
+                    isScanningRef.current = false;
+                    setIsScanning(false);
+                    setScannerError(
+                      error instanceof DOMException &&
+                        error.name === 'NotAllowedError'
+                        ? 'Kamera izni verilmedi. Tarayıcı ayarlarından izin verip tekrar deneyin.'
+                        : 'Bu cihazda kullanılabilir bir web kamerası bulunamadı.'
+                    );
+                  });
+              }
+            }, 100);
+          }
+          return;
+        }
+
+        // Native Device Scanning (Capacitor MLKit)
+        await BarcodeScanner.installGoogleBarcodeScannerModule();
+        const status = await BarcodeScanner.requestPermissions();
+
+        if (status.camera !== 'granted' && status.camera !== 'limited') {
+          toast.danger('Kamera izni verilmedi');
+          onClose();
           return;
         }
 
         setIsScanning(true);
+        document.body.classList.add('barcode-scanner-active'); // To make webview transparent
+        setCanFlipCamera(true);
 
-        if ('BarcodeDetector' in window) {
-          // Native Barcode Detection API (Chrome/Edge Android & Desktop)
-          if (startTimeoutRef.current) clearTimeout(startTimeoutRef.current);
-          startTimeoutRef.current = setTimeout(async () => {
-            if (videoRef.current && isScanningRef.current) {
-              try {
-                const stream = await navigator.mediaDevices.getUserMedia({
-                  video: { facingMode: 'environment' }
-                });
-
-                // If modal closed while waiting for camera permissions
-                if (!isScanningRef.current) {
-                  stream.getTracks().forEach(track => track.stop());
-                  return;
-                }
-
-                streamRef.current = stream;
-                videoRef.current.srcObject = stream;
-                await videoRef.current.play();
-
-                const barcodeDetector = new (window as any).BarcodeDetector({
-                  formats: ['qr_code', 'ean_13', 'ean_8']
-                });
-
-                const detectLoop = async () => {
-                  if (!isScanningRef.current) return;
-                  if (
-                    videoRef.current &&
-                    videoRef.current.readyState ===
-                      videoRef.current.HAVE_ENOUGH_DATA
-                  ) {
-                    try {
-                      const barcodes = await barcodeDetector.detect(
-                        videoRef.current
-                      );
-                      if (barcodes.length > 0) {
-                        handleBarcodeScanned(barcodes[0].rawValue);
-                      }
-                    } catch {
-                      // Ignored during loop
-                    }
-                  }
-                  animationFrameRef.current = requestAnimationFrame(detectLoop);
-                };
-                detectLoop();
-              } catch (e) {
-                console.error('Camera access failed', e);
-                isScanningRef.current = false;
-                setIsScanning(false);
-                setScannerError(
-                  e instanceof DOMException && e.name === 'NotAllowedError'
-                    ? 'Kamera izni verilmedi. Tarayıcı ayarlarından izin verip tekrar deneyin.'
-                    : 'Bu cihazda kullanılabilir bir web kamerası bulunamadı.'
-                );
-              }
+        await BarcodeScanner.addListener(
+          'barcodesScanned',
+          async (result: any) => {
+            if (result.barcodes && result.barcodes.length > 0) {
+              handleBarcodeScanned(result.barcodes[0].rawValue);
             }
-          }, 100);
-        } else {
-          // ZXing Fallback
-          if (!codeReaderRef.current) {
-            codeReaderRef.current = new BrowserMultiFormatReader();
           }
+        );
 
-          if (startTimeoutRef.current) clearTimeout(startTimeoutRef.current);
-          startTimeoutRef.current = setTimeout(() => {
-            if (
-              videoRef.current &&
-              codeReaderRef.current &&
-              isScanningRef.current
-            ) {
-              codeReaderRef.current
-                .decodeFromVideoDevice(undefined, videoRef.current, result => {
-                  if (result) {
-                    handleBarcodeScanned(result.getText());
-                  }
-                })
-                .then(controls => {
-                  if (!isScanningRef.current) {
-                    controls.stop();
-                  } else {
-                    controlsRef.current = controls;
-                  }
-                })
-                .catch(error => {
-                  console.error('Camera access failed', error);
-                  isScanningRef.current = false;
-                  setIsScanning(false);
-                  setScannerError(
-                    error instanceof DOMException &&
-                      error.name === 'NotAllowedError'
-                      ? 'Kamera izni verilmedi. Tarayıcı ayarlarından izin verip tekrar deneyin.'
-                      : 'Bu cihazda kullanılabilir bir web kamerası bulunamadı.'
-                  );
-                });
-            }
-          }, 100);
-        }
-        return;
+        await BarcodeScanner.startScan({
+          formats: [
+            BarcodeFormat.QrCode,
+            BarcodeFormat.Ean13,
+            BarcodeFormat.Ean8
+          ],
+          lensFacing: facing === 'user' ? LensFacing.Front : LensFacing.Back
+        });
+        const { available } = await BarcodeScanner.isTorchAvailable();
+        setIsFlashAvailable(available);
+      } catch (error) {
+        console.error('Scanner error', error);
+        isScanningRef.current = false;
+        setIsScanning(false);
+        setScannerError('Kamera başlatılamadı. Lütfen tekrar deneyin.');
       }
-
-      // Native Device Scanning (Capacitor MLKit)
-      await BarcodeScanner.installGoogleBarcodeScannerModule();
-      const status = await BarcodeScanner.requestPermissions();
-
-      if (status.camera !== 'granted' && status.camera !== 'limited') {
-        toast.danger('Kamera izni verilmedi');
-        onClose();
-        return;
-      }
-
-      setIsScanning(true);
-      document.body.classList.add('barcode-scanner-active'); // To make webview transparent
-
-      await BarcodeScanner.addListener(
-        'barcodesScanned',
-        async (result: any) => {
-          if (result.barcodes && result.barcodes.length > 0) {
-            handleBarcodeScanned(result.barcodes[0].rawValue);
-          }
-        }
-      );
-
-      await BarcodeScanner.startScan({
-        formats: [BarcodeFormat.QrCode, BarcodeFormat.Ean13, BarcodeFormat.Ean8]
-      });
-    } catch (error) {
-      console.error('Scanner error', error);
-      isScanningRef.current = false;
-      setIsScanning(false);
-      setScannerError('Kamera başlatılamadı. Lütfen tekrar deneyin.');
-    }
-  }, [onClose, handleBarcodeScanned]);
+    },
+    [onClose, handleBarcodeScanned, updateWebCameraCapabilities]
+  );
 
   useEffect(() => {
     if (isOpen) {
       setScannedItems([]);
       setLastScannedItemId(null);
       lastScannedRef.current = null;
+      cameraFacingRef.current = 'environment';
+      setCanFlipCamera(false);
+      setIsFlashAvailable(false);
       startScan();
     } else {
       stopScan();
@@ -443,6 +567,40 @@ const ScannerModal: React.FC<ScannerModalProps> = ({
     onClose();
   };
 
+  const handleFlipCamera = async () => {
+    const nextFacing: CameraFacing =
+      cameraFacingRef.current === 'environment' ? 'user' : 'environment';
+    cameraFacingRef.current = nextFacing;
+    setIsFlashAvailable(false);
+    setIsFlashOn(false);
+    await stopScan();
+    await startScan(nextFacing);
+  };
+
+  const handleToggleFlash = async () => {
+    try {
+      const isWeb = Capacitor.getPlatform() === 'web';
+      const nextFlashState = !isFlashOn;
+      if (isWeb) {
+        const cameraTrack = streamRef.current?.getVideoTracks()[0] as
+          | CameraTrack
+          | undefined;
+        if (!cameraTrack) return;
+        await cameraTrack.applyConstraints({
+          advanced: [{ torch: nextFlashState }]
+        } as unknown as MediaTrackConstraints);
+      } else {
+        await BarcodeScanner.toggleTorch();
+      }
+      setIsFlashOn(nextFlashState);
+    } catch (error) {
+      console.warn('Camera flash could not be toggled', error);
+      toast.warning('Bu kamerada flaş kullanılamıyor.');
+      setIsFlashAvailable(false);
+      setIsFlashOn(false);
+    }
+  };
+
   return (
     <Modal
       isOpen={isOpen}
@@ -499,7 +657,9 @@ const ScannerModal: React.FC<ScannerModalProps> = ({
                         {scannerError}
                       </p>
                     </div>
-                    <Button variant="secondary" onPress={startScan}>
+                    <Button
+                      variant="secondary"
+                      onPress={() => void startScan()}>
                       Tekrar Dene
                     </Button>
                   </div>
@@ -509,11 +669,27 @@ const ScannerModal: React.FC<ScannerModalProps> = ({
                       ref={videoRef}
                       className="h-full w-full object-cover"
                     />
+                    <ScannerCameraControls
+                      canFlipCamera={canFlipCamera}
+                      isFlashAvailable={isFlashAvailable}
+                      isFlashOn={isFlashOn}
+                      onFlipCamera={handleFlipCamera}
+                      onToggleFlash={handleToggleFlash}
+                    />
                     <div className="bg-primary absolute top-1/2 right-0 left-0 h-1 w-full animate-ping opacity-50" />
                   </div>
                 ) : (
                   <div className="border-primary/50 relative flex h-64 w-64 items-center justify-center overflow-hidden rounded-3xl border-[3px] border-dashed bg-gray-50/50">
                     <div className="absolute inset-0 bg-black/5" />
+                    {isScanning && (
+                      <ScannerCameraControls
+                        canFlipCamera={canFlipCamera}
+                        isFlashAvailable={isFlashAvailable}
+                        isFlashOn={isFlashOn}
+                        onFlipCamera={handleFlipCamera}
+                        onToggleFlash={handleToggleFlash}
+                      />
+                    )}
                     <div className="bg-primary absolute top-1/2 right-0 left-0 h-1 w-full animate-ping" />
                   </div>
                 )}

@@ -22,6 +22,10 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
         text: 'Barkod okuturken ürünleri toplu olarak gözden geçirip adetlerini düzenledikten sonra sepete aktarabilirsiniz.'
       },
       {
+        type: 'new',
+        text: 'Barkod kamerasında uygun cihazlarda ön ve arka kamera arasında geçiş yapabilir, flaşı açabilirsiniz.'
+      },
+      {
         type: 'improved',
         text: 'Müşteri telefon numaralarından arama, SMS, WhatsApp ve kopyalama işlemlerine hızlıca erişebilirsiniz.'
       },
