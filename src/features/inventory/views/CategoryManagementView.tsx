@@ -304,7 +304,7 @@ export const CategoryManagementView = () => {
 
       <div className="min-h-0 flex-1 overflow-hidden rounded-[28px] bg-white shadow-sm">
         <div className="border-b border-gray-100 bg-gray-50/50 p-4">
-          <div className="relative w-full max-w-md">
+          <div className="relative w-full max-w-xl">
             <Search
               className="absolute top-1/2 left-3 -translate-y-1/2 text-gray-400"
               size={20}

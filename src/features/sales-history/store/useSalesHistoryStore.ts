@@ -48,6 +48,9 @@ export interface SalesHistoryFilter {
   minAmount?: number;
   maxAmount?: number;
   searchQuery?: string;
+  quickPeriod?: 'today' | 'week';
+  hasDiscount?: boolean;
+  status?: 'completed' | 'cancelled';
 }
 
 interface SalesHistoryState {
@@ -117,6 +120,16 @@ const filterSales = (sales: SaleTransaction[], filters: SalesHistoryFilter) => {
     const end = new Date(filters.endDate).getTime();
     filteredSales = filteredSales.filter(
       sale => new Date(sale.createdAt).getTime() <= end
+    );
+  }
+
+  if (filters.hasDiscount) {
+    filteredSales = filteredSales.filter(sale => sale.discount > 0);
+  }
+
+  if (filters.status) {
+    filteredSales = filteredSales.filter(
+      sale => (sale.status ?? 'completed') === filters.status
     );
   }
 

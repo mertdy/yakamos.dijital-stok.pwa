@@ -563,7 +563,7 @@ export const InventoryTable: React.FC<InventoryTableProps> = ({
     <div className="flex h-full flex-col overflow-hidden rounded-[28px] border-none bg-white shadow-sm">
       <InventoryFilters value={filters} onChange={handleFiltersChange} />
       {selectedIds.length > 0 && (
-        <div className="flex flex-wrap items-center justify-end gap-3 border-b border-gray-100 bg-gray-50/50 px-4 py-3">
+        <div className="flex flex-wrap items-center justify-start gap-3 border-b border-gray-100 bg-gray-50/50 px-4 py-3">
           {selectedIds.length > 0 && (
             <div className="flex flex-wrap items-center gap-3">
               <Description className="text-sm font-medium text-gray-700">

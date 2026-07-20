@@ -194,43 +194,45 @@ export const DataExportWizard = ({ isOpen, onClose, company }: Props) => {
                 </>
               )}
               {step === 2 && (
-                <>
-                  <p className="text-sm font-medium text-gray-700">
-                    Dosya biçimini ve teslim şeklini belirleyin
-                  </p>
-                  <RadioGroup
-                    name="export-format"
-                    value={format}
-                    onChange={value => setFormat(value as ExportFormat)}>
-                    <Label className="sr-only">Dosya biçimi</Label>
-                    <div className="grid gap-3 sm:grid-cols-2">
-                      <Radio value="xlsx">
-                        <Radio.Content className="data-[selected=true]:border-primary data-[selected=true]:bg-primary/5 data-[selected=true]:ring-primary/20 relative flex w-full flex-col gap-1 rounded-2xl border border-gray-200 p-4 text-left transition-colors hover:bg-gray-50 data-[selected=true]:ring-1">
-                          <Radio.Control className="absolute top-4 right-4 size-5">
-                            <Radio.Indicator />
-                          </Radio.Control>
-                          <FileSpreadsheet
-                            className="text-primary mb-2"
-                            size={22}
-                          />
-                          <span className="font-semibold">Excel</span>
-                          <Description>Biçimli çalışma sayfaları</Description>
-                        </Radio.Content>
-                      </Radio>
-                      <Radio value="csv">
-                        <Radio.Content className="data-[selected=true]:border-primary data-[selected=true]:bg-primary/5 data-[selected=true]:ring-primary/20 relative flex w-full flex-col gap-1 rounded-2xl border border-gray-200 p-4 text-left transition-colors hover:bg-gray-50 data-[selected=true]:ring-1">
-                          <Radio.Control className="absolute top-4 right-4 size-5">
-                            <Radio.Indicator />
-                          </Radio.Control>
-                          <FileText className="text-primary mb-2" size={22} />
-                          <span className="font-semibold">CSV</span>
-                          <Description>
-                            Hızlı ve sade veri dosyaları
-                          </Description>
-                        </Radio.Content>
-                      </Radio>
-                    </div>
-                  </RadioGroup>
+                <div className="space-y-5">
+                  <div>
+                    <p className="text-sm font-medium text-gray-700">
+                      Dosya biçimini ve teslim şeklini belirleyin
+                    </p>
+                    <RadioGroup
+                      name="export-format"
+                      value={format}
+                      onChange={value => setFormat(value as ExportFormat)}>
+                      <Label className="sr-only">Dosya biçimi</Label>
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <Radio value="xlsx">
+                          <Radio.Content className="data-[selected=true]:border-primary data-[selected=true]:bg-primary/5 data-[selected=true]:ring-primary/20 relative flex w-full flex-col gap-1 rounded-2xl border border-gray-200 p-4 text-left transition-colors hover:bg-gray-50 data-[selected=true]:ring-1">
+                            <Radio.Control className="absolute top-4 right-4 size-5">
+                              <Radio.Indicator />
+                            </Radio.Control>
+                            <FileSpreadsheet
+                              className="text-primary mb-2"
+                              size={22}
+                            />
+                            <span className="font-semibold">Excel</span>
+                            <Description>Biçimli çalışma sayfaları</Description>
+                          </Radio.Content>
+                        </Radio>
+                        <Radio value="csv">
+                          <Radio.Content className="data-[selected=true]:border-primary data-[selected=true]:bg-primary/5 data-[selected=true]:ring-primary/20 relative flex w-full flex-col gap-1 rounded-2xl border border-gray-200 p-4 text-left transition-colors hover:bg-gray-50 data-[selected=true]:ring-1">
+                            <Radio.Control className="absolute top-4 right-4 size-5">
+                              <Radio.Indicator />
+                            </Radio.Control>
+                            <FileText className="text-primary mb-2" size={22} />
+                            <span className="font-semibold">CSV</span>
+                            <Description>
+                              Hızlı ve sade veri dosyaları
+                            </Description>
+                          </Radio.Content>
+                        </Radio>
+                      </div>
+                    </RadioGroup>
+                  </div>
                   <div className="rounded-2xl bg-gray-50 p-4">
                     <p className="mb-3 text-sm font-medium text-gray-700">
                       Teslim şekli
@@ -261,7 +263,7 @@ export const DataExportWizard = ({ isOpen, onClose, company }: Props) => {
                       </Radio>
                     </RadioGroup>
                   </div>
-                </>
+                </div>
               )}
               {step === 3 && (
                 <div className="rounded-2xl border border-gray-100 bg-gray-50/60 p-5">

@@ -15,7 +15,14 @@ import {
   Select,
   toast
 } from '@heroui/react';
-import { CheckCircle2, FileUp, Loader2, Search } from 'lucide-react';
+import {
+  CheckCircle2,
+  FileUp,
+  Loader2,
+  Package,
+  Search,
+  Users
+} from 'lucide-react';
 import { useAuthStore } from '@/features/auth';
 import { useInventoryStore } from '@/features/inventory';
 import { useCustomerStore } from '@/features/customers';
@@ -475,24 +482,38 @@ export const DataImportWizard = ({
                   </section>
                 ) : step === 1 ? (
                   <>
-                    <div className="grid grid-cols-2 gap-3">
-                      <button
-                        onClick={() => changeType('inventory')}
-                        className={`rounded-xl border p-4 text-left ${type === 'inventory' ? 'border-primary bg-primary/5' : 'border-gray-200'}`}>
-                        <b>Envanter</b>
-                        <p className="mt-1 text-xs text-gray-500">
-                          Ürün, barkod, stok ve fiyat
-                        </p>
-                      </button>
-                      <button
-                        onClick={() => changeType('customers')}
-                        className={`rounded-xl border p-4 text-left ${type === 'customers' ? 'border-primary bg-primary/5' : 'border-gray-200'}`}>
-                        <b>Müşteriler</b>
-                        <p className="mt-1 text-xs text-gray-500">
-                          İletişim ve kredi limiti
-                        </p>
-                      </button>
-                    </div>
+                    <RadioGroup
+                      name="import-type"
+                      value={type}
+                      onChange={value => changeType(value as ImportType)}>
+                      <Label className="sr-only">İçe aktarılacak veri</Label>
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <Radio value="inventory">
+                          <Radio.Content className="data-[selected=true]:border-primary data-[selected=true]:bg-primary/5 data-[selected=true]:ring-primary/20 relative flex w-full flex-col gap-1 rounded-2xl border border-gray-200 p-4 text-left transition-colors hover:bg-gray-50 data-[selected=true]:ring-1">
+                            <Radio.Control className="absolute top-4 right-4 size-5">
+                              <Radio.Indicator />
+                            </Radio.Control>
+                            <Package className="text-primary mb-2" size={22} />
+                            <span className="font-semibold">Envanter</span>
+                            <span className="text-sm text-gray-500">
+                              Ürün, barkod, stok ve fiyat
+                            </span>
+                          </Radio.Content>
+                        </Radio>
+                        <Radio value="customers">
+                          <Radio.Content className="data-[selected=true]:border-primary data-[selected=true]:bg-primary/5 data-[selected=true]:ring-primary/20 relative flex w-full flex-col gap-1 rounded-2xl border border-gray-200 p-4 text-left transition-colors hover:bg-gray-50 data-[selected=true]:ring-1">
+                            <Radio.Control className="absolute top-4 right-4 size-5">
+                              <Radio.Indicator />
+                            </Radio.Control>
+                            <Users className="text-primary mb-2" size={22} />
+                            <span className="font-semibold">Müşteriler</span>
+                            <span className="text-sm text-gray-500">
+                              İletişim ve kredi limiti
+                            </span>
+                          </Radio.Content>
+                        </Radio>
+                      </div>
+                    </RadioGroup>
                     <label className="hover:border-primary/40 flex cursor-pointer flex-col items-center rounded-2xl border-2 border-dashed border-gray-200 p-10 text-center">
                       <FileUp className="text-primary mb-3" size={32} />
                       <b>CSV, XLSX veya XLS dosyası seçin</b>

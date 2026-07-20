@@ -27,9 +27,8 @@ export const SalesHistoryView: React.FC = () => {
         </div>
       </div>
 
-      <SalesHistoryFilters />
-
       <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-[28px] bg-white shadow-sm">
+        <SalesHistoryFilters />
         {isLoading && (
           <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/50 backdrop-blur-sm">
             <Loader2 className="text-primary h-8 w-8 animate-spin" />

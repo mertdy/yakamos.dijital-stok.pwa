@@ -15,6 +15,7 @@ import { ROUTES } from '@/core/config/routes';
 import posthog from 'posthog-js';
 import { playBarcodeFeedback } from '@/shared/utils/barcodeFeedback';
 import {
+  Camera,
   CameraOff,
   Flashlight,
   FlashlightOff,
@@ -116,6 +117,7 @@ const ScannerModal: React.FC<ScannerModalProps> = ({
   onScan
 }) => {
   const [isScanning, setIsScanning] = useState(false);
+  const [isCameraAccessRequested, setIsCameraAccessRequested] = useState(false);
   const [scannerError, setScannerError] = useState<string | null>(null);
   const [scanMode, setScanMode] = useState<ScanMode>(() =>
     localStorage.getItem(SCAN_MODE_STORAGE_KEY) === 'multiple'
@@ -455,8 +457,11 @@ const ScannerModal: React.FC<ScannerModalProps> = ({
         const status = await BarcodeScanner.requestPermissions();
 
         if (status.camera !== 'granted' && status.camera !== 'limited') {
-          toast.danger('Kamera izni verilmedi');
-          onClose();
+          isScanningRef.current = false;
+          setIsScanning(false);
+          setScannerError(
+            'Kamera izni verilmedi. Cihaz ayarlarından izin verip tekrar deneyin.'
+          );
           return;
         }
 
@@ -490,7 +495,7 @@ const ScannerModal: React.FC<ScannerModalProps> = ({
         setScannerError('Kamera başlatılamadı. Lütfen tekrar deneyin.');
       }
     },
-    [onClose, handleBarcodeScanned, updateWebCameraCapabilities]
+    [handleBarcodeScanned, updateWebCameraCapabilities]
   );
 
   useEffect(() => {
@@ -501,7 +506,9 @@ const ScannerModal: React.FC<ScannerModalProps> = ({
       cameraFacingRef.current = 'environment';
       setCanFlipCamera(false);
       setIsFlashAvailable(false);
-      startScan();
+      setIsFlashOn(false);
+      setScannerError(null);
+      setIsCameraAccessRequested(false);
     } else {
       stopScan();
     }
@@ -509,7 +516,7 @@ const ScannerModal: React.FC<ScannerModalProps> = ({
     return () => {
       stopScan();
     };
-  }, [isOpen, startScan, stopScan]);
+  }, [isOpen, stopScan]);
 
   const isNativeScanning = Capacitor.getPlatform() !== 'web' && isScanning;
   const scannedProductCount = scannedItems.length;
@@ -528,6 +535,11 @@ const ScannerModal: React.FC<ScannerModalProps> = ({
   const handleScanModeChange = (mode: ScanMode) => {
     setScanMode(mode);
     localStorage.setItem(SCAN_MODE_STORAGE_KEY, mode);
+  };
+
+  const requestCameraAccess = () => {
+    setIsCameraAccessRequested(true);
+    void startScan();
   };
 
   const updateScannedItemQuantity = (itemId: string, quantity: number) => {
@@ -644,7 +656,25 @@ const ScannerModal: React.FC<ScannerModalProps> = ({
             </Modal.Header>
             <Modal.Body>
               <div className="flex flex-col items-center justify-center py-4">
-                {scannerError ? (
+                {!isCameraAccessRequested ? (
+                  <div className="flex max-w-xs flex-col items-center gap-4 text-center">
+                    <div className="bg-primary/10 text-primary flex h-16 w-16 items-center justify-center rounded-2xl">
+                      <Camera size={30} />
+                    </div>
+                    <div>
+                      <p className="text-base font-semibold text-gray-900">
+                        Kamera erişimi gerekli
+                      </p>
+                      <p className="mt-1 text-sm leading-5 text-gray-500">
+                        Bu özelliği kullanabilmeniz için kamera erişimine izin
+                        vermelisiniz.
+                      </p>
+                    </div>
+                    <Button variant="primary" onPress={requestCameraAccess}>
+                      Kamerayı Aç
+                    </Button>
+                  </div>
+                ) : scannerError ? (
                   <div className="flex max-w-xs flex-col items-center gap-3 text-center">
                     <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gray-100 text-gray-500">
                       <CameraOff size={30} />
@@ -657,9 +687,7 @@ const ScannerModal: React.FC<ScannerModalProps> = ({
                         {scannerError}
                       </p>
                     </div>
-                    <Button
-                      variant="secondary"
-                      onPress={() => void startScan()}>
+                    <Button variant="secondary" onPress={requestCameraAccess}>
                       Tekrar Dene
                     </Button>
                   </div>

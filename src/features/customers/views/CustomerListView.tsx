@@ -3,14 +3,17 @@ import { clsx } from 'clsx';
 import { useNavigate } from 'react-router-dom';
 import { ROUTES } from '@/core/config/routes';
 import { useCustomerStore } from '../store/useCustomerStore';
-import { Plus, Search, User, Edit2, Eye } from 'lucide-react';
-import { Button, Input, Pagination, Tooltip } from '@heroui/react';
+import { Plus, User, Edit2, Eye } from 'lucide-react';
+import { Button, Pagination, Tooltip } from '@heroui/react';
 import posthog from 'posthog-js';
 
 import { useAuthStore } from '@/features/auth/store/useAuthStore';
-import { useDebounce } from '@/shared/hooks/useDebounce';
 import { normalizeSearchText } from '@/shared/utils/searchText';
 import { PhoneContactMenu } from '@/shared/components/PhoneContactMenu';
+import {
+  CustomerFilters,
+  type CustomerFilterValues
+} from '../components/CustomerFilters';
 
 const CUSTOMER_PAGE_SIZE = 25;
 
@@ -34,8 +37,7 @@ const getPageItems = (pageCount: number, currentPage: number) => {
 export const CustomerListView: React.FC = () => {
   const { customers, isLoading } = useCustomerStore();
   const navigate = useNavigate();
-  const [search, setSearch] = useState('');
-  const debouncedSearch = useDebounce(search, 300);
+  const [filters, setFilters] = useState<CustomerFilterValues>({});
   const [page, setPage] = useState(1);
   const { activeMembership } = useAuthStore();
   const isOwner = activeMembership?.role === 'OWNER';
@@ -49,15 +51,64 @@ export const CustomerListView: React.FC = () => {
   }, []);
 
   const filteredCustomers = useMemo(() => {
-    const normalizedSearch = normalizeSearchText(debouncedSearch);
-    return customers.filter(
-      customer =>
+    const normalizedSearch = normalizeSearchText(filters.searchQuery ?? '');
+    return customers.filter(customer => {
+      const debt = customer.totalDebt ?? 0;
+      const creditLimit = customer.creditLimit ?? 0;
+      const createdAt = customer.createdAt?.slice(0, 10);
+      const matchesSearch =
+        !normalizedSearch ||
         normalizeSearchText(customer.name).includes(normalizedSearch) ||
-        (customer.surname &&
-          normalizeSearchText(customer.surname).includes(normalizedSearch)) ||
-        (customer.phone && customer.phone.includes(debouncedSearch))
-    );
-  }, [customers, debouncedSearch]);
+        normalizeSearchText(customer.surname ?? '').includes(
+          normalizedSearch
+        ) ||
+        customer.phone?.includes(filters.searchQuery ?? '') ||
+        normalizeSearchText(customer.email ?? '').includes(normalizedSearch);
+      const matchesDebtStatus =
+        !filters.debtStatus ||
+        (filters.debtStatus === 'noDebt' && debt === 0) ||
+        (filters.debtStatus === 'hasDebt' && debt > 0) ||
+        (filters.debtStatus === 'limitExceeded' &&
+          creditLimit > 0 &&
+          debt >= creditLimit);
+      const matchesCreditLimitStatus =
+        !filters.creditLimitStatus ||
+        (filters.creditLimitStatus === 'limited' && creditLimit > 0) ||
+        (filters.creditLimitStatus === 'unlimited' && creditLimit === 0);
+      const matchesPhoneStatus =
+        !filters.phoneStatus ||
+        (filters.phoneStatus === 'hasPhone' && Boolean(customer.phone)) ||
+        (filters.phoneStatus === 'noPhone' && !customer.phone);
+      const matchesEmailStatus =
+        !filters.emailStatus ||
+        (filters.emailStatus === 'hasEmail' && Boolean(customer.email)) ||
+        (filters.emailStatus === 'noEmail' && !customer.email);
+      const matchesDebtRange =
+        (filters.minDebt === undefined || debt >= filters.minDebt) &&
+        (filters.maxDebt === undefined || debt <= filters.maxDebt);
+      const matchesCreditLimitRange =
+        (filters.minCreditLimit === undefined ||
+          creditLimit >= filters.minCreditLimit) &&
+        (filters.maxCreditLimit === undefined ||
+          creditLimit <= filters.maxCreditLimit);
+      const matchesCreatedAt =
+        (filters.createdAfter === undefined ||
+          Boolean(createdAt && createdAt >= filters.createdAfter)) &&
+        (filters.createdBefore === undefined ||
+          Boolean(createdAt && createdAt <= filters.createdBefore));
+
+      return (
+        matchesSearch &&
+        matchesDebtStatus &&
+        matchesCreditLimitStatus &&
+        matchesPhoneStatus &&
+        matchesEmailStatus &&
+        matchesDebtRange &&
+        matchesCreditLimitRange &&
+        matchesCreatedAt
+      );
+    });
+  }, [customers, filters]);
   const pageCount = Math.max(
     1,
     Math.ceil(filteredCustomers.length / CUSTOMER_PAGE_SIZE)
@@ -87,6 +138,11 @@ export const CustomerListView: React.FC = () => {
     if (page > pageCount) setPage(pageCount);
   }, [page, pageCount]);
 
+  const handleFiltersChange = (nextFilters: CustomerFilterValues) => {
+    setFilters(nextFilters);
+    setPage(1);
+  };
+
   return (
     <div className="mx-auto flex h-full max-w-7xl flex-col p-4 md:p-6">
       <div className="mb-6 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
@@ -109,25 +165,7 @@ export const CustomerListView: React.FC = () => {
 
       <div className="min-h-0 flex-1">
         <div className="flex h-full flex-col overflow-hidden rounded-[28px] border-none bg-white shadow-sm">
-          <div className="border-b border-gray-100 bg-gray-50/50 p-4">
-            <div className="relative max-w-md">
-              <Search
-                className="absolute top-1/2 left-3 -translate-y-1/2 text-gray-400"
-                size={20}
-              />
-              <Input
-                type="text"
-                fullWidth
-                placeholder="İsim, soyisim veya telefon ile ara..."
-                value={search}
-                onChange={e => {
-                  setSearch(e.target.value);
-                  setPage(1);
-                }}
-                className="pl-10"
-              />
-            </div>
-          </div>
+          <CustomerFilters value={filters} onChange={handleFiltersChange} />
 
           <div className="flex-1 overflow-x-auto">
             <table className="w-full min-w-[600px] border-collapse text-left">

@@ -26,6 +26,10 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
         text: 'Barkod kamerasında uygun cihazlarda ön ve arka kamera arasında geçiş yapabilir, flaşı açabilirsiniz.'
       },
       {
+        type: 'new',
+        text: 'Barkod okutmayı başlatmadan önce kamera erişimini istediğiniz anda açabilirsiniz.'
+      },
+      {
         type: 'improved',
         text: 'Müşteri telefon numaralarından arama, SMS, WhatsApp ve kopyalama işlemlerine hızlıca erişebilirsiniz.'
       },
@@ -64,6 +68,26 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
       {
         type: 'improved',
         text: 'Satışta seçtiğiniz müşteri adı artık daha belirgin gösterilir.'
+      },
+      {
+        type: 'improved',
+        text: 'Satış geçmişi ve envanter filtrelerini yan panelden daha rahat düzenleyebilirsiniz.'
+      },
+      {
+        type: 'improved',
+        text: 'Satış geçmişi araması ve envanterde seçili ürün işlemleri daha düzenli konumlandırıldı.'
+      },
+      {
+        type: 'improved',
+        text: 'Satış geçmişi ve müşteri kayıtlarını hızlı seçimler ile daha ayrıntılı filtreleyebilirsiniz.'
+      },
+      {
+        type: 'improved',
+        text: 'Satış geçmişi filtrelerini bağlantı üzerinden paylaşabilir ve aynı seçimlerle tekrar açabilirsiniz.'
+      },
+      {
+        type: 'improved',
+        text: 'İçe aktarmada envanter ve müşteri verisi seçimi daha anlaşılır hale getirildi.'
       },
       {
         type: 'fixed',
