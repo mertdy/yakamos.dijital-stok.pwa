@@ -380,58 +380,64 @@ export const InventoryFilters = ({
             </Select.Popover>
           </Select>
 
-          <div className="grid grid-cols-2 gap-2">
-            <Input
-              type="number"
-              value={localFilters.minStock?.toString() ?? ''}
-              onChange={event =>
-                updateLocalFilter(
-                  'minStock',
-                  event.target.value ? Number(event.target.value) : undefined
-                )
-              }
-              placeholder="En az"
-              aria-label="En az stok"
-            />
-            <Input
-              type="number"
-              value={localFilters.maxStock?.toString() ?? ''}
-              onChange={event =>
-                updateLocalFilter(
-                  'maxStock',
-                  event.target.value ? Number(event.target.value) : undefined
-                )
-              }
-              placeholder="En fazla"
-              aria-label="En fazla stok"
-            />
+          <div className="space-y-1.5">
+            <Label>Stok miktarı</Label>
+            <div className="grid grid-cols-2 gap-2">
+              <Input
+                type="number"
+                value={localFilters.minStock?.toString() ?? ''}
+                onChange={event =>
+                  updateLocalFilter(
+                    'minStock',
+                    event.target.value ? Number(event.target.value) : undefined
+                  )
+                }
+                placeholder="En az"
+                aria-label="En az stok"
+              />
+              <Input
+                type="number"
+                value={localFilters.maxStock?.toString() ?? ''}
+                onChange={event =>
+                  updateLocalFilter(
+                    'maxStock',
+                    event.target.value ? Number(event.target.value) : undefined
+                  )
+                }
+                placeholder="En fazla"
+                aria-label="En fazla stok"
+              />
+            </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-2">
-            <Input
-              type="number"
-              value={localFilters.minPrice?.toString() ?? ''}
-              onChange={event =>
-                updateLocalFilter(
-                  'minPrice',
-                  event.target.value ? Number(event.target.value) : undefined
-                )
-              }
-              placeholder="Min. fiyat"
-              aria-label="En düşük satış fiyatı"
-            />
-            <Input
-              type="number"
-              value={localFilters.maxPrice?.toString() ?? ''}
-              onChange={event =>
-                updateLocalFilter(
-                  'maxPrice',
-                  event.target.value ? Number(event.target.value) : undefined
-                )
-              }
-              placeholder="Maks. fiyat"
-              aria-label="En yüksek satış fiyatı"
-            />
+          <div className="space-y-1.5">
+            <Label>Satış fiyatı</Label>
+            <div className="grid grid-cols-2 gap-2">
+              <Input
+                type="number"
+                value={localFilters.minPrice?.toString() ?? ''}
+                onChange={event =>
+                  updateLocalFilter(
+                    'minPrice',
+                    event.target.value ? Number(event.target.value) : undefined
+                  )
+                }
+                placeholder="Min. fiyat"
+                aria-label="En düşük satış fiyatı"
+              />
+              <Input
+                type="number"
+                value={localFilters.maxPrice?.toString() ?? ''}
+                onChange={event =>
+                  updateLocalFilter(
+                    'maxPrice',
+                    event.target.value ? Number(event.target.value) : undefined
+                  )
+                }
+                placeholder="Maks. fiyat"
+                aria-label="En yüksek satış fiyatı"
+              />
+            </div>
           </div>
 
           <DateRangePicker

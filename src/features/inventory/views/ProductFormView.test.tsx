@@ -106,7 +106,7 @@ describe('ProductFormView', () => {
       ) as HTMLInputElement;
       expect(stockInput.value).toBe('10');
       const priceInput = screen.getByLabelText(
-        /Birim Fiyatı/i
+        /Satış Fiyatı/i
       ) as HTMLInputElement;
       expect(priceInput.value).toBe('15.5');
     });
@@ -133,7 +133,7 @@ describe('ProductFormView', () => {
     const stockInput = screen.getByLabelText('Stok Miktarı');
     fireEvent.change(stockInput, { target: { value: '-5' } }); // negative
 
-    const priceInput = screen.getByLabelText(/Birim Fiyatı/i);
+    const priceInput = screen.getByLabelText(/Satış Fiyatı/i);
     fireEvent.change(priceInput, { target: { value: '-10.5' } }); // negative
 
     await waitFor(() => {
@@ -238,7 +238,7 @@ describe('ProductFormView', () => {
     const stockInput = screen.getByLabelText('Stok Miktarı');
     fireEvent.change(stockInput, { target: { value: '24' } });
 
-    const priceInput = screen.getByLabelText(/Birim Fiyatı/i);
+    const priceInput = screen.getByLabelText(/Satış Fiyatı/i);
     fireEvent.change(priceInput, { target: { value: '18.75' } });
 
     await waitFor(() => {

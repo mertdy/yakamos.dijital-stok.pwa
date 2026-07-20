@@ -493,7 +493,7 @@ export const ProductFormView: React.FC = () => {
             <FormInput
               control={control}
               name="salePrice"
-              label="Birim Fiyatı (Satış) (₺)"
+              label="Satış Fiyatı (₺)"
               isRequired
               type="number"
               step="0.01"
@@ -501,11 +501,11 @@ export const ProductFormView: React.FC = () => {
             />
           </div>
 
-          <div className="grid grid-cols-1 gap-6 border-t border-gray-100 pt-6 md:grid-cols-2">
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
             <FormInput
               control={control}
               name="costPrice"
-              label="Alış Maliyeti (₺)"
+              label="Alış Fiyatı (Maliyet) (₺)"
               type="number"
               step="0.01"
               valueAsNumber
