@@ -1,6 +1,14 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { clsx } from 'clsx';
-import { Card, Tabs, Select, ListBox, Table, Chip } from '@heroui/react';
+import {
+  Card,
+  Tabs,
+  Select,
+  ListBox,
+  Table,
+  Chip,
+  Pagination
+} from '@heroui/react';
 import { useDashboardStats } from '../hooks/useDashboardStats';
 import type { ChartPeriod } from '../hooks/useDashboardStats';
 import { Package } from 'lucide-react';
@@ -18,6 +26,25 @@ import {
 } from 'chart.js';
 import { Line, Doughnut } from 'react-chartjs-2';
 
+const LOW_STOCK_PAGE_SIZE = 25;
+
+const getPageItems = (pageCount: number, currentPage: number) => {
+  if (pageCount <= 5) {
+    return Array.from({ length: pageCount }, (_, index) => index + 1);
+  }
+
+  const pages: Array<number | 'ellipsis'> = [1];
+  const start = Math.max(2, currentPage - 1);
+  const end = Math.min(pageCount - 1, currentPage + 1);
+
+  if (start > 2) pages.push('ellipsis');
+  for (let page = start; page <= end; page += 1) pages.push(page);
+  if (end < pageCount - 1) pages.push('ellipsis');
+  pages.push(pageCount);
+
+  return pages;
+};
+
 ChartJS.register(
   CategoryScale,
   LinearScale,
@@ -31,6 +58,7 @@ ChartJS.register(
 );
 
 export const DashboardView: React.FC = () => {
+  const [lowStockPage, setLowStockPage] = useState(1);
   const {
     todaySales,
     todayOrderCount,
@@ -45,6 +73,37 @@ export const DashboardView: React.FC = () => {
     period,
     setPeriod
   } = useDashboardStats();
+
+  const lowStockPageCount = Math.max(
+    1,
+    Math.ceil(lowStockProducts.length / LOW_STOCK_PAGE_SIZE)
+  );
+  const currentLowStockPage = Math.min(lowStockPage, lowStockPageCount);
+  const lowStockPageStart = lowStockProducts.length
+    ? (currentLowStockPage - 1) * LOW_STOCK_PAGE_SIZE + 1
+    : 0;
+  const lowStockPageEnd = Math.min(
+    currentLowStockPage * LOW_STOCK_PAGE_SIZE,
+    lowStockProducts.length
+  );
+  const lowStockPageItems = useMemo(
+    () => getPageItems(lowStockPageCount, currentLowStockPage),
+    [currentLowStockPage, lowStockPageCount]
+  );
+  const paginatedLowStockProducts = useMemo(
+    () =>
+      lowStockProducts.slice(
+        (currentLowStockPage - 1) * LOW_STOCK_PAGE_SIZE,
+        currentLowStockPage * LOW_STOCK_PAGE_SIZE
+      ),
+    [currentLowStockPage, lowStockProducts]
+  );
+
+  useEffect(() => {
+    if (lowStockPage > lowStockPageCount) {
+      setLowStockPage(lowStockPageCount);
+    }
+  }, [lowStockPage, lowStockPageCount]);
 
   const valueFormatter = (number: number) =>
     `₺ ${Intl.NumberFormat('tr-TR', { maximumFractionDigits: 0 }).format(number)}`;
@@ -416,13 +475,13 @@ export const DashboardView: React.FC = () => {
                     <Table.ScrollContainer>
                       <Table.Content aria-label="Low stock items table">
                         <Table.Header>
-                          <Table.Column>ÜRÜN ADI</Table.Column>
+                          <Table.Column isRowHeader>ÜRÜN ADI</Table.Column>
                           <Table.Column>BARKOD / SKU</Table.Column>
                           <Table.Column>SATIŞ FİYATI</Table.Column>
                           <Table.Column>STOK DURUMU</Table.Column>
                         </Table.Header>
                         <Table.Body>
-                          {lowStockProducts.map(item => (
+                          {paginatedLowStockProducts.map(item => (
                             <Table.Row key={item.id}>
                               <Table.Cell className="font-medium">
                                 {item.name}
@@ -460,6 +519,59 @@ export const DashboardView: React.FC = () => {
                       Şu anda kritik seviyede (10 adetin altında) olan hiçbir
                       ürününüz bulunmuyor.
                     </p>
+                  </div>
+                )}
+                {lowStockProducts.length > LOW_STOCK_PAGE_SIZE && (
+                  <div className="border-t border-gray-100 px-4 py-3 sm:px-6">
+                    <Pagination className="flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <Pagination.Summary>
+                        {lowStockPageStart}–{lowStockPageEnd} /{' '}
+                        {lowStockProducts.length} ürün
+                      </Pagination.Summary>
+                      <Pagination.Content>
+                        <Pagination.Item>
+                          <Pagination.Previous
+                            isDisabled={currentLowStockPage === 1}
+                            onPress={() =>
+                              setLowStockPage(current =>
+                                Math.max(1, current - 1)
+                              )
+                            }>
+                            <Pagination.PreviousIcon />
+                            <span>Önceki</span>
+                          </Pagination.Previous>
+                        </Pagination.Item>
+                        {lowStockPageItems.map((page, index) =>
+                          page === 'ellipsis' ? (
+                            <Pagination.Item key={`ellipsis-${index}`}>
+                              <Pagination.Ellipsis />
+                            </Pagination.Item>
+                          ) : (
+                            <Pagination.Item key={page}>
+                              <Pagination.Link
+                                isActive={page === currentLowStockPage}
+                                onPress={() => setLowStockPage(page)}>
+                                {page}
+                              </Pagination.Link>
+                            </Pagination.Item>
+                          )
+                        )}
+                        <Pagination.Item>
+                          <Pagination.Next
+                            isDisabled={
+                              currentLowStockPage === lowStockPageCount
+                            }
+                            onPress={() =>
+                              setLowStockPage(current =>
+                                Math.min(lowStockPageCount, current + 1)
+                              )
+                            }>
+                            <span>Sonraki</span>
+                            <Pagination.NextIcon />
+                          </Pagination.Next>
+                        </Pagination.Item>
+                      </Pagination.Content>
+                    </Pagination>
                   </div>
                 )}
               </Card.Content>
