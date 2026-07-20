@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { clsx } from 'clsx';
 import { useSalesHistoryStore } from '../store/useSalesHistoryStore';
 import { useCustomerStore } from '@/features/customers';
@@ -10,11 +10,15 @@ import {
   AlertCircle,
   CloudUpload
 } from 'lucide-react';
-import { Button, Tooltip } from '@heroui/react';
+import { Button, Pagination, Tooltip } from '@heroui/react';
 import { useNavigate } from 'react-router-dom';
 import { ROUTES } from '@/core/config/routes';
 import { useConfirm } from '@/shared/contexts/ConfirmDialogContext';
 import { useAuthStore } from '@/features/auth';
+import {
+  SALES_HISTORY_PAGE_SIZE,
+  getPageItems
+} from './salesHistoryPagination';
 
 export const SalesHistoryList: React.FC = () => {
   const { sales, cancelSale } = useSalesHistoryStore();
@@ -26,7 +30,34 @@ export const SalesHistoryList: React.FC = () => {
     isOwner || activeMembership?.permissions.includes('MANAGE_SALES_HISTORY');
   const [expandedSaleId, setExpandedSaleId] = useState<string | null>(null);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
   const navigate = useNavigate();
+
+  const pageCount = Math.max(
+    1,
+    Math.ceil(sales.length / SALES_HISTORY_PAGE_SIZE)
+  );
+  const currentPage = Math.min(page, pageCount);
+  const pageStart = sales.length
+    ? (currentPage - 1) * SALES_HISTORY_PAGE_SIZE + 1
+    : 0;
+  const pageEnd = Math.min(currentPage * SALES_HISTORY_PAGE_SIZE, sales.length);
+  const pageItems = useMemo(
+    () => getPageItems(pageCount, currentPage),
+    [currentPage, pageCount]
+  );
+  const paginatedSales = useMemo(
+    () =>
+      sales.slice(
+        (currentPage - 1) * SALES_HISTORY_PAGE_SIZE,
+        currentPage * SALES_HISTORY_PAGE_SIZE
+      ),
+    [currentPage, sales]
+  );
+
+  useEffect(() => {
+    if (page > pageCount) setPage(pageCount);
+  }, [page, pageCount]);
 
   const toggleExpand = (id: string) => {
     setExpandedSaleId(prev => (prev === id ? null : id));
@@ -72,282 +103,341 @@ export const SalesHistoryList: React.FC = () => {
   };
 
   return (
-    <div className="flex-1 overflow-x-auto p-2">
-      <table className="w-full min-w-[920px] border-collapse text-left">
-        <thead>
-          <tr className="border-b border-gray-100 text-xs tracking-wider text-gray-400 uppercase">
-            <th className="px-6 py-4 font-semibold">Tarih</th>
-            <th className="px-6 py-4 font-semibold">Fatura No</th>
-            <th className="px-6 py-4 font-semibold">Müşteri</th>
-            <th className="px-6 py-4 font-semibold">Satışı Yapan</th>
-            <th className="px-6 py-4 font-semibold">Ödeme Yöntemi</th>
-            <th className="px-6 py-4 font-semibold">Durum</th>
-            <th className="px-6 py-4 text-right font-semibold">Tutar</th>
-          </tr>
-        </thead>
-        <tbody>
-          {sales.length === 0 ? (
-            <tr>
-              <td colSpan={7} className="px-6 py-16 text-center text-gray-500">
-                <ReceiptText className="mx-auto mb-3 text-4xl opacity-20" />
-                <p>Belirlenen kriterlere uygun satış bulunamadı.</p>
-              </td>
+    <div className="flex min-h-0 flex-1 flex-col">
+      <div className="flex-1 overflow-x-auto p-2">
+        <table className="w-full min-w-[920px] border-collapse text-left">
+          <thead>
+            <tr className="border-b border-gray-100 text-xs tracking-wider text-gray-400 uppercase">
+              <th className="px-6 py-4 font-semibold">Tarih</th>
+              <th className="px-6 py-4 font-semibold">Fatura No</th>
+              <th className="px-6 py-4 font-semibold">Müşteri</th>
+              <th className="px-6 py-4 font-semibold">Satışı Yapan</th>
+              <th className="px-6 py-4 font-semibold">Ödeme Yöntemi</th>
+              <th className="px-6 py-4 font-semibold">Durum</th>
+              <th className="px-6 py-4 text-right font-semibold">Tutar</th>
             </tr>
-          ) : (
-            sales.map(sale => (
-              <React.Fragment key={sale.id}>
-                <tr
-                  className={clsx(
-                    'cursor-pointer border-b border-gray-50 transition-colors',
-                    sale.status === 'cancelled'
-                      ? 'bg-danger/5 hover:bg-danger/10 text-gray-400'
-                      : 'hover:bg-gray-50/30'
-                  )}
-                  onClick={() => toggleExpand(sale.id)}>
-                  <td className="px-6 py-4 text-sm text-gray-600">
-                    {new Date(sale.createdAt).toLocaleDateString('tr-TR', {
-                      day: '2-digit',
-                      month: 'short',
-                      year: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit'
-                    })}
-                  </td>
-                  <td className="px-6 py-4 text-sm font-medium text-gray-900">
-                    {sale.invoiceNumber}
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-700">
-                    {getCustomerName(sale.customerId)}
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-700">
-                    {sale.sellerName || 'Bilinmeyen çalışan'}
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-700">
-                    <span className="inline-flex items-center rounded-md bg-gray-100 px-2 py-1 text-xs font-semibold text-gray-600">
-                      {getPaymentMethodLabel(sale.paymentMethod)}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-sm">
-                    {sale.syncStatus === 'pending' ||
-                    sale.syncStatus === 'failed' ? (
-                      <Tooltip delay={0} closeDelay={0}>
-                        <Tooltip.Trigger
-                          aria-label={
-                            sale.syncStatus === 'pending'
-                              ? 'İşlem cihazınıza kaydedildi; internet bağlantısı geldiğinde buluta yedeklenecek.'
-                              : 'İşlem buluta yedeklenemedi. İnternet bağlantınızı kontrol edin.'
-                          }>
-                          <span className="bg-warning/10 text-warning inline-flex cursor-help items-center gap-1 rounded-md px-2 py-1 text-xs font-semibold">
-                            {sale.status === 'cancelled' ? (
-                              <>
-                                <AlertCircle size={12} /> İptal Edildi
-                              </>
-                            ) : (
-                              'Tamamlandı'
-                            )}
-                            <CloudUpload size={13} aria-hidden />
-                          </span>
-                        </Tooltip.Trigger>
-                        <Tooltip.Content showArrow placement="top">
-                          <Tooltip.Arrow />
-                          {sale.syncStatus === 'pending'
-                            ? 'İşlem cihazınıza kaydedildi; internet bağlantısı geldiğinde buluta yedeklenecek.'
-                            : 'İşlem buluta yedeklenemedi. İnternet bağlantınızı kontrol edin.'}
-                        </Tooltip.Content>
-                      </Tooltip>
-                    ) : sale.status === 'cancelled' ? (
-                      <span className="bg-danger/10 text-danger inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-semibold">
-                        <AlertCircle size={12} /> İptal Edildi
-                      </span>
-                    ) : (
-                      <span className="bg-success/10 text-success inline-flex items-center rounded-md px-2 py-1 text-xs font-semibold">
-                        Tamamlandı
-                      </span>
+          </thead>
+          <tbody>
+            {sales.length === 0 ? (
+              <tr>
+                <td
+                  colSpan={7}
+                  className="px-6 py-16 text-center text-gray-500">
+                  <ReceiptText className="mx-auto mb-3 text-4xl opacity-20" />
+                  <p>Belirlenen kriterlere uygun satış bulunamadı.</p>
+                </td>
+              </tr>
+            ) : (
+              paginatedSales.map(sale => (
+                <React.Fragment key={sale.id}>
+                  <tr
+                    className={clsx(
+                      'cursor-pointer border-b border-gray-50 transition-colors',
+                      sale.status === 'cancelled'
+                        ? 'bg-danger/5 hover:bg-danger/10 text-gray-400'
+                        : 'hover:bg-gray-50/30'
                     )}
-                  </td>
-                  <td className="px-6 py-4 text-right text-sm font-bold text-gray-900">
-                    {sale.status === 'cancelled' ? (
-                      <span className="text-gray-400 line-through">
-                        ₺
-                        {sale.totalAmount.toLocaleString('tr-TR', {
-                          minimumFractionDigits: 2
-                        })}
+                    onClick={() => toggleExpand(sale.id)}>
+                    <td className="px-6 py-4 text-sm text-gray-600">
+                      {new Date(sale.createdAt).toLocaleDateString('tr-TR', {
+                        day: '2-digit',
+                        month: 'short',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </td>
+                    <td className="px-6 py-4 text-sm font-medium text-gray-900">
+                      {sale.invoiceNumber}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-700">
+                      {getCustomerName(sale.customerId)}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-700">
+                      {sale.sellerName || 'Bilinmeyen çalışan'}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-700">
+                      <span className="inline-flex items-center rounded-md bg-gray-100 px-2 py-1 text-xs font-semibold text-gray-600">
+                        {getPaymentMethodLabel(sale.paymentMethod)}
                       </span>
-                    ) : (
-                      <span>
-                        ₺
-                        {sale.totalAmount.toLocaleString('tr-TR', {
-                          minimumFractionDigits: 2
-                        })}
-                      </span>
-                    )}
-                    <div className="ml-3 inline-block align-middle text-gray-400">
-                      {expandedSaleId === sale.id ? (
-                        <ChevronUp size={16} />
-                      ) : (
-                        <ChevronDown size={16} />
-                      )}
-                    </div>
-                  </td>
-                </tr>
-
-                {/* Expanded Sale Details */}
-                {expandedSaleId === sale.id && (
-                  <tr className="border-b border-gray-100 bg-gray-50/50">
-                    <td colSpan={7} className="px-6 py-4">
-                      <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-                        <div className="mb-3 flex items-start justify-between">
-                          <h4 className="flex items-center gap-2 text-sm font-semibold text-gray-900">
-                            <Package size={16} className="text-primary" />
-                            Satış Detayları
-                          </h4>
-                          {sale.status !== 'cancelled' &&
-                            hasCancelPermission && (
-                              <Button
-                                variant="danger"
-                                onPress={() => handleCancelSale(sale.id)}
-                                isDisabled={cancellingId === sale.id}
-                                className="h-8 rounded-lg px-3 text-xs">
-                                {cancellingId === sale.id
-                                  ? 'İptal Ediliyor...'
-                                  : 'Satışı İptal Et'}
-                              </Button>
-                            )}
-                        </div>
-
-                        {sale.cart && sale.cart.length > 0 ? (
-                          <div className="mb-4 overflow-hidden rounded-lg border border-gray-100">
-                            <table className="w-full text-left text-sm">
-                              <thead className="bg-gray-50 text-xs text-gray-500 uppercase">
-                                <tr>
-                                  <th className="px-4 py-2 font-medium">
-                                    Ürün
-                                  </th>
-                                  <th className="px-4 py-2 text-center font-medium">
-                                    Adet
-                                  </th>
-                                  <th className="px-4 py-2 text-right font-medium">
-                                    Birim Fiyat
-                                  </th>
-                                  <th className="px-4 py-2 text-right font-medium">
-                                    Toplam
-                                  </th>
-                                </tr>
-                              </thead>
-                              <tbody className="divide-y divide-gray-100">
-                                {sale.cart.map((item: any, idx: number) => (
-                                  <tr
-                                    key={idx}
-                                    className={clsx(
-                                      sale.status === 'cancelled' &&
-                                        'text-gray-400'
-                                    )}>
-                                    <td
-                                      className={clsx(
-                                        'px-4 py-2',
-                                        sale.status !== 'cancelled' &&
-                                          'text-gray-900'
-                                      )}>
-                                      <span
-                                        className="hover:text-primary cursor-pointer transition-colors hover:underline"
-                                        onClick={e => {
-                                          e.stopPropagation();
-                                          navigate(
-                                            ROUTES.INVENTORY.EDIT(
-                                              item.inventoryId
-                                            )
-                                          );
-                                        }}>
-                                        {item.name}
-                                      </span>
-                                    </td>
-                                    <td
-                                      className={clsx(
-                                        'px-4 py-2 text-center',
-                                        sale.status !== 'cancelled' &&
-                                          'text-gray-600'
-                                      )}>
-                                      {item.quantity}
-                                    </td>
-                                    <td
-                                      className={clsx(
-                                        'px-4 py-2 text-right',
-                                        sale.status !== 'cancelled' &&
-                                          'text-gray-600'
-                                      )}>
-                                      ₺{item.price?.toFixed(2)}
-                                    </td>
-                                    <td
-                                      className={clsx(
-                                        'px-4 py-2 text-right font-medium',
-                                        sale.status !== 'cancelled' &&
-                                          'text-gray-900'
-                                      )}>
-                                      ₺{(item.price * item.quantity).toFixed(2)}
-                                    </td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          </div>
-                        ) : (
-                          <p className="mb-4 text-xs text-gray-500">
-                            Detaylı ürün bilgisi bulunmuyor.
-                          </p>
-                        )}
-
-                        {/* Summary */}
-                        <div className="flex justify-end">
-                          <div className="w-64 space-y-2 text-sm">
-                            {sale.subtotal !== undefined && (
-                              <div className="flex justify-between text-gray-600">
-                                <span>Ara Toplam:</span>
-                                <span>₺{sale.subtotal.toFixed(2)}</span>
-                              </div>
-                            )}
-                            {sale.discountValue !== undefined &&
-                              sale.discountValue > 0 && (
-                                <div className="flex justify-between text-orange-600">
-                                  <span>
-                                    İndirim (
-                                    {sale.discountType === 'percentage'
-                                      ? `%${sale.discountValue}`
-                                      : 'Tutar'}
-                                    ):
-                                  </span>
-                                  <span>
-                                    -₺
-                                    {sale.discountType === 'percentage' &&
-                                    sale.subtotal
-                                      ? (
-                                          (sale.subtotal * sale.discountValue) /
-                                          100
-                                        ).toFixed(2)
-                                      : sale.discountValue.toFixed(2)}
-                                  </span>
-                                </div>
+                    </td>
+                    <td className="px-6 py-4 text-sm">
+                      {sale.syncStatus === 'pending' ||
+                      sale.syncStatus === 'failed' ? (
+                        <Tooltip delay={0} closeDelay={0}>
+                          <Tooltip.Trigger
+                            aria-label={
+                              sale.syncStatus === 'pending'
+                                ? 'İşlem cihazınıza kaydedildi; internet bağlantısı geldiğinde buluta yedeklenecek.'
+                                : 'İşlem buluta yedeklenemedi. İnternet bağlantınızı kontrol edin.'
+                            }>
+                            <span className="bg-warning/10 text-warning inline-flex cursor-help items-center gap-1 rounded-md px-2 py-1 text-xs font-semibold">
+                              {sale.status === 'cancelled' ? (
+                                <>
+                                  <AlertCircle size={12} /> İptal Edildi
+                                </>
+                              ) : (
+                                'Tamamlandı'
                               )}
-                            <div className="flex justify-between border-t border-gray-100 pt-2 font-bold text-gray-900">
-                              <span>Genel Toplam:</span>
-                              <span
-                                className={clsx(
-                                  sale.status === 'cancelled' &&
-                                    'text-gray-400 line-through'
-                                )}>
-                                ₺{sale.totalAmount.toFixed(2)}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
+                              <CloudUpload size={13} aria-hidden />
+                            </span>
+                          </Tooltip.Trigger>
+                          <Tooltip.Content showArrow placement="top">
+                            <Tooltip.Arrow />
+                            {sale.syncStatus === 'pending'
+                              ? 'İşlem cihazınıza kaydedildi; internet bağlantısı geldiğinde buluta yedeklenecek.'
+                              : 'İşlem buluta yedeklenemedi. İnternet bağlantınızı kontrol edin.'}
+                          </Tooltip.Content>
+                        </Tooltip>
+                      ) : sale.status === 'cancelled' ? (
+                        <span className="bg-danger/10 text-danger inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-semibold">
+                          <AlertCircle size={12} /> İptal Edildi
+                        </span>
+                      ) : (
+                        <span className="bg-success/10 text-success inline-flex items-center rounded-md px-2 py-1 text-xs font-semibold">
+                          Tamamlandı
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 text-right text-sm font-bold text-gray-900">
+                      {sale.status === 'cancelled' ? (
+                        <span className="text-gray-400 line-through">
+                          ₺
+                          {sale.totalAmount.toLocaleString('tr-TR', {
+                            minimumFractionDigits: 2
+                          })}
+                        </span>
+                      ) : (
+                        <span>
+                          ₺
+                          {sale.totalAmount.toLocaleString('tr-TR', {
+                            minimumFractionDigits: 2
+                          })}
+                        </span>
+                      )}
+                      <div className="ml-3 inline-block align-middle text-gray-400">
+                        {expandedSaleId === sale.id ? (
+                          <ChevronUp size={16} />
+                        ) : (
+                          <ChevronDown size={16} />
+                        )}
                       </div>
                     </td>
                   </tr>
-                )}
-              </React.Fragment>
-            ))
-          )}
-        </tbody>
-      </table>
+
+                  {/* Expanded Sale Details */}
+                  {expandedSaleId === sale.id && (
+                    <tr className="border-b border-gray-100 bg-gray-50/50">
+                      <td colSpan={7} className="px-6 py-4">
+                        <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+                          <div className="mb-3 flex items-start justify-between">
+                            <h4 className="flex items-center gap-2 text-sm font-semibold text-gray-900">
+                              <Package size={16} className="text-primary" />
+                              Satış Detayları
+                            </h4>
+                            {sale.status !== 'cancelled' &&
+                              hasCancelPermission && (
+                                <Button
+                                  variant="danger"
+                                  onPress={() => handleCancelSale(sale.id)}
+                                  isDisabled={cancellingId === sale.id}
+                                  className="h-8 rounded-lg px-3 text-xs">
+                                  {cancellingId === sale.id
+                                    ? 'İptal Ediliyor...'
+                                    : 'Satışı İptal Et'}
+                                </Button>
+                              )}
+                          </div>
+
+                          {sale.cart && sale.cart.length > 0 ? (
+                            <div className="mb-4 overflow-hidden rounded-lg border border-gray-100">
+                              <table className="w-full text-left text-sm">
+                                <thead className="bg-gray-50 text-xs text-gray-500 uppercase">
+                                  <tr>
+                                    <th className="px-4 py-2 font-medium">
+                                      Ürün
+                                    </th>
+                                    <th className="px-4 py-2 text-center font-medium">
+                                      Adet
+                                    </th>
+                                    <th className="px-4 py-2 text-right font-medium">
+                                      Birim Fiyat
+                                    </th>
+                                    <th className="px-4 py-2 text-right font-medium">
+                                      Toplam
+                                    </th>
+                                  </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-100">
+                                  {sale.cart.map((item: any, idx: number) => (
+                                    <tr
+                                      key={idx}
+                                      className={clsx(
+                                        sale.status === 'cancelled' &&
+                                          'text-gray-400'
+                                      )}>
+                                      <td
+                                        className={clsx(
+                                          'px-4 py-2',
+                                          sale.status !== 'cancelled' &&
+                                            'text-gray-900'
+                                        )}>
+                                        <span
+                                          className="hover:text-primary cursor-pointer transition-colors hover:underline"
+                                          onClick={e => {
+                                            e.stopPropagation();
+                                            navigate(
+                                              ROUTES.INVENTORY.EDIT(
+                                                item.inventoryId
+                                              )
+                                            );
+                                          }}>
+                                          {item.name}
+                                        </span>
+                                      </td>
+                                      <td
+                                        className={clsx(
+                                          'px-4 py-2 text-center',
+                                          sale.status !== 'cancelled' &&
+                                            'text-gray-600'
+                                        )}>
+                                        {item.quantity}
+                                      </td>
+                                      <td
+                                        className={clsx(
+                                          'px-4 py-2 text-right',
+                                          sale.status !== 'cancelled' &&
+                                            'text-gray-600'
+                                        )}>
+                                        ₺{item.price?.toFixed(2)}
+                                      </td>
+                                      <td
+                                        className={clsx(
+                                          'px-4 py-2 text-right font-medium',
+                                          sale.status !== 'cancelled' &&
+                                            'text-gray-900'
+                                        )}>
+                                        ₺
+                                        {(item.price * item.quantity).toFixed(
+                                          2
+                                        )}
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          ) : (
+                            <p className="mb-4 text-xs text-gray-500">
+                              Detaylı ürün bilgisi bulunmuyor.
+                            </p>
+                          )}
+
+                          {/* Summary */}
+                          <div className="flex justify-end">
+                            <div className="w-64 space-y-2 text-sm">
+                              {sale.subtotal !== undefined && (
+                                <div className="flex justify-between text-gray-600">
+                                  <span>Ara Toplam:</span>
+                                  <span>₺{sale.subtotal.toFixed(2)}</span>
+                                </div>
+                              )}
+                              {sale.discountValue !== undefined &&
+                                sale.discountValue > 0 && (
+                                  <div className="flex justify-between text-orange-600">
+                                    <span>
+                                      İndirim (
+                                      {sale.discountType === 'percentage'
+                                        ? `%${sale.discountValue}`
+                                        : 'Tutar'}
+                                      ):
+                                    </span>
+                                    <span>
+                                      -₺
+                                      {sale.discountType === 'percentage' &&
+                                      sale.subtotal
+                                        ? (
+                                            (sale.subtotal *
+                                              sale.discountValue) /
+                                            100
+                                          ).toFixed(2)
+                                        : sale.discountValue.toFixed(2)}
+                                    </span>
+                                  </div>
+                                )}
+                              <div className="flex justify-between border-t border-gray-100 pt-2 font-bold text-gray-900">
+                                <span>Genel Toplam:</span>
+                                <span
+                                  className={clsx(
+                                    sale.status === 'cancelled' &&
+                                      'text-gray-400 line-through'
+                                  )}>
+                                  ₺{sale.totalAmount.toFixed(2)}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </React.Fragment>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+      {sales.length > SALES_HISTORY_PAGE_SIZE && (
+        <div className="border-t border-gray-100 px-4 py-3 sm:px-6">
+          <Pagination className="flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <Pagination.Summary>
+              {pageStart}–{pageEnd} / {sales.length} satış
+            </Pagination.Summary>
+            <Pagination.Content>
+              <Pagination.Item>
+                <Pagination.Previous
+                  isDisabled={currentPage === 1}
+                  onPress={() => {
+                    setExpandedSaleId(null);
+                    setPage(current => Math.max(1, current - 1));
+                  }}>
+                  <Pagination.PreviousIcon />
+                  <span>Önceki</span>
+                </Pagination.Previous>
+              </Pagination.Item>
+              {pageItems.map((item, index) =>
+                item === 'ellipsis' ? (
+                  <Pagination.Item key={`ellipsis-${index}`}>
+                    <Pagination.Ellipsis />
+                  </Pagination.Item>
+                ) : (
+                  <Pagination.Item key={item}>
+                    <Pagination.Link
+                      isActive={item === currentPage}
+                      onPress={() => {
+                        setExpandedSaleId(null);
+                        setPage(item);
+                      }}>
+                      {item}
+                    </Pagination.Link>
+                  </Pagination.Item>
+                )
+              )}
+              <Pagination.Item>
+                <Pagination.Next
+                  isDisabled={currentPage === pageCount}
+                  onPress={() => {
+                    setExpandedSaleId(null);
+                    setPage(current => Math.min(pageCount, current + 1));
+                  }}>
+                  <span>Sonraki</span>
+                  <Pagination.NextIcon />
+                </Pagination.Next>
+              </Pagination.Item>
+            </Pagination.Content>
+          </Pagination>
+        </div>
+      )}
     </div>
   );
 };

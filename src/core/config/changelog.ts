@@ -39,6 +39,10 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
       },
       {
         type: 'improved',
+        text: 'Satış geçmişinizdeki kayıtları sayfalar halinde daha rahat gezebilirsiniz.'
+      },
+      {
+        type: 'improved',
         text: 'Etiket, dışa aktarma ve ekstre seçimleri ile tarih alanları daha erişilebilir hale getirildi.'
       },
       {
