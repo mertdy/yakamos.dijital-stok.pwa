@@ -273,40 +273,65 @@ export const InventoryTable: React.FC<InventoryTableProps> = ({
           header: 'İşlemler',
           cell: props => (
             <div className="flex gap-2">
-              <Button
-                variant="tertiary"
-                isIconOnly
-                onPress={() =>
-                  navigate(ROUTES.INVENTORY.EDIT(props.row.original.id))
-                }
-                aria-label="Düzenle">
-                <Edit className="text-lg" />
-              </Button>
-              <Button
-                variant="tertiary"
-                isIconOnly
-                onPress={() => void openLabelPrint([props.row.original])}
-                aria-label="Etiket Bas">
-                <Printer className="text-lg" />
-              </Button>
-              <Button
-                variant="ghost"
-                isIconOnly
-                className="text-danger"
-                onPress={async () => {
-                  const confirmed = await confirm({
-                    title: 'Ürünü Sil',
-                    description: 'Bu ürünü silmek istediğinize emin misiniz?',
-                    confirmText: 'Sil',
-                    variant: 'danger'
-                  });
-                  if (confirmed) {
-                    deleteItem(props.row.original.id);
-                  }
-                }}
-                aria-label="Sil">
-                <Trash2 className="text-lg" />
-              </Button>
+              <Tooltip>
+                <Tooltip.Trigger>
+                  <Button
+                    variant="tertiary"
+                    isIconOnly
+                    onPress={() =>
+                      navigate(ROUTES.INVENTORY.EDIT(props.row.original.id))
+                    }
+                    aria-label="Düzenle">
+                    <Edit className="text-lg" />
+                  </Button>
+                </Tooltip.Trigger>
+                <Tooltip.Content showArrow>
+                  <Tooltip.Arrow />
+                  Düzenle
+                </Tooltip.Content>
+              </Tooltip>
+              <Tooltip>
+                <Tooltip.Trigger>
+                  <Button
+                    variant="tertiary"
+                    isIconOnly
+                    onPress={() => void openLabelPrint([props.row.original])}
+                    aria-label="Etiket Bas">
+                    <Printer className="text-lg" />
+                  </Button>
+                </Tooltip.Trigger>
+                <Tooltip.Content showArrow>
+                  <Tooltip.Arrow />
+                  Etiket bas
+                </Tooltip.Content>
+              </Tooltip>
+              <Tooltip>
+                <Tooltip.Trigger>
+                  <Button
+                    variant="ghost"
+                    isIconOnly
+                    className="text-danger"
+                    onPress={async () => {
+                      const confirmed = await confirm({
+                        title: 'Ürünü Sil',
+                        description:
+                          'Bu ürünü silmek istediğinize emin misiniz?',
+                        confirmText: 'Sil',
+                        variant: 'danger'
+                      });
+                      if (confirmed) {
+                        deleteItem(props.row.original.id);
+                      }
+                    }}
+                    aria-label="Sil">
+                    <Trash2 className="text-lg" />
+                  </Button>
+                </Tooltip.Trigger>
+                <Tooltip.Content showArrow>
+                  <Tooltip.Arrow />
+                  Sil
+                </Tooltip.Content>
+              </Tooltip>
             </div>
           )
         })

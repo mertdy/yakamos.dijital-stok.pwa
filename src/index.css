@@ -4,6 +4,10 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+:root {
+  --tooltip-delay: 750ms;
+}
+
 @theme {
   --font-sans: 'Inter', system-ui, sans-serif;
   --color-primary: #1a73e8;

@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { ROUTES } from '@/core/config/routes';
 import { useCustomerStore } from '../store/useCustomerStore';
 import { Plus, Search, User, Edit2, Eye } from 'lucide-react';
-import { Button, Input, Pagination } from '@heroui/react';
+import { Button, Input, Pagination, Tooltip } from '@heroui/react';
 import posthog from 'posthog-js';
 
 import { useAuthStore } from '@/features/auth/store/useAuthStore';
@@ -289,25 +289,45 @@ export const CustomerListView: React.FC = () => {
                           <div
                             className="flex justify-end gap-2"
                             onClick={e => e.stopPropagation()}>
-                            <Button
-                              variant="tertiary"
-                              isIconOnly
-                              onPress={() =>
-                                navigate(ROUTES.CUSTOMERS.DETAILS(customer.id))
-                              }
-                              aria-label="Hesap Detayı">
-                              <Eye className="text-lg" />
-                            </Button>
+                            <Tooltip>
+                              <Tooltip.Trigger>
+                                <Button
+                                  variant="tertiary"
+                                  isIconOnly
+                                  onPress={() =>
+                                    navigate(
+                                      ROUTES.CUSTOMERS.DETAILS(customer.id)
+                                    )
+                                  }
+                                  aria-label="Hesap Detayı">
+                                  <Eye className="text-lg" />
+                                </Button>
+                              </Tooltip.Trigger>
+                              <Tooltip.Content showArrow>
+                                <Tooltip.Arrow />
+                                Hesap detayı
+                              </Tooltip.Content>
+                            </Tooltip>
                             {hasCustomerPermission && (
-                              <Button
-                                variant="tertiary"
-                                isIconOnly
-                                onPress={() =>
-                                  navigate(ROUTES.CUSTOMERS.EDIT(customer.id))
-                                }
-                                aria-label="Müşteriyi Düzenle">
-                                <Edit2 className="text-lg" />
-                              </Button>
+                              <Tooltip>
+                                <Tooltip.Trigger>
+                                  <Button
+                                    variant="tertiary"
+                                    isIconOnly
+                                    onPress={() =>
+                                      navigate(
+                                        ROUTES.CUSTOMERS.EDIT(customer.id)
+                                      )
+                                    }
+                                    aria-label="Müşteriyi Düzenle">
+                                    <Edit2 className="text-lg" />
+                                  </Button>
+                                </Tooltip.Trigger>
+                                <Tooltip.Content showArrow>
+                                  <Tooltip.Arrow />
+                                  Müşteriyi düzenle
+                                </Tooltip.Content>
+                              </Tooltip>
                             )}
                           </div>
                         </td>

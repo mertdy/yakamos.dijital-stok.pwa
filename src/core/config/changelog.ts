@@ -31,6 +31,14 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
       },
       {
         type: 'improved',
+        text: 'Müşteri, envanter ve kategori işlemlerinin ne yaptığını simgelerin üzerinde görebilirsiniz.'
+      },
+      {
+        type: 'improved',
+        text: 'İşlem simgelerinin açıklamaları artık daha hızlı görünür.'
+      },
+      {
+        type: 'improved',
         text: 'Etiket, dışa aktarma ve ekstre seçimleri ile tarih alanları daha erişilebilir hale getirildi.'
       },
       {

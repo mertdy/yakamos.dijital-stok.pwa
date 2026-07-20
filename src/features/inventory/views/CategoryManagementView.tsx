@@ -8,6 +8,7 @@ import {
   ListBox,
   Modal,
   Select,
+  Tooltip,
   toast
 } from '@heroui/react';
 import {
@@ -181,40 +182,78 @@ export const CategoryManagementView = () => {
               />
             )}
           </Button>
-          <Button
-            size="sm"
-            variant="tertiary"
-            onPress={() => openEdit(category)}
-            aria-label="Kategoriyi düzenle">
-            <Pencil size={16} />
-          </Button>
+          <Tooltip>
+            <Tooltip.Trigger>
+              <Button
+                size="sm"
+                variant="tertiary"
+                isIconOnly
+                onPress={() => openEdit(category)}
+                aria-label="Kategoriyi düzenle">
+                <Pencil size={16} />
+              </Button>
+            </Tooltip.Trigger>
+            <Tooltip.Content showArrow>
+              <Tooltip.Arrow />
+              Kategoriyi düzenle
+            </Tooltip.Content>
+          </Tooltip>
           {!nested && (
-            <Button
-              size="sm"
-              variant="tertiary"
-              onPress={() => openCreate(category.id)}
-              aria-label="Alt kategori ekle">
-              <FolderPlus size={16} />
-            </Button>
+            <Tooltip>
+              <Tooltip.Trigger>
+                <Button
+                  size="sm"
+                  variant="tertiary"
+                  isIconOnly
+                  onPress={() => openCreate(category.id)}
+                  aria-label="Alt kategori ekle">
+                  <FolderPlus size={16} />
+                </Button>
+              </Tooltip.Trigger>
+              <Tooltip.Content showArrow>
+                <Tooltip.Arrow />
+                Alt kategori ekle
+              </Tooltip.Content>
+            </Tooltip>
           )}
-          <Button
-            size="sm"
-            variant="tertiary"
-            onPress={() =>
-              void setCategoryActive(category.id, !category.isActive)
-            }
-            aria-label="Kategori durumunu değiştir">
-            <Power size={16} />
-          </Button>
+          <Tooltip>
+            <Tooltip.Trigger>
+              <Button
+                size="sm"
+                variant="tertiary"
+                isIconOnly
+                onPress={() =>
+                  void setCategoryActive(category.id, !category.isActive)
+                }
+                aria-label="Kategori durumunu değiştir">
+                <Power size={16} />
+              </Button>
+            </Tooltip.Trigger>
+            <Tooltip.Content showArrow>
+              <Tooltip.Arrow />
+              {category.isActive
+                ? 'Kategoriyi pasifleştir'
+                : 'Kategoriyi etkinleştir'}
+            </Tooltip.Content>
+          </Tooltip>
           {canDelete && (
-            <Button
-              size="sm"
-              variant="tertiary"
-              className="text-danger"
-              onPress={() => setCategoryToDelete(category)}>
-              <Trash2 size={16} />
-              Sil
-            </Button>
+            <Tooltip>
+              <Tooltip.Trigger>
+                <Button
+                  size="sm"
+                  variant="tertiary"
+                  isIconOnly
+                  className="text-danger"
+                  onPress={() => setCategoryToDelete(category)}
+                  aria-label="Kategoriyi sil">
+                  <Trash2 size={16} />
+                </Button>
+              </Tooltip.Trigger>
+              <Tooltip.Content showArrow>
+                <Tooltip.Arrow />
+                Kategoriyi sil
+              </Tooltip.Content>
+            </Tooltip>
           )}
         </div>
         {isProductsExpanded && (
