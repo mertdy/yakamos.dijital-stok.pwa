@@ -210,10 +210,7 @@ export const CustomerListView: React.FC = () => {
                     return (
                       <tr
                         key={customer.id}
-                        className="cursor-pointer border-b border-gray-100 transition-colors hover:bg-gray-50/50"
-                        onClick={() =>
-                          navigate(ROUTES.CUSTOMERS.DETAILS(customer.id))
-                        }>
+                        className="border-b border-gray-100 transition-colors select-text hover:bg-gray-50/50">
                         <td className="px-6 py-4 text-sm">
                           <div className="flex items-center gap-3">
                             <div className="bg-primary/10 text-primary flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full">

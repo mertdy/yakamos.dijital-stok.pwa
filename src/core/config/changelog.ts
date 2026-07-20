@@ -27,6 +27,10 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
       },
       {
         type: 'improved',
+        text: 'Müşteri ve envanter listelerindeki metinleri kolayca seçip kopyalayabilirsiniz.'
+      },
+      {
+        type: 'improved',
         text: 'Etiket, dışa aktarma ve ekstre seçimleri ile tarih alanları daha erişilebilir hale getirildi.'
       },
       {

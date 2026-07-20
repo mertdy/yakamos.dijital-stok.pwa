@@ -223,12 +223,12 @@ describe('InventoryTable', () => {
     expect(navigateMock).toHaveBeenCalledWith(ROUTES.INVENTORY.EDIT('1'));
   });
 
-  it('navigates to edit product view when a product row is clicked', () => {
+  it('does not navigate when a product row is clicked', () => {
     render(<InventoryTable />);
 
     fireEvent.click(screen.getByText('Apple'));
 
-    expect(navigateMock).toHaveBeenCalledWith(ROUTES.INVENTORY.EDIT('1'));
+    expect(navigateMock).not.toHaveBeenCalled();
   });
 
   it('asks for confirmation and deletes item when confirm resolves true', async () => {

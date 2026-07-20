@@ -592,12 +592,9 @@ export const InventoryTable: React.FC<InventoryTableProps> = ({
                   <tr
                     key={row.id}
                     className={clsx(
-                      'cursor-pointer border-b border-gray-100 transition-colors hover:bg-gray-50/50',
+                      'border-b border-gray-100 transition-colors select-text hover:bg-gray-50/50',
                       row.getIsSelected() && 'bg-primary-50/20'
-                    )}
-                    onClick={() =>
-                      navigate(ROUTES.INVENTORY.EDIT(row.original.id))
-                    }>
+                    )}>
                     {row.getVisibleCells().map(cell => {
                       const isSelection = cell.column.id === 'selection';
                       const isAction = cell.column.id === 'actions';
