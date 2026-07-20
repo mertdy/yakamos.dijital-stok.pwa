@@ -70,6 +70,12 @@ export const InvoicePanel: React.FC<Props> = ({
   }
 
   const totalPayable = subtotal - discountAmount;
+  const hasSaleDraft =
+    cart.length > 0 ||
+    Boolean(customerId) ||
+    Number(discountValue) !== 0 ||
+    paymentMethod !== 'Cash' ||
+    givenAmount !== '';
   const formattedTotalPayable = totalPayable.toLocaleString('tr-TR', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2
@@ -434,8 +440,8 @@ export const InvoicePanel: React.FC<Props> = ({
                 useSalesStore.getState().clearCart();
                 setGivenAmount('');
               }}
-              isDisabled={cart.length === 0 || isProcessing}>
-              Sepeti Temizle
+              isDisabled={!hasSaleDraft || isProcessing}>
+              Sepeti Sıfırla
             </Button>
           </div>
 

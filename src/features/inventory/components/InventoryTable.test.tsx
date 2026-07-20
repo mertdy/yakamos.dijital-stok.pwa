@@ -21,14 +21,19 @@ vi.mock('lucide-react', () => ({
   Printer: () => <div data-testid="icon-printer" />,
   CheckSquare: () => <div data-testid="icon-check-square" />,
   X: () => <div data-testid="icon-x" />,
-  Copy: () => <div data-testid="icon-copy" />
+  Copy: () => <div data-testid="icon-copy" />,
+  Filter: () => <div data-testid="icon-filter" />
 }));
 
 vi.mock('react-router-dom', () => ({
-  useNavigate: vi.fn()
+  useNavigate: vi.fn(),
+  useSearchParams: () => [new URLSearchParams(), vi.fn()]
 }));
 
 vi.mock('../store/useInventoryStore');
+vi.mock('../store/useCategoryStore', () => ({
+  useCategoryStore: () => ({ categories: [] })
+}));
 vi.mock('@/shared/contexts/ConfirmDialogContext');
 vi.mock('@/shared/hooks/useGlobalBarcodeScanner', () => ({
   useGlobalBarcodeScanner: vi.fn()

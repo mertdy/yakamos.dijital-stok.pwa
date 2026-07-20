@@ -28,7 +28,6 @@ import {
   Package,
   ArrowUp,
   ArrowDown,
-  Search,
   CheckSquare,
   Printer,
   X,
@@ -38,21 +37,25 @@ import {
   Button,
   Checkbox,
   Description,
-  Input,
   Pagination,
   Tooltip,
   toast
 } from '@heroui/react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ROUTES } from '@/core/config/routes';
 import { useGlobalBarcodeScanner } from '@/shared/hooks/useGlobalBarcodeScanner';
 import { useConfirm } from '@/shared/contexts/ConfirmDialogContext';
 import { useAuthStore } from '@/features/auth';
 import { createInternalBarcode } from '../domain/labelPrinting';
 import { playBarcodeFeedback } from '@/shared/utils/barcodeFeedback';
-import { useDebounce } from '@/shared/hooks/useDebounce';
 import { normalizeSearchText } from '@/shared/utils/searchText';
 import { copyToClipboard } from '@/shared/utils/clipboard';
+import { isLowStock } from '../domain/stockRules';
+import { isItemActive, isStockTracked } from '../store/useInventoryStore';
+import {
+  InventoryFilters,
+  type InventoryFilterValues
+} from './InventoryFilters';
 
 const LabelPrintModal = lazy(() =>
   import('./LabelPrintModal').then(module => ({
@@ -65,6 +68,58 @@ interface InventoryTableProps {
 }
 
 const INVENTORY_PAGE_SIZE = 25;
+const INVENTORY_FILTER_PARAM_KEYS = [
+  'q',
+  'category',
+  'unit',
+  'stockStatus',
+  'activeStatus',
+  'stockTracking',
+  'barcodeStatus',
+  'imageStatus',
+  'minStock',
+  'maxStock',
+  'minPrice',
+  'maxPrice',
+  'updatedAfter',
+  'updatedBefore'
+] as const;
+
+const numberParam = (value: string | null) =>
+  value && !Number.isNaN(Number(value)) ? Number(value) : undefined;
+
+const filtersFromSearchParams = (
+  searchParams: URLSearchParams
+): InventoryFilterValues => ({
+  searchQuery: searchParams.get('q') || undefined,
+  categoryId: searchParams.get('category') || undefined,
+  unit:
+    (searchParams.get('unit') as InventoryFilterValues['unit']) || undefined,
+  stockStatus:
+    (searchParams.get('stockStatus') as InventoryFilterValues['stockStatus']) ||
+    undefined,
+  activeStatus:
+    (searchParams.get(
+      'activeStatus'
+    ) as InventoryFilterValues['activeStatus']) || undefined,
+  stockTracking:
+    (searchParams.get(
+      'stockTracking'
+    ) as InventoryFilterValues['stockTracking']) || undefined,
+  barcodeStatus:
+    (searchParams.get(
+      'barcodeStatus'
+    ) as InventoryFilterValues['barcodeStatus']) || undefined,
+  imageStatus:
+    (searchParams.get('imageStatus') as InventoryFilterValues['imageStatus']) ||
+    undefined,
+  minStock: numberParam(searchParams.get('minStock')),
+  maxStock: numberParam(searchParams.get('maxStock')),
+  minPrice: numberParam(searchParams.get('minPrice')),
+  maxPrice: numberParam(searchParams.get('maxPrice')),
+  updatedAfter: searchParams.get('updatedAfter') || undefined,
+  updatedBefore: searchParams.get('updatedBefore') || undefined
+});
 
 const getPageItems = (pageCount: number, currentPage: number) => {
   if (pageCount <= 5) {
@@ -88,10 +143,11 @@ export const InventoryTable: React.FC<InventoryTableProps> = ({
 }) => {
   const { items, isLoading, deleteItem, deleteItems, updateItem } =
     useInventoryStore();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [sorting, setSorting] = useState<SortingState>([]);
-  const [globalFilter, setGlobalFilter] = useState('');
-  const [isImmediateSearch, setIsImmediateSearch] = useState(false);
-  const debouncedGlobalFilter = useDebounce(globalFilter, 300);
+  const [filters, setFilters] = useState<InventoryFilterValues>(() =>
+    filtersFromSearchParams(searchParams)
+  );
   const [pagination, setPagination] = useState<PaginationState>({
     pageIndex: 0,
     pageSize: INVENTORY_PAGE_SIZE
@@ -103,11 +159,36 @@ export const InventoryTable: React.FC<InventoryTableProps> = ({
   const navigate = useNavigate();
   const { confirm } = useConfirm();
 
-  const setSearchFilter = useCallback((value: string, immediate = false) => {
-    setGlobalFilter(value);
-    setIsImmediateSearch(immediate);
-    setPagination(current => ({ ...current, pageIndex: 0 }));
-  }, []);
+  const handleFiltersChange = useCallback(
+    (nextFilters: InventoryFilterValues) => {
+      setFilters(nextFilters);
+      setPagination(current => ({ ...current, pageIndex: 0 }));
+
+      const nextSearchParams = new URLSearchParams(searchParams);
+      INVENTORY_FILTER_PARAM_KEYS.forEach(key => nextSearchParams.delete(key));
+      const filterParams: Record<string, string | undefined> = {
+        q: nextFilters.searchQuery,
+        category: nextFilters.categoryId,
+        unit: nextFilters.unit,
+        stockStatus: nextFilters.stockStatus,
+        activeStatus: nextFilters.activeStatus,
+        stockTracking: nextFilters.stockTracking,
+        barcodeStatus: nextFilters.barcodeStatus,
+        imageStatus: nextFilters.imageStatus,
+        minStock: nextFilters.minStock?.toString(),
+        maxStock: nextFilters.maxStock?.toString(),
+        minPrice: nextFilters.minPrice?.toString(),
+        maxPrice: nextFilters.maxPrice?.toString(),
+        updatedAfter: nextFilters.updatedAfter,
+        updatedBefore: nextFilters.updatedBefore
+      };
+      Object.entries(filterParams).forEach(([key, filterValue]) => {
+        if (filterValue) nextSearchParams.set(key, filterValue);
+      });
+      setSearchParams(nextSearchParams, { replace: true });
+    },
+    [searchParams, setSearchParams]
+  );
 
   useGlobalBarcodeScanner({
     onScan: barcode => {
@@ -116,7 +197,7 @@ export const InventoryTable: React.FC<InventoryTableProps> = ({
         .items.find(i => String(i.barcode) === barcode);
       if (item) {
         playBarcodeFeedback();
-        setSearchFilter(barcode, true);
+        handleFiltersChange({ ...filters, searchQuery: barcode });
         toast.success(`Ürün bulundu: ${item.name}`);
       } else {
         toast(`${barcode} sistemde kayıtlı değil`, {
@@ -132,7 +213,7 @@ export const InventoryTable: React.FC<InventoryTableProps> = ({
     }
   });
 
-  const { activeMembership } = useAuthStore();
+  const { activeMembership, activeCompany } = useAuthStore();
   const isOwner = activeMembership?.role === 'OWNER';
   const hasInventoryPermission =
     isOwner || activeMembership?.permissions.includes('MANAGE_INVENTORY');
@@ -349,16 +430,67 @@ export const InventoryTable: React.FC<InventoryTableProps> = ({
   ]);
 
   const filteredItems = useMemo(() => {
-    const searchTerm = isImmediateSearch ? globalFilter : debouncedGlobalFilter;
+    const searchTerm = filters.searchQuery ?? '';
     const normalizedSearchTerm = normalizeSearchText(searchTerm);
 
-    return items.filter(
-      item =>
+    return items.filter(item => {
+      const salePrice = item.salePrice ?? item.price ?? 0;
+      const updatedAt = item.updatedAt ? new Date(item.updatedAt) : null;
+      const matchesSearch =
         item.name.includes(searchTerm) ||
         normalizeSearchText(item.name).includes(normalizedSearchTerm) ||
-        (item.barcode && item.barcode.includes(searchTerm))
-    );
-  }, [debouncedGlobalFilter, globalFilter, isImmediateSearch, items]);
+        Boolean(item.barcode?.includes(searchTerm));
+      const matchesStockStatus =
+        !filters.stockStatus ||
+        (filters.stockStatus === 'out' &&
+          isStockTracked(item) &&
+          item.stock === 0) ||
+        (filters.stockStatus === 'low' &&
+          item.stock > 0 &&
+          isLowStock(item, activeCompany)) ||
+        (filters.stockStatus === 'available' &&
+          isStockTracked(item) &&
+          item.stock > 0 &&
+          !isLowStock(item, activeCompany)) ||
+        (filters.stockStatus === 'negative' &&
+          isStockTracked(item) &&
+          item.stock < 0);
+
+      return (
+        matchesSearch &&
+        (!filters.categoryId || item.categoryId === filters.categoryId) &&
+        (!filters.unit || item.unit === filters.unit) &&
+        matchesStockStatus &&
+        (!filters.activeStatus ||
+          (filters.activeStatus === 'active'
+            ? isItemActive(item)
+            : !isItemActive(item))) &&
+        (!filters.stockTracking ||
+          (filters.stockTracking === 'tracked'
+            ? isStockTracked(item)
+            : !isStockTracked(item))) &&
+        (!filters.barcodeStatus ||
+          (filters.barcodeStatus === 'hasBarcode'
+            ? Boolean(item.barcode)
+            : !item.barcode)) &&
+        (!filters.imageStatus ||
+          (filters.imageStatus === 'hasImage'
+            ? Boolean(item.imageUrl)
+            : !item.imageUrl)) &&
+        (filters.minStock === undefined || item.stock >= filters.minStock) &&
+        (filters.maxStock === undefined || item.stock <= filters.maxStock) &&
+        (filters.minPrice === undefined || salePrice >= filters.minPrice) &&
+        (filters.maxPrice === undefined || salePrice <= filters.maxPrice) &&
+        (!filters.updatedAfter ||
+          Boolean(updatedAt && updatedAt >= new Date(filters.updatedAfter))) &&
+        (!filters.updatedBefore ||
+          Boolean(
+            updatedAt &&
+            updatedAt <= new Date(`${filters.updatedBefore}T23:59:59`)
+          ))
+      );
+    });
+  }, [activeCompany, filters, items]);
 
   const selectedIds = useMemo(() => {
     return Object.keys(rowSelection).filter(id => rowSelection[id]);
@@ -429,117 +561,105 @@ export const InventoryTable: React.FC<InventoryTableProps> = ({
 
   return (
     <div className="flex h-full flex-col overflow-hidden rounded-[28px] border-none bg-white shadow-sm">
-      <div className="flex flex-col gap-4 border-b border-gray-100 bg-gray-50/50 p-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="relative w-full max-w-md">
-          <Search
-            className="absolute top-1/2 left-3 -translate-y-1/2 text-gray-400"
-            size={20}
-          />
-          <Input
-            type="text"
-            fullWidth
-            placeholder="Ürün adı veya barkod ile ara..."
-            value={globalFilter}
-            onChange={e => setSearchFilter(e.target.value)}
-            className="pl-10"
-          />
-        </div>
-
-        {selectedIds.length > 0 && (
-          <div className="flex flex-wrap items-center gap-3">
-            <Description className="text-sm font-medium text-gray-700">
-              {selectedIds.length} ürün seçildi
-            </Description>
-            <div className="flex items-center gap-1.5">
-              <Tooltip delay={0} closeDelay={0}>
-                <Button
-                  variant="tertiary"
-                  isIconOnly
-                  size="sm"
-                  onPress={() =>
-                    void openLabelPrint(
-                      filteredItems.filter(item =>
-                        selectedIds.includes(item.id)
+      <InventoryFilters value={filters} onChange={handleFiltersChange} />
+      {selectedIds.length > 0 && (
+        <div className="flex flex-wrap items-center justify-end gap-3 border-b border-gray-100 bg-gray-50/50 px-4 py-3">
+          {selectedIds.length > 0 && (
+            <div className="flex flex-wrap items-center gap-3">
+              <Description className="text-sm font-medium text-gray-700">
+                {selectedIds.length} ürün seçildi
+              </Description>
+              <div className="flex items-center gap-1.5">
+                <Tooltip delay={0} closeDelay={0}>
+                  <Button
+                    variant="tertiary"
+                    isIconOnly
+                    size="sm"
+                    onPress={() =>
+                      void openLabelPrint(
+                        filteredItems.filter(item =>
+                          selectedIds.includes(item.id)
+                        )
                       )
-                    )
-                  }
-                  aria-label="Seçili Ürünlere Etiket Bas">
-                  <Printer size={18} />
-                </Button>
-                <Tooltip.Content showArrow>
-                  <Tooltip.Arrow />
-                  Seçili ürünlere etiket bas
-                </Tooltip.Content>
-              </Tooltip>
-              <Tooltip delay={0} closeDelay={0}>
-                <Button
-                  variant="tertiary"
-                  isIconOnly
-                  size="sm"
-                  onPress={() => {
-                    const newSelection: Record<string, boolean> = {};
-                    filteredItems.forEach(item => {
-                      newSelection[item.id] = true;
-                    });
-                    setRowSelection(newSelection);
-                  }}
-                  aria-label="Tümünü Seç">
-                  <CheckSquare size={18} />
-                </Button>
-                <Tooltip.Content showArrow>
-                  <Tooltip.Arrow />
-                  Tümünü Seç ({filteredItems.length})
-                </Tooltip.Content>
-              </Tooltip>
-
-              <Tooltip delay={0} closeDelay={0}>
-                <Button
-                  variant="ghost"
-                  isIconOnly
-                  size="sm"
-                  onPress={() => setRowSelection({})}
-                  aria-label="Seçimi Temizle">
-                  <X size={18} />
-                </Button>
-                <Tooltip.Content showArrow>
-                  <Tooltip.Arrow />
-                  Seçimi Temizle
-                </Tooltip.Content>
-              </Tooltip>
-
-              <Tooltip delay={0} closeDelay={0}>
-                <Button
-                  variant="ghost"
-                  isIconOnly
-                  size="sm"
-                  className="text-danger"
-                  onPress={async () => {
-                    const confirmed = await confirm({
-                      title: 'Seçili Ürünleri Sil',
-                      description: `Seçilen ${selectedIds.length} ürünü silmek istediğinize emin misiniz? Bu işlem geri alınamaz.`,
-                      confirmText: 'Sil',
-                      variant: 'danger'
-                    });
-                    if (confirmed) {
-                      await deleteItems(selectedIds);
-                      setRowSelection({});
-                      toast.success(
-                        `${selectedIds.length} ürün başarıyla silindi.`
-                      );
                     }
-                  }}
-                  aria-label="Seçimleri Sil">
-                  <Trash2 size={18} />
-                </Button>
-                <Tooltip.Content showArrow>
-                  <Tooltip.Arrow />
-                  Seçimleri Sil
-                </Tooltip.Content>
-              </Tooltip>
+                    aria-label="Seçili Ürünlere Etiket Bas">
+                    <Printer size={18} />
+                  </Button>
+                  <Tooltip.Content showArrow>
+                    <Tooltip.Arrow />
+                    Seçili ürünlere etiket bas
+                  </Tooltip.Content>
+                </Tooltip>
+                <Tooltip delay={0} closeDelay={0}>
+                  <Button
+                    variant="tertiary"
+                    isIconOnly
+                    size="sm"
+                    onPress={() => {
+                      const newSelection: Record<string, boolean> = {};
+                      filteredItems.forEach(item => {
+                        newSelection[item.id] = true;
+                      });
+                      setRowSelection(newSelection);
+                    }}
+                    aria-label="Tümünü Seç">
+                    <CheckSquare size={18} />
+                  </Button>
+                  <Tooltip.Content showArrow>
+                    <Tooltip.Arrow />
+                    Tümünü Seç ({filteredItems.length})
+                  </Tooltip.Content>
+                </Tooltip>
+
+                <Tooltip delay={0} closeDelay={0}>
+                  <Button
+                    variant="ghost"
+                    isIconOnly
+                    size="sm"
+                    onPress={() => setRowSelection({})}
+                    aria-label="Seçimi Temizle">
+                    <X size={18} />
+                  </Button>
+                  <Tooltip.Content showArrow>
+                    <Tooltip.Arrow />
+                    Seçimi Temizle
+                  </Tooltip.Content>
+                </Tooltip>
+
+                <Tooltip delay={0} closeDelay={0}>
+                  <Button
+                    variant="ghost"
+                    isIconOnly
+                    size="sm"
+                    className="text-danger"
+                    onPress={async () => {
+                      const confirmed = await confirm({
+                        title: 'Seçili Ürünleri Sil',
+                        description: `Seçilen ${selectedIds.length} ürünü silmek istediğinize emin misiniz? Bu işlem geri alınamaz.`,
+                        confirmText: 'Sil',
+                        variant: 'danger'
+                      });
+                      if (confirmed) {
+                        await deleteItems(selectedIds);
+                        setRowSelection({});
+                        toast.success(
+                          `${selectedIds.length} ürün başarıyla silindi.`
+                        );
+                      }
+                    }}
+                    aria-label="Seçimleri Sil">
+                    <Trash2 size={18} />
+                  </Button>
+                  <Tooltip.Content showArrow>
+                    <Tooltip.Arrow />
+                    Seçimleri Sil
+                  </Tooltip.Content>
+                </Tooltip>
+              </div>
             </div>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      )}
       <div className="flex-1 overflow-x-auto">
         <table className="w-full min-w-[600px] border-collapse text-left">
           <thead>

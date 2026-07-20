@@ -112,6 +112,27 @@ describe('useSalesStore', () => {
     expect(store.getState().cart[0].quantity).toBe(5);
   });
 
+  it('clearCart restores every active sale option to its default', async () => {
+    const store = await buildStore();
+    store.setState({
+      cart: [{ inventoryId: 'p1', name: 'Item 1', price: 10, quantity: 1 }],
+      customerId: 'c1',
+      discountType: 'percentage',
+      discountValue: 15,
+      paymentMethod: 'Card'
+    });
+
+    store.getState().clearCart();
+
+    expect(store.getState()).toMatchObject({
+      cart: [],
+      customerId: null,
+      discountType: 'amount',
+      discountValue: 0,
+      paymentMethod: 'Cash'
+    });
+  });
+
   it('syncCartItemProduct refreshes product details while preserving quantity', async () => {
     const store = await buildStore();
     store.setState({

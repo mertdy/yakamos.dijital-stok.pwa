@@ -135,7 +135,8 @@ export const useSalesStore = getSingletonStore('sales', () =>
             cart: [],
             customerId: null,
             discountType: 'amount',
-            discountValue: 0
+            discountValue: 0,
+            paymentMethod: 'Cash'
           }),
 
         setCustomerId: id => set({ customerId: id }),

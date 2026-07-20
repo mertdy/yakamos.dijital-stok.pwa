@@ -3,21 +3,33 @@ import { useSalesStore } from '@/features/sales/store/useSalesStore';
 import { toast } from '@heroui/react';
 
 const UPDATE_CHECK_INTERVAL_MS = 10 * 60 * 1000;
+const SUCCESSFUL_OPEN_STORAGE_KEY = 'pwa-successfully-opened';
+
+const hasOpenedSuccessfullyBefore = () => {
+  try {
+    return localStorage.getItem(SUCCESSFUL_OPEN_STORAGE_KEY) === 'true';
+  } catch {
+    return false;
+  }
+};
 
 /**
  * Hook to check for PWA updates when connection is restored,
  * and prompt the user to reload the page when a new version activates.
  */
-export const usePWAUpdate = () => {
+export const usePWAUpdate = (isAuthenticatedAndReady: boolean) => {
   const heldSalesCount = useSalesStore(state => state.heldSales.length);
   const isSaleProcessing = useSalesStore(state => state.isProcessing);
   const updateAvailableRef = useRef(false);
   const hasShownUpdateToastRef = useRef(false);
+  const hasOpenedSuccessfullyRef = useRef(hasOpenedSuccessfullyBefore());
 
   const showUpdateToast = useCallback(() => {
     if (
       !updateAvailableRef.current ||
       hasShownUpdateToastRef.current ||
+      !isAuthenticatedAndReady ||
+      !hasOpenedSuccessfullyRef.current ||
       isSaleProcessing ||
       document.visibilityState !== 'visible'
     ) {
@@ -37,7 +49,24 @@ export const usePWAUpdate = () => {
         onPress: () => window.location.reload()
       }
     });
-  }, [isSaleProcessing]);
+  }, [isAuthenticatedAndReady, isSaleProcessing]);
+
+  useEffect(() => {
+    if (!isAuthenticatedAndReady) return;
+
+    if (!hasOpenedSuccessfullyRef.current) {
+      hasOpenedSuccessfullyRef.current = true;
+      updateAvailableRef.current = false;
+      try {
+        localStorage.setItem(SUCCESSFUL_OPEN_STORAGE_KEY, 'true');
+      } catch {
+        console.warn('[PWA] İlk başarılı açılış bilgisi kaydedilemedi.');
+      }
+      return;
+    }
+
+    showUpdateToast();
+  }, [isAuthenticatedAndReady, showUpdateToast]);
 
   // 1. Update App Badge when heldSalesCount changes (PWA Badging API)
   useEffect(() => {

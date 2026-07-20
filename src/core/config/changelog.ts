@@ -18,6 +18,10 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
         text: 'Kategori hiyerarşinizi ve durum bilgilerini Excel veya CSV olarak dışa aktarabilirsiniz.'
       },
       {
+        type: 'new',
+        text: 'Barkod okuturken ürünleri toplu olarak gözden geçirip adetlerini düzenledikten sonra sepete aktarabilirsiniz.'
+      },
+      {
         type: 'improved',
         text: 'Müşteri telefon numaralarından arama, SMS, WhatsApp ve kopyalama işlemlerine hızlıca erişebilirsiniz.'
       },
@@ -46,8 +50,24 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
         text: 'Etiket, dışa aktarma ve ekstre seçimleri ile tarih alanları daha erişilebilir hale getirildi.'
       },
       {
+        type: 'improved',
+        text: 'Envanterinizi stok, fiyat, kategori, durum ve güncelleme tarihine göre daha ayrıntılı filtreleyebilirsiniz.'
+      },
+      {
+        type: 'improved',
+        text: 'Satış ekranında müşteri, indirim, ödeme ve para üstü seçimlerini tek adımda varsayılan hale getirebilirsiniz.'
+      },
+      {
         type: 'fixed',
         text: 'Beklenmeyen hata ekranının koyu temadaki okunabilirliği iyileştirildi.'
+      },
+      {
+        type: 'fixed',
+        text: 'İlk kullanımda yeni sürüm bildiriminin gereksiz yere görünmesi önlendi.'
+      },
+      {
+        type: 'fixed',
+        text: 'Satışı sıfırladığınızda ödeme yöntemi nakit seçeneğine geri döner.'
       }
     ]
   },

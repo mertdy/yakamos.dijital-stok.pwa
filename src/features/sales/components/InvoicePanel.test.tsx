@@ -169,6 +169,40 @@ describe('InvoicePanel', () => {
     expect(checkoutBtn).toBeDisabled();
   });
 
+  it('activates reset when a sale setting exists without cart items', () => {
+    storeState.cart = [];
+    storeState.customerId = 'c1';
+
+    render(
+      <InvoicePanel
+        onOpenCustomerDrawer={onOpenCustomerDrawer}
+        onOpenHeldSalesDrawer={onOpenHeldSalesDrawer}
+      />
+    );
+
+    const resetButton = screen.getByRole('button', { name: 'Sepeti Sıfırla' });
+    expect(resetButton).not.toBeDisabled();
+    fireEvent.click(resetButton);
+    expect(clearCartMock).toHaveBeenCalled();
+  });
+
+  it('activates reset after entering a cash amount without cart items', () => {
+    storeState.cart = [];
+
+    render(
+      <InvoicePanel
+        onOpenCustomerDrawer={onOpenCustomerDrawer}
+        onOpenHeldSalesDrawer={onOpenHeldSalesDrawer}
+      />
+    );
+
+    const resetButton = screen.getByRole('button', { name: 'Sepeti Sıfırla' });
+    expect(resetButton).toBeDisabled();
+
+    fireEvent.click(screen.getByRole('button', { name: '₺100' }));
+    expect(resetButton).not.toBeDisabled();
+  });
+
   it('calls checkout on Ödemeyi Al click', async () => {
     checkoutMock.mockResolvedValueOnce(true);
     render(

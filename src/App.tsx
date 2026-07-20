@@ -42,9 +42,9 @@ import { listenForRemoteLogout } from '@/shared/utils/sessionCleanup';
 import { resumePendingSyncOperationTracking } from '@/shared/utils/pendingSyncOperations';
 
 function App() {
-  usePWAUpdate();
   const { user, profile, activeMembership, isInitialized, isLoading, setUser } =
     useAuthStore();
+  usePWAUpdate(Boolean(user && isInitialized && !isLoading));
 
   useEffect(() => {
     resumePendingSyncOperationTracking();
