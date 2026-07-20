@@ -274,6 +274,11 @@ export const MainLayout: React.FC = () => {
   };
 
   const handleProfileMenuAction = (key: React.Key) => {
+    if (key === 'logout') {
+      void logout();
+      return;
+    }
+
     if (key === 'account-settings') {
       navigate(ROUTES.ACCOUNT_SETTINGS);
     }
@@ -401,22 +406,6 @@ export const MainLayout: React.FC = () => {
           className="ml-auto flex-shrink-0 text-gray-400"
         />
       )}
-    </Button>
-  );
-
-  const logoutButton = (
-    <Button
-      variant="ghost"
-      aria-label="Çıkış Yap"
-      className={clsx(
-        'text-danger hover:bg-danger/10 w-full font-semibold',
-        isCollapsed
-          ? 'h-12 !w-12 !min-w-12 justify-center rounded-2xl p-3'
-          : 'h-11 justify-start gap-3 rounded-2xl px-4 py-2.5'
-      )}
-      onPress={logout}>
-      <LogOut size={18} className="text-danger flex-shrink-0" />
-      {!isCollapsed && <span className="text-sm">Çıkış Yap</span>}
     </Button>
   );
 
@@ -701,7 +690,8 @@ export const MainLayout: React.FC = () => {
                     aria-label="Koyu tema">
                     {({ isSelected }) => (
                       <Switch.Content className="w-full justify-between gap-3">
-                        <span className="text-sm font-medium text-gray-700">
+                        <span className="ml-1 flex items-center gap-2 text-sm font-medium text-gray-700">
+                          <Moon size={16} className="text-gray-500" />
                           Koyu tema
                         </span>
                         <Switch.Control>
@@ -757,16 +747,20 @@ export const MainLayout: React.FC = () => {
                       <ExternalLink size={14} className="text-gray-400" />
                     </span>
                   </Dropdown.Item>
+                  <Dropdown.Item
+                    id="logout"
+                    textValue="Çıkış Yap"
+                    className="text-danger mt-1 border-t border-gray-100 pt-2">
+                    <span className="flex items-center gap-2.5">
+                      <LogOut size={17} />
+                      <span>Çıkış Yap</span>
+                    </span>
+                  </Dropdown.Item>
                 </Dropdown.Menu>
               </Dropdown.Popover>
             </Dropdown>
           )}
           <PWAInstallButton isCollapsed={isCollapsed} />
-          {isCollapsed ? (
-            <SidebarTooltip label="Çıkış yap">{logoutButton}</SidebarTooltip>
-          ) : (
-            logoutButton
-          )}
         </div>
       </aside>
 
