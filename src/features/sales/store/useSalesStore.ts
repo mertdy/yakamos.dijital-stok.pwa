@@ -11,6 +11,10 @@ import {
 import posthog from 'posthog-js';
 import { trackPendingSyncOperation } from '@/shared/utils/pendingSyncOperations';
 import { useInventoryStore } from '@/features/inventory';
+import {
+  evaluatePricingRules,
+  usePricingRuleStore
+} from '@/features/promotions';
 
 export interface CartItem {
   inventoryId: string;
@@ -19,11 +23,19 @@ export interface CartItem {
   quantity: number;
   imageUrl?: string;
   barcode?: string;
+  sku?: string;
+  categoryId?: string | null;
 }
 
 type CartProductDetails = Pick<
   CartItem,
-  'inventoryId' | 'name' | 'price' | 'imageUrl' | 'barcode'
+  | 'inventoryId'
+  | 'name'
+  | 'price'
+  | 'imageUrl'
+  | 'barcode'
+  | 'sku'
+  | 'categoryId'
 >;
 
 export type PaymentMethod = 'Cash' | 'Card' | 'Scan' | 'Credit';
@@ -36,6 +48,7 @@ export interface HeldSale {
   discountType: DiscountType;
   discountValue: number;
   paymentMethod: PaymentMethod;
+  dismissedPricingRules?: Array<{ ruleId: string; reason: string }>;
   timestamp: string;
 }
 
@@ -46,6 +59,7 @@ interface SalesState {
   discountType: DiscountType;
   discountValue: number;
   paymentMethod: PaymentMethod;
+  dismissedPricingRules: Array<{ ruleId: string; reason: string }>;
   heldSales: HeldSale[];
   addToCart: (item: CartItem) => void;
   syncCartItemProduct: (product: CartProductDetails) => void;
@@ -55,6 +69,8 @@ interface SalesState {
   setCustomerId: (id: string | null) => void;
   setDiscount: (type: DiscountType, value: number) => void;
   setPaymentMethod: (method: PaymentMethod) => void;
+  dismissPricingRule: (ruleId: string, reason: string) => void;
+  restorePricingRule: (ruleId: string) => void;
   checkout: () => Promise<boolean>;
   holdSale: () => void;
   restoreSale: (id: string) => void;
@@ -72,6 +88,7 @@ export const useSalesStore = getSingletonStore('sales', () =>
         discountType: 'amount',
         discountValue: 0,
         paymentMethod: 'Cash',
+        dismissedPricingRules: [],
         heldSales: [],
 
         addToCart: newItem => {
@@ -108,7 +125,9 @@ export const useSalesStore = getSingletonStore('sales', () =>
                       name: product.name,
                       price: product.price,
                       barcode: product.barcode,
-                      imageUrl: product.imageUrl
+                      imageUrl: product.imageUrl,
+                      sku: product.sku,
+                      categoryId: product.categoryId
                     }
                   : item
               )
@@ -136,13 +155,29 @@ export const useSalesStore = getSingletonStore('sales', () =>
             customerId: null,
             discountType: 'amount',
             discountValue: 0,
-            paymentMethod: 'Cash'
+            paymentMethod: 'Cash',
+            dismissedPricingRules: []
           }),
 
         setCustomerId: id => set({ customerId: id }),
         setDiscount: (type, value) =>
           set({ discountType: type, discountValue: value }),
         setPaymentMethod: method => set({ paymentMethod: method }),
+        dismissPricingRule: (ruleId, reason) =>
+          set(state => ({
+            dismissedPricingRules: [
+              ...state.dismissedPricingRules.filter(
+                item => item.ruleId !== ruleId
+              ),
+              { ruleId, reason }
+            ]
+          })),
+        restorePricingRule: ruleId =>
+          set(state => ({
+            dismissedPricingRules: state.dismissedPricingRules.filter(
+              item => item.ruleId !== ruleId
+            )
+          })),
 
         holdSale: () => {
           const {
@@ -151,6 +186,7 @@ export const useSalesStore = getSingletonStore('sales', () =>
             discountType,
             discountValue,
             paymentMethod,
+            dismissedPricingRules,
             heldSales
           } = get();
           if (cart.length === 0) return;
@@ -162,6 +198,7 @@ export const useSalesStore = getSingletonStore('sales', () =>
             discountType,
             discountValue,
             paymentMethod,
+            dismissedPricingRules,
             timestamp: new Date().toISOString()
           };
 
@@ -171,7 +208,8 @@ export const useSalesStore = getSingletonStore('sales', () =>
             customerId: null,
             discountType: 'amount',
             discountValue: 0,
-            paymentMethod: 'Cash'
+            paymentMethod: 'Cash',
+            dismissedPricingRules: []
           });
 
           posthog.capture('sale_held', {
@@ -194,6 +232,7 @@ export const useSalesStore = getSingletonStore('sales', () =>
             discountType: saleToRestore.discountType || 'amount',
             discountValue: saleToRestore.discountValue || 0,
             paymentMethod: saleToRestore.paymentMethod,
+            dismissedPricingRules: saleToRestore.dismissedPricingRules || [],
             heldSales: heldSales.filter(s => s.id !== id)
           });
 
@@ -225,7 +264,8 @@ export const useSalesStore = getSingletonStore('sales', () =>
             customerId,
             discountType,
             discountValue,
-            paymentMethod
+            paymentMethod,
+            dismissedPricingRules
           } = get();
           if (cart.length === 0) return false;
 
@@ -261,7 +301,18 @@ export const useSalesStore = getSingletonStore('sales', () =>
               discountAmount = discountValue;
             }
 
-            const totalAmount = subtotal - discountAmount;
+            const pricingAdjustments = evaluatePricingRules(
+              cart,
+              paymentMethod,
+              usePricingRuleStore.getState().rules,
+              dismissedPricingRules.map(item => item.ruleId)
+            );
+            const automaticAdjustmentTotal = pricingAdjustments.reduce(
+              (sum, adjustment) => sum + adjustment.amount,
+              0
+            );
+            const totalAmount =
+              subtotal - discountAmount + automaticAdjustmentTotal;
 
             const createdAt = new Date().toISOString();
             const invoiceNumber = `INV-${Date.now().toString().slice(-6)}`;
@@ -287,6 +338,8 @@ export const useSalesStore = getSingletonStore('sales', () =>
               discountValue,
               totalAmount,
               paymentMethod,
+              pricingAdjustments,
+              dismissedPricingRules,
               status: 'completed',
               createdAt,
               cart
@@ -345,6 +398,8 @@ export const useSalesStore = getSingletonStore('sales', () =>
               discountValue,
               totalAmount,
               paymentMethod,
+              pricingAdjustments,
+              dismissedPricingRules,
               status: 'completed',
               syncStatus: 'pending',
               pendingBackupCount: 1,
@@ -375,6 +430,7 @@ export const useSalesStore = getSingletonStore('sales', () =>
               subtotal,
               discount_amount: discountAmount,
               total_amount: totalAmount,
+              automatic_adjustment_total: automaticAdjustmentTotal,
               payment_method: paymentMethod,
               has_customer: Boolean(customerId)
             });
@@ -385,7 +441,8 @@ export const useSalesStore = getSingletonStore('sales', () =>
               customerId: null,
               discountType: 'amount',
               discountValue: 0,
-              paymentMethod: 'Cash'
+              paymentMethod: 'Cash',
+              dismissedPricingRules: []
             });
             return true;
           } catch (error) {

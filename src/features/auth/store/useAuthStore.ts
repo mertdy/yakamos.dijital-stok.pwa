@@ -35,6 +35,7 @@ import { useInventoryStore } from '@/features/inventory';
 import { useCustomerStore } from '@/features/customers';
 import { useSalesStore, usePreferencesStore } from '@/features/sales';
 import { useSalesHistoryStore } from '@/features/sales-history';
+import { usePricingRuleStore } from '@/features/promotions';
 import type {
   Company,
   UserProfile,
@@ -547,6 +548,7 @@ export const useAuthStore = getSingletonStore('auth', () =>
         useSalesStore.getState().clearCart();
         useSalesStore.getState().clearHeldSales();
         useSalesHistoryStore.getState().clearSales();
+        usePricingRuleStore.getState().clearRules();
         usePreferencesStore.getState().clearPreferences();
         clearUserLocalStorage();
         if (clearPersistence) {

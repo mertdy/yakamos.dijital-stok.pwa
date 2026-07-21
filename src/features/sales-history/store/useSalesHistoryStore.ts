@@ -17,6 +17,7 @@ import { db, auth } from '@/core/firebase/config';
 import { useAuthStore } from '@/features/auth/store/useAuthStore';
 import { toast } from '@heroui/react';
 import type { CartItem } from '@/features/sales';
+import type { AppliedPricingRule } from '@/features/promotions';
 import posthog from 'posthog-js';
 
 export interface SaleTransaction {
@@ -33,6 +34,8 @@ export interface SaleTransaction {
   discountValue?: number;
   totalAmount: number;
   paymentMethod: string;
+  pricingAdjustments?: AppliedPricingRule[];
+  dismissedPricingRules?: Array<{ ruleId: string; reason: string }>;
   cart: CartItem[];
   createdAt: string;
   status?: 'completed' | 'cancelled';

@@ -34,6 +34,8 @@ import { useInventoryStore } from '@/features/inventory';
 import { useCategoryStore } from '@/features/inventory/store/useCategoryStore';
 import { useCustomerStore } from '@/features/customers';
 import { useSalesHistoryStore } from '@/features/sales-history';
+import { usePricingRuleStore } from '@/features/promotions';
+import { PromotionsView } from '@/features/promotions/routes';
 
 import { usePWAUpdate } from './shared/hooks/usePWAUpdate';
 import { LazyRouteErrorBoundary } from './shared/components/LazyRouteErrorBoundary';
@@ -78,6 +80,7 @@ function App() {
       useCategoryStore.getState().loadCategories();
       useCustomerStore.getState().loadCustomers();
       useSalesHistoryStore.getState().fetchSales();
+      usePricingRuleStore.getState().loadRules();
     }
   }, [activeCompanyId]);
 
@@ -115,6 +118,10 @@ function App() {
     isOwner ||
     !isEmployee ||
     activeMembership?.permissions.includes('MANAGE_CATEGORIES');
+  const hasPricingRulePermission =
+    isOwner ||
+    !isEmployee ||
+    activeMembership?.permissions.includes('MANAGE_PROMOTIONS');
 
   return (
     <Suspense
@@ -175,6 +182,16 @@ function App() {
           <Route path={ROUTES.DASHBOARD} element={<DashboardView />} />
           <Route path={ROUTES.SALES} element={<SalesView />} />
           <Route path={ROUTES.SALES_HISTORY} element={<SalesHistoryView />} />
+          <Route
+            path={ROUTES.PROMOTIONS}
+            element={
+              hasPricingRulePermission ? (
+                <PromotionsView />
+              ) : (
+                <Navigate to={ROUTES.DASHBOARD} replace />
+              )
+            }
+          />
           <Route
             path={ROUTES.COMPANY_SETTINGS}
             element={

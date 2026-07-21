@@ -4,6 +4,7 @@ export const ROUTES = {
   DASHBOARD: '/',
   SALES: '/satis',
   SALES_HISTORY: '/satis-gecmisi',
+  PROMOTIONS: '/kampanyalar',
   COMPANY_SETTINGS: '/sirket-ayarlari',
   ACCOUNT_SETTINGS: '/hesap-ayarlari',
   CHANGELOG: '/yenilikler',

@@ -239,7 +239,9 @@ const ScannerModal: React.FC<ScannerModalProps> = ({
         price: item.salePrice ?? item.price ?? 0,
         quantity,
         barcode: item.barcode,
-        imageUrl: item.imageUrl
+        imageUrl: item.imageUrl,
+        sku: item.sku,
+        categoryId: item.categoryId
       });
     },
     [addToCart]

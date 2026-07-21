@@ -38,7 +38,8 @@ import {
   Moon,
   Sun,
   Sparkles,
-  Keyboard
+  Keyboard,
+  Tag
 } from 'lucide-react';
 import { useAuthStore } from '@/features/auth';
 import {
@@ -334,6 +335,7 @@ export const MainLayout: React.FC = () => {
     { name: 'Anasayfa', path: ROUTES.DASHBOARD, icon: LayoutDashboard },
     { name: 'Satış', path: ROUTES.SALES, icon: MonitorCheck },
     { name: 'Satış Geçmişi', path: ROUTES.SALES_HISTORY, icon: History },
+    { name: 'Kampanyalar', path: ROUTES.PROMOTIONS, icon: Tag },
     { name: 'Müşteriler', path: ROUTES.CUSTOMERS.INDEX, icon: Users },
     { name: 'Envanter', path: ROUTES.INVENTORY.INDEX, icon: Package },
     { name: 'Kategoriler', path: ROUTES.CATEGORIES, icon: FolderTree }
@@ -349,6 +351,15 @@ export const MainLayout: React.FC = () => {
   ) {
     filteredNavItems = baseNavItems.filter(
       item => item.path !== ROUTES.DASHBOARD
+    );
+  }
+
+  if (
+    isEmployee &&
+    !activeMembership.permissions.includes('MANAGE_PROMOTIONS')
+  ) {
+    filteredNavItems = filteredNavItems.filter(
+      item => item.path !== ROUTES.PROMOTIONS
     );
   }
 

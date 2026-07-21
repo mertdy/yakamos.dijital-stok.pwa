@@ -58,6 +58,12 @@ export const PERMISSION_META: Record<PermissionKey, PermissionMeta> = {
     shortLabel: 'Hızlı Menü',
     description:
       'Şirketin ortak hızlı ekleme menüsündeki ürünleri ekleyebilir, çıkarabilir ve sıralayabilir.'
+  },
+  MANAGE_PROMOTIONS: {
+    label: 'Kampanyaları Yönet',
+    shortLabel: 'Kampanyalar',
+    description:
+      'Kampanya ve otomatik fiyat kurallarını oluşturabilir, düzenleyebilir ve satış sırasında gerekçeyle kaldırabilir.'
   }
 };
 

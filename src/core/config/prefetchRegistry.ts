@@ -11,5 +11,6 @@ export const secondaryPrefetches = [
   () => import('@/features/auth/views/AccountSettingsView'),
   () => import('@/features/auth/views/ChangelogView'),
   () => import('@/features/dashboard/views/CompanySettingsView'),
-  () => import('@/features/dashboard/views/PricingPlansView')
+  () => import('@/features/dashboard/views/PricingPlansView'),
+  () => import('@/features/promotions/views/PromotionsView')
 ];

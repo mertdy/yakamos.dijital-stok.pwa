@@ -11,6 +11,45 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
     id: '2026-07-21',
     date: '21 Temmuz 2026',
+    title: 'Kampanyalar ve otomatik fiyat kuralları',
+    items: [
+      {
+        type: 'new',
+        text: 'Kampanyalar sayfasından ödeme, ürün, kategori ve sepet koşullarına göre otomatik indirim veya ek ücret kuralları oluşturabilirsiniz.'
+      },
+      {
+        type: 'new',
+        text: 'Satış sırasında uygulanan fiyat kurallarını ve toplam tutara etkilerini görebilirsiniz.'
+      },
+      {
+        type: 'improved',
+        text: 'Yetkili kullanıcılar otomatik fiyat kuralını gerekçe ekleyerek yalnızca ilgili satış için kaldırabilir.'
+      },
+      {
+        type: 'improved',
+        text: 'Fiyat kuralı hedef ürünlerini ürün adı veya barkodla daha hızlı arayıp seçebilirsiniz.'
+      },
+      {
+        type: 'improved',
+        text: 'Kampanya yönetimi için çalışanlara Kampanyaları Yönet yetkisi verebilirsiniz.'
+      },
+      {
+        type: 'improved',
+        text: 'Fiyat kurallarını zaman sınırı olmadan veya belirli tarih, saat ve günlerde uygulanacak şekilde ayarlayabilirsiniz.'
+      },
+      {
+        type: 'improved',
+        text: 'Yeni fiyat kuralı ekranı geniş ürün listelerinde daha hızlı açılır.'
+      },
+      {
+        type: 'fixed',
+        text: 'Fiyat kuralı hedef ürün seçimlerinin ve koyu temadaki görünümünün tutarlılığı iyileştirildi.'
+      }
+    ]
+  },
+  {
+    id: '2026-07-21',
+    date: '21 Temmuz 2026',
     title: 'Kullanım iyileştirmeleri',
     items: [
       {

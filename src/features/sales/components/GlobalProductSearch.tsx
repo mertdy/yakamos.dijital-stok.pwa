@@ -42,7 +42,9 @@ export const GlobalProductSearch: React.FC<Props> = ({ onOpenScanner }) => {
       price: item.salePrice ?? item.price ?? 0,
       quantity: 1,
       barcode: item.barcode,
-      imageUrl: item.imageUrl
+      imageUrl: item.imageUrl,
+      sku: item.sku,
+      categoryId: item.categoryId
     });
     setQuery('');
     setIsFocused(false);
@@ -76,7 +78,9 @@ export const GlobalProductSearch: React.FC<Props> = ({ onOpenScanner }) => {
           price: item.salePrice ?? item.price ?? 0,
           quantity: 1,
           barcode: item.barcode,
-          imageUrl: item.imageUrl
+          imageUrl: item.imageUrl,
+          sku: item.sku,
+          categoryId: item.categoryId
         });
         posthog.capture('barcode_scanner_item_added_to_cart', {
           inventory_id: item.id,

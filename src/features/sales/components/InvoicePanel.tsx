@@ -1,8 +1,13 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { clsx } from 'clsx';
 import { useSalesStore, type PaymentMethod } from '../store/useSalesStore';
+import {
+  evaluatePricingRules,
+  usePricingRuleStore
+} from '@/features/promotions';
+import { useAuthStore } from '@/features/auth';
 import { useCustomerStore } from '@/features/customers';
-import { Input, toast } from '@heroui/react';
+import { Input, Modal, TextArea, toast } from '@heroui/react';
 import {
   UserPlus,
   Tag,
@@ -12,7 +17,8 @@ import {
   Loader2,
   Pause,
   CheckCircle2,
-  Receipt
+  Receipt,
+  X
 } from 'lucide-react';
 import { Button } from '@heroui/react';
 import { Tooltip } from '@heroui/react';
@@ -42,8 +48,12 @@ export const InvoicePanel: React.FC<Props> = ({
     discountValue,
     paymentMethod,
     setDiscount,
-    setPaymentMethod
+    setPaymentMethod,
+    dismissedPricingRules = [],
+    dismissPricingRule
   } = useSalesStore();
+  const { rules } = usePricingRuleStore();
+  const { activeMembership } = useAuthStore();
   const { customers } = useCustomerStore();
 
   const [invoiceRef] = useState(
@@ -52,6 +62,11 @@ export const InvoicePanel: React.FC<Props> = ({
   const [givenAmount, setGivenAmount] = useState<number | ''>('');
   const [isCustomAmountFocused, setIsCustomAmountFocused] = useState(false);
   const [lastSale, setLastSale] = useState<any>(null);
+  const [ruleToDismiss, setRuleToDismiss] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
+  const [dismissReason, setDismissReason] = useState('');
   const receiptRef = useRef<HTMLDivElement>(null);
 
   const handlePrint = useReactToPrint({
@@ -70,7 +85,24 @@ export const InvoicePanel: React.FC<Props> = ({
     discountAmount = discountValue;
   }
 
-  const totalPayable = subtotal - discountAmount;
+  const automaticAdjustments = useMemo(
+    () =>
+      evaluatePricingRules(
+        cart,
+        paymentMethod,
+        rules,
+        dismissedPricingRules.map(item => item.ruleId)
+      ),
+    [cart, dismissedPricingRules, paymentMethod, rules]
+  );
+  const automaticAdjustmentTotal = automaticAdjustments.reduce(
+    (sum, adjustment) => sum + adjustment.amount,
+    0
+  );
+  const totalPayable = subtotal - discountAmount + automaticAdjustmentTotal;
+  const canManagePricingRules =
+    activeMembership?.role === 'OWNER' ||
+    activeMembership?.permissions.includes('MANAGE_PROMOTIONS');
   const hasSaleDraft =
     cart.length > 0 ||
     Boolean(customerId) ||
@@ -318,6 +350,47 @@ export const InvoicePanel: React.FC<Props> = ({
             </div>
           </div>
 
+          {automaticAdjustments.length > 0 && (
+            <div className="space-y-1.5 border-t border-gray-100 pt-2 text-sm">
+              {automaticAdjustments.map(adjustment => (
+                <div
+                  key={adjustment.ruleId}
+                  className="flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="truncate text-gray-600">{adjustment.name}</p>
+                    <p className="text-[11px] text-gray-400">
+                      {adjustment.reason}
+                    </p>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-1">
+                    <span
+                      className={clsx(
+                        'font-semibold',
+                        adjustment.amount > 0 ? 'text-primary' : 'text-success'
+                      )}>
+                      {adjustment.amount > 0 ? '+' : '-'}₺
+                      {Math.abs(adjustment.amount).toFixed(2)}
+                    </span>
+                    {canManagePricingRules && (
+                      <button
+                        className="hover:text-danger rounded p-1 text-gray-400 hover:bg-gray-100"
+                        aria-label={`${adjustment.name} kuralını kaldır`}
+                        onClick={() => {
+                          setRuleToDismiss({
+                            id: adjustment.ruleId,
+                            name: adjustment.name
+                          });
+                          setDismissReason('');
+                        }}>
+                        <X size={14} />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
           <div className="border-primary/25 bg-primary/10 mt-3 flex flex-col rounded-2xl border p-4">
             <p className="min-w-0 self-end text-2xl font-bold text-gray-900">
               Toplam Tutar
@@ -538,6 +611,59 @@ export const InvoicePanel: React.FC<Props> = ({
           )}
         </div>
       </div>
+
+      <Modal
+        isOpen={Boolean(ruleToDismiss)}
+        onOpenChange={open => !open && setRuleToDismiss(null)}>
+        <Modal.Backdrop>
+          <Modal.Container>
+            <Modal.Dialog className="w-full max-w-md rounded-3xl bg-white p-6 shadow-xl outline-none">
+              <Modal.CloseTrigger />
+              <Modal.Header>
+                <Modal.Heading className="text-xl">
+                  Fiyat kuralını kaldır
+                </Modal.Heading>
+              </Modal.Header>
+              <Modal.Body className="space-y-3">
+                <p className="text-sm text-gray-600">
+                  “{ruleToDismiss?.name}” bu satış için uygulanmayacak. Satış
+                  kaydına bir gerekçe ekleyin.
+                </p>
+                <TextArea
+                  value={dismissReason}
+                  onChange={event => setDismissReason(event.target.value)}
+                  placeholder="Örn. müşteri istisnası"
+                  aria-label="Kaldırma gerekçesi"
+                />
+              </Modal.Body>
+              <Modal.Footer className="flex gap-3 pt-4">
+                <Button
+                  variant="tertiary"
+                  className="flex-1"
+                  onPress={() => setRuleToDismiss(null)}>
+                  İptal
+                </Button>
+                <Button
+                  variant="danger"
+                  className="flex-1"
+                  isDisabled={!dismissReason.trim()}
+                  onPress={() => {
+                    if (ruleToDismiss) {
+                      dismissPricingRule(
+                        ruleToDismiss.id,
+                        dismissReason.trim()
+                      );
+                      toast.success('Fiyat kuralı bu satış için kaldırıldı.');
+                      setRuleToDismiss(null);
+                    }
+                  }}>
+                  Kuralı kaldır
+                </Button>
+              </Modal.Footer>
+            </Modal.Dialog>
+          </Modal.Container>
+        </Modal.Backdrop>
+      </Modal>
     </div>
   );
 };

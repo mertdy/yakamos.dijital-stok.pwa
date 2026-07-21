@@ -66,6 +66,13 @@ Company-scoped shared interface preferences. The quick-add menu is stored in
 `quickAddItems`; read access is available to company members, while writes
 require the `MANAGE_COMPANY_QUICK_ADD` permission or company ownership.
 
+pricingRules
+
+Company-scoped automatic pricing rules. Rules can target product categories or
+specific products, payment methods, a target-excluded basket threshold, and a
+date/time schedule. Writes and per-sale rule overrides require the
+`MANAGE_PROMOTIONS` permission or company ownership.
+
 ---
 
 # Authentication

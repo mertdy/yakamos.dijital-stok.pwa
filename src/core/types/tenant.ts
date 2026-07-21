@@ -21,7 +21,8 @@ export type PermissionKey =
   | 'SHARE_CUSTOMER_STATEMENT'
   | 'VIEW_SALES_HISTORY'
   | 'MANAGE_SALES_HISTORY'
-  | 'MANAGE_COMPANY_QUICK_ADD';
+  | 'MANAGE_COMPANY_QUICK_ADD'
+  | 'MANAGE_PROMOTIONS';
 
 export interface UserProfile {
   id: string;

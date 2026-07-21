@@ -111,7 +111,9 @@ export const ProductList: React.FC = () => {
                     price: item.price,
                     quantity: 1,
                     barcode: item.barcode,
-                    imageUrl: item.imageUrl
+                    imageUrl: item.imageUrl,
+                    sku: item.sku,
+                    categoryId: item.categoryId
                   })
                 }
                 className="hover:border-primary/30 group flex h-full cursor-pointer flex-col items-center gap-1.5 rounded-xl border border-gray-100 bg-white p-2 text-center shadow-sm transition-all hover:shadow-md active:scale-95">
