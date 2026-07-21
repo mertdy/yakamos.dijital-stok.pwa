@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { onSnapshot, setDoc, deleteDoc, writeBatch } from 'firebase/firestore';
 
 const mockBatch = {
+  set: vi.fn(),
   delete: vi.fn(),
   commit: vi.fn().mockResolvedValue(undefined)
 };
@@ -86,6 +87,84 @@ describe('useInventoryStore', () => {
     await store.getState().deleteItem('p1');
     expect(deleteDoc).toHaveBeenCalled();
     expect(removeQuickAddItems).toHaveBeenCalledWith(['p1']);
+  });
+
+  it('bulkUpdateItems applies one optimistic update and writes merged batch patches', async () => {
+    const store = await buildStore();
+    store.setState({
+      items: [
+        {
+          id: 'p1',
+          companyId: 'test-company-id',
+          name: 'Product 1',
+          stock: 5,
+          salePrice: 10,
+          updatedAt: ''
+        },
+        {
+          id: 'p2',
+          companyId: 'test-company-id',
+          name: 'Product 2',
+          stock: 8,
+          salePrice: 20,
+          updatedAt: ''
+        }
+      ]
+    });
+
+    const updated = await store.getState().bulkUpdateItems(['p1', 'p2'], {
+      categoryId: 'drinks',
+      salePrice: { mode: 'increase_percent', value: 10 }
+    });
+
+    expect(updated.map(item => item.salePrice)).toEqual([11, 22]);
+    expect(store.getState().items).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: 'p1',
+          categoryId: 'drinks',
+          salePrice: 11
+        }),
+        expect.objectContaining({
+          id: 'p2',
+          categoryId: 'drinks',
+          salePrice: 22
+        })
+      ])
+    );
+    expect(mockBatch.set).toHaveBeenCalledTimes(2);
+    expect(mockBatch.commit).toHaveBeenCalled();
+  });
+
+  it('bulkUpdateItems restores optimistic values when the batch fails', async () => {
+    const store = await buildStore();
+    store.setState({
+      items: [
+        {
+          id: 'p1',
+          companyId: 'test-company-id',
+          name: 'Product 1',
+          stock: 5,
+          salePrice: 10,
+          updatedAt: 'before-update'
+        }
+      ]
+    });
+    mockBatch.commit.mockRejectedValueOnce(new Error('network error'));
+
+    await expect(
+      store.getState().bulkUpdateItems(['p1'], {
+        salePrice: { mode: 'increase_amount', value: 5 }
+      })
+    ).rejects.toThrow('network error');
+
+    expect(store.getState().items[0]).toEqual(
+      expect.objectContaining({
+        id: 'p1',
+        salePrice: 10,
+        updatedAt: 'before-update'
+      })
+    );
   });
 
   it('deleteItems triggers writeBatch delete and commit', async () => {

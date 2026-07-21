@@ -20,6 +20,7 @@ import {
 } from '@tanstack/react-table';
 import {
   useInventoryStore,
+  getSalePrice,
   type InventoryItem
 } from '../store/useInventoryStore';
 import {
@@ -31,6 +32,7 @@ import {
   CheckSquare,
   ListChecks,
   Printer,
+  SquarePen,
   X,
   Copy
 } from 'lucide-react';
@@ -57,6 +59,9 @@ import {
   InventoryFilters,
   type InventoryFilterValues
 } from './InventoryFilters';
+import { BulkInventoryEditDrawer } from './routes';
+import type { BulkInventoryChanges } from '../domain/bulkInventoryEdit';
+import { useSalesStore } from '@/features/sales';
 
 const LabelPrintModal = lazy(() =>
   import('./LabelPrintModal').then(module => ({
@@ -142,8 +147,14 @@ const getPageItems = (pageCount: number, currentPage: number) => {
 export const InventoryTable: React.FC<InventoryTableProps> = ({
   initialPrintItemId = null
 }) => {
-  const { items, isLoading, deleteItem, deleteItems, updateItem } =
-    useInventoryStore();
+  const {
+    items,
+    isLoading,
+    deleteItem,
+    deleteItems,
+    updateItem,
+    bulkUpdateItems
+  } = useInventoryStore();
   const [searchParams, setSearchParams] = useSearchParams();
   const [sorting, setSorting] = useState<SortingState>([]);
   const [filters, setFilters] = useState<InventoryFilterValues>(() =>
@@ -155,6 +166,7 @@ export const InventoryTable: React.FC<InventoryTableProps> = ({
   });
   const [rowSelection, setRowSelection] = useState<Record<string, boolean>>({});
   const [isLabelPrintOpen, setIsLabelPrintOpen] = useState(false);
+  const [isBulkEditOpen, setIsBulkEditOpen] = useState(false);
   const [labelItems, setLabelItems] = useState<InventoryItem[]>([]);
   const handledInitialPrintId = useRef<string | null>(null);
   const navigate = useNavigate();
@@ -497,6 +509,40 @@ export const InventoryTable: React.FC<InventoryTableProps> = ({
     return Object.keys(rowSelection).filter(id => rowSelection[id]);
   }, [rowSelection]);
 
+  const selectedItems = useMemo(() => {
+    const selectedIdSet = new Set(selectedIds);
+    return filteredItems.filter(item => selectedIdSet.has(item.id));
+  }, [filteredItems, selectedIds]);
+
+  const handleBulkUpdate = useCallback(
+    async (changes: BulkInventoryChanges, reason?: string) => {
+      try {
+        const updatedItems = await bulkUpdateItems(
+          selectedIds,
+          changes,
+          reason
+        );
+        updatedItems.forEach(item => {
+          useSalesStore.getState().syncCartItemProduct({
+            inventoryId: item.id,
+            name: item.name,
+            price: getSalePrice(item),
+            barcode: item.barcode,
+            imageUrl: item.imageUrl,
+            sku: item.sku,
+            categoryId: item.categoryId
+          });
+        });
+        setRowSelection({});
+        toast.success(`${updatedItems.length} ürün başarıyla güncellendi.`);
+      } catch {
+        toast.danger('Ürünler toplu olarak güncellenemedi. Tekrar deneyin.');
+        throw new Error('Bulk inventory update failed');
+      }
+    },
+    [bulkUpdateItems, selectedIds]
+  );
+
   useEffect(() => {
     const lastPageIndex = Math.max(
       0,
@@ -572,16 +618,35 @@ export const InventoryTable: React.FC<InventoryTableProps> = ({
               </Description>
               <div className="flex items-center gap-1.5">
                 <Tooltip delay={0} closeDelay={0}>
-                  <Button
-                    variant="tertiary"
-                    isIconOnly
-                    size="sm"
-                    onPress={() => {
-                      table.toggleAllPageRowsSelected(true);
-                    }}
-                    aria-label="Bu Sayfadakileri Seç">
-                    <CheckSquare size={18} />
-                  </Button>
+                  <Tooltip.Trigger>
+                    <Button
+                      variant="tertiary"
+                      isIconOnly
+                      size="sm"
+                      onPress={() => setIsBulkEditOpen(true)}
+                      aria-label="Seçili Ürünleri Düzenle">
+                      <SquarePen size={18} />
+                    </Button>
+                  </Tooltip.Trigger>
+                  <Tooltip.Content showArrow>
+                    <Tooltip.Arrow />
+                    Seçili ürünleri düzenle
+                  </Tooltip.Content>
+                </Tooltip>
+
+                <Tooltip delay={0} closeDelay={0}>
+                  <Tooltip.Trigger>
+                    <Button
+                      variant="tertiary"
+                      isIconOnly
+                      size="sm"
+                      onPress={() => {
+                        table.toggleAllPageRowsSelected(true);
+                      }}
+                      aria-label="Bu Sayfadakileri Seç">
+                      <CheckSquare size={18} />
+                    </Button>
+                  </Tooltip.Trigger>
                   <Tooltip.Content showArrow>
                     <Tooltip.Arrow />
                     Bu sayfadakileri seç
@@ -589,20 +654,22 @@ export const InventoryTable: React.FC<InventoryTableProps> = ({
                 </Tooltip>
 
                 <Tooltip delay={0} closeDelay={0}>
-                  <Button
-                    variant="tertiary"
-                    isIconOnly
-                    size="sm"
-                    onPress={() => {
-                      const newSelection: Record<string, boolean> = {};
-                      filteredItems.forEach(item => {
-                        newSelection[item.id] = true;
-                      });
-                      setRowSelection(newSelection);
-                    }}
-                    aria-label="Filtrelenenlerin Tümünü Seç">
-                    <ListChecks size={18} />
-                  </Button>
+                  <Tooltip.Trigger>
+                    <Button
+                      variant="tertiary"
+                      isIconOnly
+                      size="sm"
+                      onPress={() => {
+                        const newSelection: Record<string, boolean> = {};
+                        filteredItems.forEach(item => {
+                          newSelection[item.id] = true;
+                        });
+                        setRowSelection(newSelection);
+                      }}
+                      aria-label="Filtrelenenlerin Tümünü Seç">
+                      <ListChecks size={18} />
+                    </Button>
+                  </Tooltip.Trigger>
                   <Tooltip.Content showArrow>
                     <Tooltip.Arrow />
                     Filtrelenenlerin tümünü seç ({filteredItems.length})
@@ -610,14 +677,16 @@ export const InventoryTable: React.FC<InventoryTableProps> = ({
                 </Tooltip>
 
                 <Tooltip delay={0} closeDelay={0}>
-                  <Button
-                    variant="ghost"
-                    isIconOnly
-                    size="sm"
-                    onPress={() => setRowSelection({})}
-                    aria-label="Seçimi Temizle">
-                    <X size={18} />
-                  </Button>
+                  <Tooltip.Trigger>
+                    <Button
+                      variant="ghost"
+                      isIconOnly
+                      size="sm"
+                      onPress={() => setRowSelection({})}
+                      aria-label="Seçimi Temizle">
+                      <X size={18} />
+                    </Button>
+                  </Tooltip.Trigger>
                   <Tooltip.Content showArrow>
                     <Tooltip.Arrow />
                     Seçimi Temizle
@@ -625,20 +694,22 @@ export const InventoryTable: React.FC<InventoryTableProps> = ({
                 </Tooltip>
 
                 <Tooltip delay={0} closeDelay={0}>
-                  <Button
-                    variant="tertiary"
-                    isIconOnly
-                    size="sm"
-                    onPress={() =>
-                      void openLabelPrint(
-                        filteredItems.filter(item =>
-                          selectedIds.includes(item.id)
+                  <Tooltip.Trigger>
+                    <Button
+                      variant="tertiary"
+                      isIconOnly
+                      size="sm"
+                      onPress={() =>
+                        void openLabelPrint(
+                          filteredItems.filter(item =>
+                            selectedIds.includes(item.id)
+                          )
                         )
-                      )
-                    }
-                    aria-label="Seçili Ürünlere Etiket Bas">
-                    <Printer size={18} />
-                  </Button>
+                      }
+                      aria-label="Seçili Ürünlere Etiket Bas">
+                      <Printer size={18} />
+                    </Button>
+                  </Tooltip.Trigger>
                   <Tooltip.Content showArrow>
                     <Tooltip.Arrow />
                     Seçili ürünlere etiket bas
@@ -646,29 +717,31 @@ export const InventoryTable: React.FC<InventoryTableProps> = ({
                 </Tooltip>
 
                 <Tooltip delay={0} closeDelay={0}>
-                  <Button
-                    variant="ghost"
-                    isIconOnly
-                    size="sm"
-                    className="text-danger"
-                    onPress={async () => {
-                      const confirmed = await confirm({
-                        title: 'Seçili Ürünleri Sil',
-                        description: `Seçilen ${selectedIds.length} ürünü silmek istediğinize emin misiniz? Bu işlem geri alınamaz.`,
-                        confirmText: 'Sil',
-                        variant: 'danger'
-                      });
-                      if (confirmed) {
-                        await deleteItems(selectedIds);
-                        setRowSelection({});
-                        toast.success(
-                          `${selectedIds.length} ürün başarıyla silindi.`
-                        );
-                      }
-                    }}
-                    aria-label="Seçimleri Sil">
-                    <Trash2 size={18} />
-                  </Button>
+                  <Tooltip.Trigger>
+                    <Button
+                      variant="ghost"
+                      isIconOnly
+                      size="sm"
+                      className="text-danger"
+                      onPress={async () => {
+                        const confirmed = await confirm({
+                          title: 'Seçili Ürünleri Sil',
+                          description: `Seçilen ${selectedIds.length} ürünü silmek istediğinize emin misiniz? Bu işlem geri alınamaz.`,
+                          confirmText: 'Sil',
+                          variant: 'danger'
+                        });
+                        if (confirmed) {
+                          await deleteItems(selectedIds);
+                          setRowSelection({});
+                          toast.success(
+                            `${selectedIds.length} ürün başarıyla silindi.`
+                          );
+                        }
+                      }}
+                      aria-label="Seçimleri Sil">
+                      <Trash2 size={18} />
+                    </Button>
+                  </Tooltip.Trigger>
                   <Tooltip.Content showArrow>
                     <Tooltip.Arrow />
                     Seçimleri Sil
@@ -834,6 +907,16 @@ export const InventoryTable: React.FC<InventoryTableProps> = ({
             isOpen={isLabelPrintOpen}
             items={labelItems}
             onClose={() => setIsLabelPrintOpen(false)}
+          />
+        </Suspense>
+      )}
+      {isBulkEditOpen && (
+        <Suspense fallback={null}>
+          <BulkInventoryEditDrawer
+            isOpen={isBulkEditOpen}
+            items={selectedItems}
+            onClose={() => setIsBulkEditOpen(false)}
+            onApply={handleBulkUpdate}
           />
         </Suspense>
       )}

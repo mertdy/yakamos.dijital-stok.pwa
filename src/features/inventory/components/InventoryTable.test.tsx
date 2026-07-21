@@ -19,6 +19,7 @@ vi.mock('lucide-react', () => ({
   ArrowDown: () => <div data-testid="icon-arrow-down" />,
   Search: () => <div data-testid="icon-search" />,
   Printer: () => <div data-testid="icon-printer" />,
+  SquarePen: () => <div data-testid="icon-square-pen" />,
   CheckSquare: () => <div data-testid="icon-check-square" />,
   ListChecks: () => <div data-testid="icon-list-checks" />,
   X: () => <div data-testid="icon-x" />,
@@ -291,6 +292,9 @@ describe('InventoryTable', () => {
       expect(screen.getByText('1 ürün seçildi')).toBeInTheDocument();
       expect(
         screen.getByRole('button', { name: 'Seçimleri Sil' })
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', { name: 'Seçili Ürünleri Düzenle' })
       ).toBeInTheDocument();
       expect(
         screen.getByRole('button', { name: 'Bu Sayfadakileri Seç' })

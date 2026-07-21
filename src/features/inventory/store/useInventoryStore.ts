@@ -16,6 +16,10 @@ import { usePreferencesStore } from '@/features/sales/store/usePreferencesStore'
 import posthog from 'posthog-js';
 import { trackPendingSyncOperation } from '@/shared/utils/pendingSyncOperations';
 import { getFieldChangeDetails } from '@/shared/utils/formatFieldChanges';
+import {
+  getBulkInventoryPatch,
+  type BulkInventoryChanges
+} from '../domain/bulkInventoryEdit';
 
 export interface InventoryItem {
   id: string;
@@ -73,6 +77,11 @@ interface InventoryState {
     item: Omit<InventoryItem, 'id' | 'updatedAt' | 'userId' | 'companyId'>
   ) => Promise<void>;
   updateItem: (id: string, item: Partial<InventoryItem>) => Promise<void>;
+  bulkUpdateItems: (
+    ids: string[],
+    changes: BulkInventoryChanges,
+    reason?: string
+  ) => Promise<InventoryItem[]>;
   deleteItem: (id: string) => Promise<void>;
   deleteItems: (ids: string[]) => Promise<void>;
   clearItems: () => void;
@@ -291,6 +300,90 @@ export const useInventoryStore = getSingletonStore('inventory', () =>
         stock: mergedItem.stock,
         sale_price: getSalePrice(mergedItem)
       });
+    },
+
+    bulkUpdateItems: async (ids, changes, reason) => {
+      const user = auth.currentUser;
+      const companyId = useAuthStore.getState().profile?.activeCompanyId;
+      if (!user) throw new Error('User not authenticated');
+      if (!companyId) throw new Error('No active company selected');
+
+      const selectedIds = new Set(ids);
+      const selectedItems = get().items.filter(
+        item =>
+          selectedIds.has(item.id) &&
+          (!item.companyId || item.companyId === companyId)
+      );
+      if (selectedItems.length === 0) return [];
+
+      const updatedAt = new Date().toISOString();
+      const patches = new Map(
+        selectedItems.map(item => [
+          item.id,
+          { ...getBulkInventoryPatch(item, changes), updatedAt }
+        ])
+      );
+      const updatedItems = selectedItems.map(item => ({
+        ...item,
+        ...patches.get(item.id)
+      }));
+
+      set(state => ({
+        items: state.items.map(item => {
+          const patch = patches.get(item.id);
+          return patch ? { ...item, ...patch } : item;
+        })
+      }));
+
+      const batchSize = 400;
+      const commits: Array<Promise<void>> = [];
+      for (let start = 0; start < selectedItems.length; start += batchSize) {
+        const batch = writeBatch(db);
+        selectedItems.slice(start, start + batchSize).forEach(item => {
+          batch.set(doc(db, 'inventory', item.id), patches.get(item.id), {
+            merge: true
+          });
+        });
+        commits.push(batch.commit());
+      }
+
+      trackPendingSyncOperation({
+        kind: 'inventory',
+        title: `${selectedItems.length} ürün toplu güncellendi`,
+        details: [
+          `${Object.keys(changes).length} ortak alan veya işlem uygulandı`,
+          ...(reason?.trim() ? [`Gerekçe: ${reason.trim()}`] : [])
+        ]
+      });
+
+      try {
+        await Promise.all(commits);
+      } catch (error) {
+        const originalItems = new Map(
+          selectedItems.map(item => [item.id, item])
+        );
+        set(state => ({
+          items: state.items.map(item => {
+            const originalItem = originalItems.get(item.id);
+            return originalItem && item.updatedAt === updatedAt
+              ? originalItem
+              : item;
+          })
+        }));
+        console.error('Inventory bulk update failed', error);
+        posthog.captureException(error, {
+          context: 'inventory_bulk_update',
+          inventory_count: selectedItems.length
+        });
+        throw error;
+      }
+
+      posthog.capture('inventory_items_bulk_updated', {
+        count: selectedItems.length,
+        fields: Object.keys(changes)
+      });
+
+      return updatedItems;
     },
 
     deleteItem: async id => {

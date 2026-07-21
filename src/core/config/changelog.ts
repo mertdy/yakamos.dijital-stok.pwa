@@ -26,6 +26,10 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
         text: 'Profil menüsünden uygulama güncellemelerini istediğiniz zaman kontrol edebilirsiniz.'
       },
       {
+        type: 'new',
+        text: 'Seçtiğiniz envanter ürünlerinin kategori, birim, vergi, fiyat ve stok ayarlarını toplu olarak güncelleyebilirsiniz.'
+      },
+      {
         type: 'improved',
         text: 'Yetkili kullanıcılar otomatik fiyat kuralını gerekçe ekleyerek yalnızca ilgili satış için kaldırabilir.'
       },
