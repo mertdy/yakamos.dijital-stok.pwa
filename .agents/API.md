@@ -73,6 +73,20 @@ specific products, payment methods, a target-excluded basket threshold, and a
 date/time schedule. Writes and per-sale rule overrides require the
 `MANAGE_PROMOTIONS` permission or company ownership.
 
+Company data transfer package
+
+Company owners can download a one-time ZIP transfer package and import it into
+an empty target company. The package is generated and consumed locally in the
+browser; it is never stored in Firestore. It includes inventory, categories,
+customers, sales, sale items, payments, statement-share audits, campaigns and
+shared quick-add preferences. Relationships are remapped on import.
+
+Memberships, invitations, user profiles and account preferences are never
+included. Source user IDs are replaced by the importing owner so that the
+target company's existing permission model remains intact. An interrupted
+import can resume from the same package because imported documents carry its
+package ID.
+
 ---
 
 # Authentication

@@ -38,6 +38,10 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
         text: 'Kategori aramasını tek dokunuşla temizleyebilirsiniz.'
       },
       {
+        type: 'new',
+        text: 'Şirket ayarlarından işletme verilerinizi tek ZIP paketiyle boş bir hedef işletmeye güvenle aktarabilirsiniz.'
+      },
+      {
         type: 'improved',
         text: 'Yetkili kullanıcılar otomatik fiyat kuralını gerekçe ekleyerek yalnızca ilgili satış için kaldırabilir.'
       },

@@ -13,3 +13,8 @@ export const PricingPlansView = lazy(() =>
     default: m.PricingPlansView
   }))
 );
+export const CompanyTransferModal = lazy(() =>
+  import('./components/CompanyTransferModal').then(m => ({
+    default: m.CompanyTransferModal
+  }))
+);

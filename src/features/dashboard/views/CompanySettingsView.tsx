@@ -44,7 +44,7 @@ import {
   UserPlus,
   Pencil
 } from 'lucide-react';
-import { Download } from 'lucide-react';
+import { Download, ArrowLeftRight } from 'lucide-react';
 const DataExportWizard = lazy(() =>
   import('../components/DataExportWizard').then(module => ({
     default: module.DataExportWizard
@@ -55,6 +55,7 @@ const DataImportWizard = lazy(() =>
     default: module.DataImportWizard
   }))
 );
+import { CompanyTransferModal } from '../routes';
 import { useConfirm } from '@/shared/contexts/ConfirmDialogContext';
 import { FormInput } from '@/shared/components/FormInput';
 import { PhoneInput } from '@/shared/components/PhoneInput';
@@ -123,7 +124,8 @@ export const CompanySettingsView = () => {
     updateEmployeePermissions,
     updateEmployeeDetails,
     removeEmployee,
-    user
+    user,
+    activeMembership
   } = useAuthStore();
 
   const { confirm } = useConfirm();
@@ -132,6 +134,7 @@ export const CompanySettingsView = () => {
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [isExportWizardOpen, setIsExportWizardOpen] = useState(false);
   const [isImportWizardOpen, setIsImportWizardOpen] = useState(false);
+  const [isCompanyTransferOpen, setIsCompanyTransferOpen] = useState(false);
 
   // Invite Modal State
   const [inviteModalOpen, setInviteModalOpen] = useState(false);
@@ -640,6 +643,23 @@ export const CompanySettingsView = () => {
               </Button>
             </div>
           </div>
+          {activeMembership?.role === 'OWNER' && (
+            <div className="mt-3 rounded-xl border border-gray-100 bg-gray-50/60 p-4">
+              <p className="font-semibold text-gray-800">
+                Dijital Stok Hesapları Arasında Şirket Verisi Aktar
+              </p>
+              <p className="mt-1 text-xs leading-5 text-gray-500">
+                Verilerinizi ZIP paketiyle boş bir Dijital Stok işletmesine
+                güvenle aktarın.
+              </p>
+              <Button
+                className="mt-4"
+                variant="secondary"
+                onPress={() => setIsCompanyTransferOpen(true)}>
+                <ArrowLeftRight size={16} /> Aktarım Paketi
+              </Button>
+            </div>
+          )}
         </SettingsCard>
       </div>
 
@@ -655,6 +675,14 @@ export const CompanySettingsView = () => {
           isOpen={isImportWizardOpen}
           onClose={() => setIsImportWizardOpen(false)}
         />
+        {activeCompany && activeMembership?.role === 'OWNER' && (
+          <CompanyTransferModal
+            isOpen={isCompanyTransferOpen}
+            onClose={() => setIsCompanyTransferOpen(false)}
+            company={activeCompany}
+            userId={user?.uid || ''}
+          />
+        )}
       </Suspense>
 
       {/* Invite Modal */}

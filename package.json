@@ -13,7 +13,7 @@
     "preview:hosting": "pnpm build && firebase hosting:channel:deploy preview --expires 7d",
     "deploy:hosting": "pnpm build && firebase deploy --only hosting",
     "test": "vitest run",
-    "test:rules": "firebase emulators:exec --only firestore \"vitest run src/core/firebase/firestore.rules.test.ts\"",
+    "test:rules": "firebase emulators:exec --only firestore \"vitest run --config vitest.rules.config.ts\"",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "prepare": "husky"
