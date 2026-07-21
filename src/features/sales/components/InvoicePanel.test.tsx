@@ -1,8 +1,15 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { vi, describe, it, expect, beforeEach } from 'vitest';
+import {
+  act,
+  render,
+  screen,
+  fireEvent,
+  waitFor
+} from '@testing-library/react';
+import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { InvoicePanel } from './InvoicePanel';
 import { useCustomerStore } from '@/features/customers';
 import { toast } from '@heroui/react';
+import { useGlobalBarcodeScanner } from '@/shared/hooks/useGlobalBarcodeScanner';
 
 vi.mock('lucide-react', () => ({
   UserPlus: () => <div data-testid="icon-user-plus" />,
@@ -72,6 +79,15 @@ const mockUseCustomerStore = useCustomerStore as unknown as ReturnType<
   typeof vi.fn
 >;
 
+const BarcodeScannerScenario = ({
+  onScan
+}: {
+  onScan: (barcode: string) => void;
+}) => {
+  useGlobalBarcodeScanner({ onScan });
+  return null;
+};
+
 describe('InvoicePanel', () => {
   const onOpenCustomerDrawer = vi.fn();
   const onOpenHeldSalesDrawer = vi.fn();
@@ -99,6 +115,10 @@ describe('InvoicePanel', () => {
         }
       ]
     });
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
   it('renders invoice details and summary correctly', () => {
@@ -259,6 +279,55 @@ describe('InvoicePanel', () => {
     fireEvent(document, scannerEnter);
 
     expect(checkoutMock).not.toHaveBeenCalled();
+  });
+
+  it('keeps the cart open during consecutive keyboard barcode scans', () => {
+    let currentTime = 0;
+    vi.spyOn(performance, 'now').mockImplementation(() => currentTime);
+    const onScan = vi.fn();
+    const scan = (barcode: string) => {
+      for (const character of barcode) {
+        currentTime += 10;
+        act(() => {
+          document.dispatchEvent(
+            new KeyboardEvent('keydown', {
+              key: character,
+              bubbles: true,
+              cancelable: true
+            })
+          );
+        });
+      }
+      currentTime += 10;
+      const enterEvent = new KeyboardEvent('keydown', {
+        key: 'Enter',
+        bubbles: true,
+        cancelable: true
+      });
+      act(() => document.dispatchEvent(enterEvent));
+      return enterEvent;
+    };
+
+    render(
+      <>
+        <BarcodeScannerScenario onScan={onScan} />
+        <InvoicePanel
+          onOpenCustomerDrawer={onOpenCustomerDrawer}
+          onOpenHeldSalesDrawer={onOpenHeldSalesDrawer}
+        />
+      </>
+    );
+
+    const firstScanEnter = scan('8691234567890');
+    const secondScanEnter = scan('8691234567890');
+
+    expect(onScan).toHaveBeenCalledTimes(2);
+    expect(onScan).toHaveBeenNthCalledWith(1, '8691234567890');
+    expect(onScan).toHaveBeenNthCalledWith(2, '8691234567890');
+    expect(firstScanEnter.defaultPrevented).toBe(true);
+    expect(secondScanEnter.defaultPrevented).toBe(true);
+    expect(checkoutMock).not.toHaveBeenCalled();
+    expect(storeState.cart).toEqual(mockCart);
   });
 
   it('calls holdSale on Beklet click', () => {
