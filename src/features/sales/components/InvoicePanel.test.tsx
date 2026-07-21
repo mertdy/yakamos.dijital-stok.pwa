@@ -227,6 +227,40 @@ describe('InvoicePanel', () => {
     });
   });
 
+  it('calls checkout when the user presses an ordinary Enter', async () => {
+    checkoutMock.mockResolvedValueOnce(true);
+    render(
+      <InvoicePanel
+        onOpenCustomerDrawer={onOpenCustomerDrawer}
+        onOpenHeldSalesDrawer={onOpenHeldSalesDrawer}
+      />
+    );
+
+    fireEvent.keyDown(document, { key: 'Enter', code: 'Enter' });
+
+    await waitFor(() => expect(checkoutMock).toHaveBeenCalledTimes(1));
+  });
+
+  it('ignores an Enter event already claimed by the barcode scanner', () => {
+    render(
+      <InvoicePanel
+        onOpenCustomerDrawer={onOpenCustomerDrawer}
+        onOpenHeldSalesDrawer={onOpenHeldSalesDrawer}
+      />
+    );
+    const scannerEnter = new KeyboardEvent('keydown', {
+      key: 'Enter',
+      code: 'Enter',
+      bubbles: true,
+      cancelable: true
+    });
+    scannerEnter.preventDefault();
+
+    fireEvent(document, scannerEnter);
+
+    expect(checkoutMock).not.toHaveBeenCalled();
+  });
+
   it('calls holdSale on Beklet click', () => {
     render(
       <InvoicePanel

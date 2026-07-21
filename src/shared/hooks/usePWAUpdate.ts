@@ -51,6 +51,56 @@ export const usePWAUpdate = (isAuthenticatedAndReady: boolean) => {
     });
   }, [isAuthenticatedAndReady, isSaleProcessing]);
 
+  const markUpdateAvailable = useCallback(() => {
+    updateAvailableRef.current = true;
+    showUpdateToast();
+  }, [showUpdateToast]);
+
+  const checkForUpdate = useCallback(
+    async ({ showStatus = false }: { showStatus?: boolean } = {}) => {
+      if (typeof window === 'undefined' || !('serviceWorker' in navigator)) {
+        if (showStatus) {
+          toast.warning('Güncelleme kontrolü bu ortamda kullanılamıyor.');
+        }
+        return;
+      }
+
+      if (!navigator.onLine) {
+        if (showStatus) {
+          toast.warning(
+            'Güncellemeleri kontrol etmek için internete bağlanın.'
+          );
+        }
+        return;
+      }
+
+      try {
+        console.info('[PWA] Güncelleme kontrolü yapılıyor.');
+        const registration = await navigator.serviceWorker.ready;
+        if (registration.waiting) {
+          markUpdateAvailable();
+          return;
+        }
+
+        const updatedRegistration = await registration.update();
+        if (updatedRegistration.waiting) {
+          markUpdateAvailable();
+          return;
+        }
+
+        if (!updatedRegistration.installing && showStatus) {
+          toast.success('Uygulama güncel.');
+        }
+      } catch (error) {
+        console.error('[PWA] Güncelleme kontrolü başarısız oldu.', error);
+        if (showStatus) {
+          toast.danger('Güncellemeler kontrol edilirken bir hata oluştu.');
+        }
+      }
+    },
+    [markUpdateAvailable]
+  );
+
   useEffect(() => {
     if (!isAuthenticatedAndReady) return;
 
@@ -87,23 +137,15 @@ export const usePWAUpdate = (isAuthenticatedAndReady: boolean) => {
     if (typeof window === 'undefined' || !('serviceWorker' in navigator))
       return;
 
-    const checkForUpdate = () => {
-      if (navigator.onLine && document.visibilityState === 'visible') {
-        console.info('[PWA] Güncelleme kontrolü yapılıyor.');
-        void navigator.serviceWorker.ready.then(registration =>
-          registration.update()
-        );
+    const checkForAutomaticUpdate = () => {
+      if (document.visibilityState === 'visible') {
+        void checkForUpdate();
       } else {
         console.info('[PWA] Güncelleme kontrolü atlandı.', {
           online: navigator.onLine,
           visibility: document.visibilityState
         });
       }
-    };
-
-    const markUpdateAvailable = () => {
-      updateAvailableRef.current = true;
-      showUpdateToast();
     };
 
     const observeRegistration = (registration: ServiceWorkerRegistration) => {
@@ -123,21 +165,21 @@ export const usePWAUpdate = (isAuthenticatedAndReady: boolean) => {
     };
 
     void navigator.serviceWorker.ready.then(observeRegistration);
-    checkForUpdate();
+    checkForAutomaticUpdate();
 
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        checkForUpdate();
+        checkForAutomaticUpdate();
         showUpdateToast();
       }
     };
 
     const intervalId = window.setInterval(
-      checkForUpdate,
+      checkForAutomaticUpdate,
       UPDATE_CHECK_INTERVAL_MS
     );
 
-    window.addEventListener('online', checkForUpdate);
+    window.addEventListener('online', checkForAutomaticUpdate);
     document.addEventListener('visibilitychange', handleVisibilityChange);
     navigator.serviceWorker.addEventListener(
       'controllerchange',
@@ -146,16 +188,18 @@ export const usePWAUpdate = (isAuthenticatedAndReady: boolean) => {
 
     return () => {
       window.clearInterval(intervalId);
-      window.removeEventListener('online', checkForUpdate);
+      window.removeEventListener('online', checkForAutomaticUpdate);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       navigator.serviceWorker.removeEventListener(
         'controllerchange',
         markUpdateAvailable
       );
     };
-  }, [showUpdateToast]);
+  }, [checkForUpdate, markUpdateAvailable, showUpdateToast]);
 
   useEffect(() => {
     showUpdateToast();
   }, [isSaleProcessing, showUpdateToast]);
+
+  return { checkForUpdate };
 };

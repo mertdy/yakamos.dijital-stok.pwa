@@ -46,7 +46,9 @@ import { resumePendingSyncOperationTracking } from '@/shared/utils/pendingSyncOp
 function App() {
   const { user, profile, activeMembership, isInitialized, isLoading, setUser } =
     useAuthStore();
-  usePWAUpdate(Boolean(user && isInitialized && !isLoading));
+  const { checkForUpdate } = usePWAUpdate(
+    Boolean(user && isInitialized && !isLoading)
+  );
 
   useEffect(() => {
     resumePendingSyncOperationTracking();
@@ -174,7 +176,9 @@ function App() {
         <Route
           element={
             user && !hasNoCompany ? (
-              <MainLayout />
+              <MainLayout
+                onCheckForUpdate={() => checkForUpdate({ showStatus: true })}
+              />
             ) : (
               <Navigate to={user ? ROUTES.ONBOARDING : ROUTES.LOGIN} replace />
             )

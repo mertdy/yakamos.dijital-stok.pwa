@@ -22,6 +22,10 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
         text: 'Satış sırasında uygulanan fiyat kurallarını ve toplam tutara etkilerini görebilirsiniz.'
       },
       {
+        type: 'new',
+        text: 'Profil menüsünden uygulama güncellemelerini istediğiniz zaman kontrol edebilirsiniz.'
+      },
+      {
         type: 'improved',
         text: 'Yetkili kullanıcılar otomatik fiyat kuralını gerekçe ekleyerek yalnızca ilgili satış için kaldırabilir.'
       },
@@ -44,6 +48,10 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
       {
         type: 'fixed',
         text: 'Fiyat kuralı hedef ürün seçimlerinin ve koyu temadaki görünümünün tutarlılığı iyileştirildi.'
+      },
+      {
+        type: 'fixed',
+        text: 'Barkod cihazıyla art arda ürün okuturken satışın yanlışlıkla tamamlanması engellendi.'
       }
     ]
   },

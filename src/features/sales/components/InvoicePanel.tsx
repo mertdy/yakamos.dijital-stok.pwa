@@ -221,7 +221,13 @@ export const InvoicePanel: React.FC<Props> = ({
   useHotkeys(
     'enter',
     event => {
-      if (isDialogOpen() || cart.length === 0 || isProcessing) return;
+      if (
+        event.defaultPrevented ||
+        isDialogOpen() ||
+        cart.length === 0 ||
+        isProcessing
+      )
+        return;
       event.preventDefault();
       void handleCheckout();
     },

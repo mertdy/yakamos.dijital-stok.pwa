@@ -39,7 +39,8 @@ import {
   Sun,
   Sparkles,
   Keyboard,
-  Tag
+  Tag,
+  RefreshCw
 } from 'lucide-react';
 import { useAuthStore } from '@/features/auth';
 import {
@@ -105,7 +106,11 @@ const BrandMark: React.FC = () => (
   </div>
 );
 
-export const MainLayout: React.FC = () => {
+interface MainLayoutProps {
+  onCheckForUpdate: () => Promise<void>;
+}
+
+export const MainLayout: React.FC<MainLayoutProps> = ({ onCheckForUpdate }) => {
   useAppHotkeys();
   const {
     user,
@@ -128,6 +133,7 @@ export const MainLayout: React.FC = () => {
   const [keyboardShortcutsOpen, setKeyboardShortcutsOpen] = useState(false);
   const [isCreatingCompany, setIsCreatingCompany] = useState(false);
   const [isSwitching, setIsSwitching] = useState(false);
+  const [isCheckingForUpdate, setIsCheckingForUpdate] = useState(false);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [offlineReadyCompanyIds, setOfflineReadyCompanyIds] = useState(() =>
     getOfflineReadyCompanyIds(user?.uid)
@@ -297,6 +303,12 @@ export const MainLayout: React.FC = () => {
 
     if (key === 'keyboard-shortcuts') {
       setKeyboardShortcutsOpen(true);
+    }
+
+    if (key === 'check-for-updates') {
+      if (isCheckingForUpdate) return;
+      setIsCheckingForUpdate(true);
+      void onCheckForUpdate().finally(() => setIsCheckingForUpdate(false));
     }
 
     if (key === 'support') {
@@ -764,6 +776,25 @@ export const MainLayout: React.FC = () => {
                     <span className="flex items-center gap-2.5">
                       <Keyboard size={17} className="text-gray-500" />
                       <span>Klavye kısayolları</span>
+                    </span>
+                  </Dropdown.Item>
+                  <Dropdown.Item
+                    id="check-for-updates"
+                    textValue="Güncellemeleri kontrol et">
+                    <span className="flex items-center gap-2.5">
+                      <RefreshCw
+                        size={17}
+                        className={
+                          isCheckingForUpdate
+                            ? 'animate-spin text-gray-500'
+                            : 'text-gray-500'
+                        }
+                      />
+                      <span>
+                        {isCheckingForUpdate
+                          ? 'Kontrol ediliyor...'
+                          : 'Güncellemeleri kontrol et'}
+                      </span>
                     </span>
                   </Dropdown.Item>
                   <Dropdown.Item id="support" textValue="Destek">

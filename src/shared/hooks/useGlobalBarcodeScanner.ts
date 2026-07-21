@@ -7,18 +7,23 @@ interface UseGlobalBarcodeScannerProps {
   // Maximum time between keystrokes to consider it a barcode scan (in milliseconds)
   // Scanners are usually very fast, often < 30ms per character.
   maxTimeBetweenKeystrokes?: number;
+  /** Prevents short manual input from being interpreted as a barcode. */
+  minBarcodeLength?: number;
 }
 
 export const useGlobalBarcodeScanner = ({
   onScan,
   shouldCaptureInput,
-  maxTimeBetweenKeystrokes = 50
+  maxTimeBetweenKeystrokes = 50,
+  minBarcodeLength = 4
 }: UseGlobalBarcodeScannerProps) => {
   const barcodeBuffer = useRef<string>('');
   const lastKeyTime = useRef<number>(0);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+
       // Ignore if the user is typing into an input or textarea
       const activeElement = document.activeElement;
       const isTypingTarget =
@@ -42,12 +47,15 @@ export const useGlobalBarcodeScanner = ({
       const currentTime = performance.now();
 
       if (e.key === 'Enter') {
-        // If Enter is pressed and we have a buffer, trigger the scan
-        if (barcodeBuffer.current.length > 0) {
+        // If Enter is pressed and we have a sufficiently long buffer, trigger the scan.
+        if (barcodeBuffer.current.length >= minBarcodeLength) {
           // If the last key was pressed recently enough, it's a valid scan
           if (currentTime - lastKeyTime.current <= maxTimeBetweenKeystrokes) {
+            // Claim the scanner's Enter before global shortcuts can process it.
+            e.preventDefault();
+            e.stopPropagation();
+            e.stopImmediatePropagation();
             onScan(barcodeBuffer.current);
-            e.preventDefault(); // Prevent any default enter behavior
           }
         }
         // Always clear buffer on Enter
@@ -72,7 +80,7 @@ export const useGlobalBarcodeScanner = ({
       }
     };
 
-    document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('keydown', handleKeyDown, true);
     window.addEventListener('mock-barcode-scan', handleMockScan);
 
     // Global helper for simple window function trigger in E2E
@@ -83,8 +91,8 @@ export const useGlobalBarcodeScanner = ({
     };
 
     return () => {
-      document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('keydown', handleKeyDown, true);
       window.removeEventListener('mock-barcode-scan', handleMockScan);
     };
-  }, [onScan, shouldCaptureInput, maxTimeBetweenKeystrokes]);
+  }, [onScan, shouldCaptureInput, maxTimeBetweenKeystrokes, minBarcodeLength]);
 };
