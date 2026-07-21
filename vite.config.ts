@@ -152,6 +152,12 @@ export default defineConfig(({ mode }) => ({
     globals: true,
     environment: 'jsdom',
     setupFiles: './vitest.setup.ts',
-    exclude: ['node_modules', 'e2e/**/*']
+    exclude: [
+      'node_modules',
+      'e2e/**/*',
+      // This suite deliberately runs against the Firestore emulator via
+      // `pnpm test:rules`, rather than during the browser-unit-test run.
+      'src/core/firebase/firestore.rules.test.ts'
+    ]
   }
 }));

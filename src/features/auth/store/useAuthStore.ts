@@ -779,6 +779,7 @@ export const useAuthStore = getSingletonStore('auth', () =>
         companyName: invite.companyName,
         role: 'EMPLOYEE',
         permissions: invite.permissions,
+        invitationId: invite.id,
         createdAt
       };
       await setDoc(membershipRef, membershipData);

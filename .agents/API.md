@@ -86,15 +86,32 @@ Providers
 
 # Firestore Rules
 
+Rules are defined in the repository root at `firestore.rules` and deployed with
+the Firebase configuration in `firebase.json`.
+
 Every request requires:
 
 request.auth != null
 
-Every document must belong to:
+Company-scoped documents must belong to:
 
 companyId
 
-Never expose global collections.
+Access is granted through the deterministic membership document
+`memberships/{userId}_{companyId}`:
+
+- Company owners can manage company settings, employees and invitations.
+- Employees need the corresponding permission for protected writes.
+- All company data reads are restricted to an active membership in the same
+  company.
+- `users` and `userPreferences` are readable and writable only by their owner.
+- An employee membership created by accepting an invitation stores the
+  invitation ID so the rule can verify the invitation's recipient, company and
+  permissions.
+
+The Firestore Emulator test suite is in
+`src/core/firebase/firestore.rules.test.ts` and can be run with
+`pnpm test:rules` in an environment with JDK 21 or newer.
 
 ---
 

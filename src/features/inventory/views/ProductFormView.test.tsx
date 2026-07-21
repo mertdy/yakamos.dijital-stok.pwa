@@ -13,7 +13,17 @@ vi.mock('lucide-react', () => ({
   Image: () => <div data-testid="icon-image" />,
   Loader2: () => <div data-testid="icon-loader2" />,
   Printer: () => <div data-testid="icon-printer" />,
-  Copy: () => <div data-testid="icon-copy" />
+  Copy: () => <div data-testid="icon-copy" />,
+  Camera: () => <div data-testid="icon-camera" />,
+  CameraOff: () => <div data-testid="icon-camera-off" />,
+  Flashlight: () => <div data-testid="icon-flashlight" />,
+  FlashlightOff: () => <div data-testid="icon-flashlight-off" />,
+  Minus: () => <div data-testid="icon-minus" />,
+  Plus: () => <div data-testid="icon-plus" />,
+  RotateCcw: () => <div data-testid="icon-rotate" />,
+  ShoppingCart: () => <div data-testid="icon-cart" />,
+  SwitchCamera: () => <div data-testid="icon-switch-camera" />,
+  Trash2: () => <div data-testid="icon-trash" />
 }));
 
 vi.mock('react-router-dom', () => ({

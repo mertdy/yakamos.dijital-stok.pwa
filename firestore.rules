@@ -1,0 +1,213 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function membershipPath(companyId) {
+      return /databases/$(database)/documents/memberships/$(request.auth.uid + '_' + companyId);
+    }
+
+    function isMember(companyId) {
+      return signedIn() && exists(membershipPath(companyId));
+    }
+
+    function isOwner(companyId) {
+      return isMember(companyId) && get(membershipPath(companyId)).data.role == 'OWNER';
+    }
+
+    function hasPermission(companyId, permission) {
+      return isOwner(companyId) ||
+        (isMember(companyId) &&
+          get(membershipPath(companyId)).data.permissions.hasAny([permission]));
+    }
+
+    function hasCompanyOnCreate(companyId) {
+      return request.resource.data.companyId == companyId;
+    }
+
+    function keepsCompany(companyId) {
+      return resource.data.companyId == companyId &&
+        request.resource.data.companyId == companyId;
+    }
+
+    function onlyChanges(fields) {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(fields);
+    }
+
+    function isLegacyUserData() {
+      return signedIn() && !resource.data.keys().hasAny(['companyId']) &&
+        resource.data.userId == request.auth.uid;
+    }
+
+    function migratesLegacyData() {
+      return isLegacyUserData() &&
+        request.resource.data.userId == request.auth.uid &&
+        isOwner(request.resource.data.companyId);
+    }
+
+    match /users/{userId} {
+      allow read: if signedIn() && request.auth.uid == userId;
+      allow create, update: if signedIn() && request.auth.uid == userId &&
+        request.resource.data.id == userId;
+    }
+
+    match /userPreferences/{userId} {
+      allow read, create, update, delete: if signedIn() && request.auth.uid == userId;
+    }
+
+    match /companies/{companyId} {
+      allow create: if signedIn() && request.resource.data.id == companyId &&
+        request.resource.data.ownerId == request.auth.uid;
+      allow read: if isMember(companyId);
+      allow update: if isOwner(companyId) &&
+        request.resource.data.id == resource.data.id &&
+        request.resource.data.ownerId == resource.data.ownerId;
+    }
+
+    match /memberships/{membershipId} {
+      allow read: if signedIn() &&
+        (
+          resource.data.userId == request.auth.uid ||
+          hasPermission(resource.data.companyId, 'VIEW_SALES_HISTORY')
+        );
+
+      allow create: if signedIn() && request.resource.data.id == membershipId &&
+        request.resource.data.userId == request.auth.uid &&
+        request.resource.data.companyId != null &&
+        (
+          (
+            request.resource.data.role == 'OWNER' &&
+            membershipId == request.auth.uid + '_' + request.resource.data.companyId &&
+            get(/databases/$(database)/documents/companies/$(request.resource.data.companyId)).data.ownerId == request.auth.uid
+          ) ||
+          (
+            request.resource.data.role == 'EMPLOYEE' &&
+            request.resource.data.invitationId != null &&
+            membershipId == request.auth.uid + '_' + request.resource.data.companyId &&
+            get(/databases/$(database)/documents/invitations/$(request.resource.data.invitationId)).data.status == 'PENDING' &&
+            get(/databases/$(database)/documents/invitations/$(request.resource.data.invitationId)).data.companyId == request.resource.data.companyId &&
+            get(/databases/$(database)/documents/invitations/$(request.resource.data.invitationId)).data.email == request.auth.token.email &&
+            request.resource.data.email == request.auth.token.email &&
+            request.resource.data.permissions == get(/databases/$(database)/documents/invitations/$(request.resource.data.invitationId)).data.permissions
+          )
+        );
+
+      allow update: if isOwner(resource.data.companyId) &&
+        request.resource.data.id == resource.data.id &&
+        request.resource.data.userId == resource.data.userId &&
+        request.resource.data.companyId == resource.data.companyId &&
+        request.resource.data.role == resource.data.role;
+      allow delete: if isOwner(resource.data.companyId) &&
+        resource.data.userId != request.auth.uid;
+    }
+
+    match /invitations/{invitationId} {
+      allow create: if isOwner(request.resource.data.companyId) &&
+        request.resource.data.id == invitationId &&
+        request.resource.data.invitedBy == request.auth.uid;
+      allow read: if isOwner(resource.data.companyId) ||
+        (signedIn() && resource.data.email == request.auth.token.email);
+      allow update: if isOwner(resource.data.companyId) ||
+        (
+          signedIn() && resource.data.email == request.auth.token.email &&
+          resource.data.status == 'PENDING' &&
+          request.resource.data.status in ['ACCEPTED', 'DECLINED'] &&
+          onlyChanges(['status'])
+        );
+      allow delete: if isOwner(resource.data.companyId);
+    }
+
+    match /inventory/{itemId} {
+      allow read: if isMember(resource.data.companyId) || isLegacyUserData();
+      allow create: if hasPermission(request.resource.data.companyId, 'MANAGE_INVENTORY') &&
+        hasCompanyOnCreate(request.resource.data.companyId);
+      allow update: if migratesLegacyData() ||
+        (
+          keepsCompany(resource.data.companyId) &&
+          (
+            hasPermission(resource.data.companyId, 'MANAGE_INVENTORY') ||
+            (isMember(resource.data.companyId) && onlyChanges(['stock', 'updatedAt']))
+          )
+        );
+      allow delete: if hasPermission(resource.data.companyId, 'MANAGE_INVENTORY');
+    }
+
+    match /productCategories/{categoryId} {
+      allow read: if isMember(resource.data.companyId);
+      allow create: if hasPermission(request.resource.data.companyId, 'MANAGE_CATEGORIES') &&
+        hasCompanyOnCreate(request.resource.data.companyId);
+      allow update: if hasPermission(resource.data.companyId, 'MANAGE_CATEGORIES') &&
+        keepsCompany(resource.data.companyId);
+      allow delete: if hasPermission(resource.data.companyId, 'MANAGE_CATEGORIES');
+    }
+
+    match /customers/{customerId} {
+      allow read: if isMember(resource.data.companyId) || isLegacyUserData();
+      allow create: if hasPermission(request.resource.data.companyId, 'MANAGE_CUSTOMERS') &&
+        hasCompanyOnCreate(request.resource.data.companyId);
+      allow update: if migratesLegacyData() ||
+        (
+          keepsCompany(resource.data.companyId) &&
+          (
+            hasPermission(resource.data.companyId, 'MANAGE_CUSTOMERS') ||
+            (isMember(resource.data.companyId) && onlyChanges(['totalDebt']))
+          )
+        );
+      allow delete: if hasPermission(resource.data.companyId, 'MANAGE_CUSTOMERS');
+    }
+
+    match /sales/{saleId} {
+      allow read: if isOwner(resource.data.companyId) ||
+        hasPermission(resource.data.companyId, 'VIEW_SALES_HISTORY') || isLegacyUserData();
+      allow create: if isMember(request.resource.data.companyId) &&
+        hasCompanyOnCreate(request.resource.data.companyId) &&
+        request.resource.data.userId == request.auth.uid;
+      allow update: if hasPermission(resource.data.companyId, 'MANAGE_SALES_HISTORY') ||
+        isOwner(resource.data.companyId) || migratesLegacyData();
+      allow delete: if hasPermission(resource.data.companyId, 'MANAGE_SALES_HISTORY') ||
+        isOwner(resource.data.companyId);
+    }
+
+    match /saleItems/{saleItemId} {
+      allow read: if isOwner(resource.data.companyId) ||
+        hasPermission(resource.data.companyId, 'VIEW_SALES_HISTORY');
+      allow create: if isMember(request.resource.data.companyId) &&
+        hasCompanyOnCreate(request.resource.data.companyId) &&
+        request.resource.data.userId == request.auth.uid;
+    }
+
+    match /payments/{paymentId} {
+      allow read: if isMember(resource.data.companyId);
+      allow create: if hasPermission(request.resource.data.companyId, 'TAKE_PAYMENT') &&
+        hasCompanyOnCreate(request.resource.data.companyId) &&
+        request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isOwner(resource.data.companyId);
+    }
+
+    match /statementShares/{shareId} {
+      allow read: if hasPermission(resource.data.companyId, 'SHARE_CUSTOMER_STATEMENT');
+      allow create: if hasPermission(request.resource.data.companyId, 'SHARE_CUSTOMER_STATEMENT') &&
+        hasCompanyOnCreate(request.resource.data.companyId) &&
+        request.resource.data.createdBy == request.auth.uid;
+      allow delete: if isOwner(resource.data.companyId);
+    }
+
+    match /pricingRules/{ruleId} {
+      allow read: if isMember(resource.data.companyId);
+      allow create: if hasPermission(request.resource.data.companyId, 'MANAGE_PROMOTIONS') &&
+        hasCompanyOnCreate(request.resource.data.companyId);
+      allow update: if hasPermission(resource.data.companyId, 'MANAGE_PROMOTIONS') &&
+        keepsCompany(resource.data.companyId);
+      allow delete: if hasPermission(resource.data.companyId, 'MANAGE_PROMOTIONS');
+    }
+
+    match /companyPreferences/{companyId} {
+      allow read: if isMember(companyId);
+      allow create, update: if hasPermission(companyId, 'MANAGE_COMPANY_QUICK_ADD') &&
+        request.resource.data.companyId == companyId;
+    }
+  }
+}

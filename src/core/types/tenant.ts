@@ -42,6 +42,8 @@ export interface Membership {
   companyName: string;
   role: UserRole;
   permissions: PermissionKey[];
+  /** Present only for employee memberships created by accepting an invitation. */
+  invitationId?: string;
   createdAt: string;
 }
 

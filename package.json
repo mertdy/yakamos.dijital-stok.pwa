@@ -13,6 +13,7 @@
     "preview:hosting": "pnpm build && firebase hosting:channel:deploy preview --expires 7d",
     "deploy:hosting": "pnpm build && firebase deploy --only hosting",
     "test": "vitest run",
+    "test:rules": "firebase emulators:exec --only firestore \"vitest run src/core/firebase/firestore.rules.test.ts\"",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "prepare": "husky"
@@ -63,6 +64,7 @@
   "devDependencies": {
     "@capacitor/cli": "^8.4.1",
     "@eslint/js": "^10.0.1",
+    "@firebase/rules-unit-testing": "^5.0.1",
     "@headlessui/react": "^2.2.10",
     "@playwright/test": "^1.61.0",
     "@tailwindcss/forms": "^0.5.11",
