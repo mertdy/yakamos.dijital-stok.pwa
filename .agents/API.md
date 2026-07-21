@@ -73,6 +73,26 @@ specific products, payment methods, a target-excluded basket threshold, and a
 date/time schedule. Writes and per-sale rule overrides require the
 `MANAGE_PROMOTIONS` permission or company ownership.
 
+supportReports
+
+User-submitted bug reports, support requests and suggestions. Each report is
+written by a company member, includes optional recent client error context and
+an optional, client-compressed WebP screenshot, and is readable by its author
+and the platform support administrator. Screenshot payloads are deliberately
+excluded from Firestore indexes.
+
+notifications
+
+Platform notification events. The initial event type is `SUPPORT_REPORT` and
+is delivered through the temporary client-side WirePusher adapter. The
+collection is structured for later delivery channels such as Firebase Cloud
+Messaging and Capacitor native push.
+
+notificationDevices
+
+Future device registration records for web PWA and native clients. A user can
+only read and manage their own device records.
+
 Company data transfer package
 
 Company owners can download a one-time ZIP transfer package and import it into
@@ -187,9 +207,10 @@ Use serverTimestamp() whenever possible.
 
 # Images
 
-Uploaded to Firebase Storage.
-
-Firestore stores only metadata.
+Product images are uploaded to Firebase Storage and Firestore stores only
+their metadata. Support report screenshots are the temporary exception: they
+are client-compressed WebP data URLs stored directly on a report, limited to
+350 KB and excluded from indexes until a server-side upload flow is introduced.
 
 ---
 

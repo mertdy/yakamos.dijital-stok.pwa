@@ -9,6 +9,21 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-07-22',
+    date: '22 Temmuz 2026',
+    title: 'Kullanım iyileştirmeleri',
+    items: [
+      {
+        type: 'fixed',
+        text: 'Destek kaydı açıklama alanında başlığı ve yazı alanını daha düzenli görebilirsiniz.'
+      },
+      {
+        type: 'fixed',
+        text: 'Google ile giriş penceresini kapattığınızda artık gereksiz hata uyarısı görmezsiniz.'
+      }
+    ]
+  },
+  {
     id: '2026-07-21',
     date: '21 Temmuz 2026',
     title: 'Kampanyalar ve kullanım iyileştirmeleri',
@@ -40,6 +55,10 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
       {
         type: 'new',
         text: 'Şirket ayarlarından işletme verilerinizi tek ZIP paketiyle boş bir hedef işletmeye güvenle aktarabilirsiniz.'
+      },
+      {
+        type: 'new',
+        text: 'Profil menüsündeki Destek alanından hata, destek isteği veya önerinizi açıklama, isteğe bağlı ekran görüntüsü ve teknik kayıtlarla iletebilirsiniz.'
       },
       {
         type: 'improved',

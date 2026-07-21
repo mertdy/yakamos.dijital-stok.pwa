@@ -12,6 +12,7 @@ export const secondaryPrefetches = [
   () => import('@/features/auth/views/ChangelogView'),
   () => import('@/features/dashboard/views/CompanySettingsView'),
   () => import('@/features/dashboard/components/CompanyTransferModal'),
+  () => import('@/features/support/components/SupportModal'),
   () => import('@/features/dashboard/views/PricingPlansView'),
   () => import('@/features/promotions/views/PromotionsView'),
   () => import('@/features/inventory/components/BulkInventoryEditDrawer')

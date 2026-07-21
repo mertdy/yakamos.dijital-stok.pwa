@@ -431,11 +431,16 @@ export const useAuthStore = getSingletonStore('auth', () =>
           is_email_verified: result.user.emailVerified
         });
       } catch (error: unknown) {
+        const code = (error as { code?: string }).code ?? '';
+        if (code === 'auth/popup-closed-by-user') {
+          set({ authError: null, isLoading: false });
+          return;
+        }
+
         console.error('Google login failed:', error);
         posthog.captureException(error, {
           context: 'login_with_google'
         });
-        const code = (error as { code?: string }).code ?? '';
         set({ authError: getAuthErrorMessage(code), isLoading: false });
         throw error;
       }

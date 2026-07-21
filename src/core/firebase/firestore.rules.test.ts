@@ -22,6 +22,8 @@ const COMPANY_A = 'company-a';
 const COMPANY_B = 'company-b';
 const OWNER_A = 'owner-a';
 const OWNER_B = 'owner-b';
+const PLATFORM_ADMIN = 'platform-admin';
+const PLATFORM_ADMIN_EMAIL = 'm.osmandonmezyurek@gmail.com';
 
 let testEnv: RulesTestEnvironment;
 
@@ -52,6 +54,26 @@ const inventory = (companyId: string, id = 'product-1') => ({
   stock: 10,
   salePrice: 20,
   updatedAt: '2026-07-21T10:00:00.000Z'
+});
+
+const supportReport = (id: string, companyId = COMPANY_A) => ({
+  id,
+  type: 'BUG',
+  title: 'Satış ekranı kapandı',
+  description:
+    'Kartla ödeme seçildiğinde satış ekranı beklenmedik şekilde kapandı.',
+  status: 'OPEN',
+  createdBy: OWNER_A,
+  createdByEmail: `${OWNER_A}@example.com`,
+  recipientEmail: PLATFORM_ADMIN_EMAIL,
+  companyId,
+  companyName: 'AA',
+  route: '/sales',
+  appVersion: 'web',
+  client: { userAgent: 'vitest', isOnline: true },
+  technicalErrors: [],
+  screenshot: null,
+  createdAt: '2026-07-21T10:00:00.000Z'
 });
 
 const seed = async () => {
@@ -224,6 +246,90 @@ describe('Firestore Security Rules', () => {
         companyId: COMPANY_A,
         quickAddItems: ['product-a']
       })
+    );
+  });
+
+  it('allows company members to submit support reports only to platform support', async () => {
+    const ownerA = firestore(OWNER_A);
+
+    await assertSucceeds(
+      setDoc(
+        doc(ownerA, 'supportReports', 'support-report-1'),
+        supportReport('support-report-1')
+      )
+    );
+    await assertFails(
+      setDoc(doc(ownerA, 'supportReports', 'support-report-2'), {
+        ...supportReport('support-report-2'),
+        recipientEmail: 'someone-else@example.com'
+      })
+    );
+    await assertFails(
+      setDoc(
+        doc(firestore(OWNER_B), 'supportReports', 'support-report-3'),
+        supportReport('support-report-3', COMPANY_A)
+      )
+    );
+  });
+
+  it('keeps support reports private for their author and platform support', async () => {
+    await testEnv.withSecurityRulesDisabled(async context => {
+      await setDoc(
+        doc(context.firestore(), 'supportReports', 'support-report-1'),
+        supportReport('support-report-1')
+      );
+    });
+
+    await assertSucceeds(
+      getDoc(doc(firestore(OWNER_A), 'supportReports', 'support-report-1'))
+    );
+    await assertFails(
+      getDoc(doc(firestore('cashier'), 'supportReports', 'support-report-1'))
+    );
+    await assertSucceeds(
+      getDoc(
+        doc(
+          firestore(PLATFORM_ADMIN, PLATFORM_ADMIN_EMAIL),
+          'supportReports',
+          'support-report-1'
+        )
+      )
+    );
+  });
+
+  it('allows only platform support to read support notification events', async () => {
+    const notification = {
+      id: 'notification-1',
+      kind: 'SUPPORT_REPORT',
+      recipientEmail: PLATFORM_ADMIN_EMAIL,
+      title: 'Yeni destek kaydı',
+      body: 'AA · Hata bildirimi Satış ekranı kapandı',
+      resourceType: 'supportReport',
+      resourceId: 'support-report-1',
+      createdBy: OWNER_A,
+      companyId: COMPANY_A,
+      isRead: false,
+      createdAt: '2026-07-21T10:00:00.000Z',
+      delivery: { transport: 'wirepusher-client', status: 'REQUESTED' }
+    };
+
+    await assertSucceeds(
+      setDoc(
+        doc(firestore(OWNER_A), 'notifications', notification.id),
+        notification
+      )
+    );
+    await assertFails(
+      getDoc(doc(firestore(OWNER_A), 'notifications', notification.id))
+    );
+    await assertSucceeds(
+      getDoc(
+        doc(
+          firestore(PLATFORM_ADMIN, PLATFORM_ADMIN_EMAIL),
+          'notifications',
+          notification.id
+        )
+      )
     );
   });
 });

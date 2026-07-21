@@ -480,6 +480,17 @@ describe('useAuthStore', () => {
     );
   });
 
+  it('loginWithGoogle silently handles a user-closed popup', async () => {
+    vi.mocked(signInWithPopup).mockRejectedValueOnce({
+      code: 'auth/popup-closed-by-user'
+    });
+    const store = await buildStore();
+
+    await expect(store.getState().loginWithGoogle()).resolves.toBeUndefined();
+    expect(store.getState().authError).toBeNull();
+    expect(store.getState().isLoading).toBe(false);
+  });
+
   // ── logout ───────────────────────────────────────────────────────────────
 
   it('logout calls signOut and clears all stores', async () => {

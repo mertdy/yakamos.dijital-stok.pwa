@@ -6,6 +6,11 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    function isPlatformAdmin() {
+      return signedIn() &&
+        request.auth.token.email == 'm.osmandonmezyurek@gmail.com';
+    }
+
     function membershipPath(companyId) {
       return /databases/$(database)/documents/memberships/$(request.auth.uid + '_' + companyId);
     }
@@ -46,6 +51,75 @@ service cloud.firestore {
       return isLegacyUserData() &&
         request.resource.data.userId == request.auth.uid &&
         isOwner(request.resource.data.companyId);
+    }
+
+    function isValidSupportScreenshot() {
+      return request.resource.data.screenshot == null ||
+        (
+          request.resource.data.screenshot is map &&
+          request.resource.data.screenshot.keys().hasOnly(['dataUrl', 'name', 'sizeBytes']) &&
+          request.resource.data.screenshot.dataUrl is string &&
+          request.resource.data.screenshot.dataUrl.matches('^data:image/webp;base64,.*') &&
+          request.resource.data.screenshot.dataUrl.size() <= 500000 &&
+          request.resource.data.screenshot.name is string &&
+          request.resource.data.screenshot.name.size() <= 160 &&
+          request.resource.data.screenshot.sizeBytes is number &&
+          request.resource.data.screenshot.sizeBytes <= 358400
+        );
+    }
+
+    function isValidSupportReport(reportId) {
+      return request.resource.data.keys().hasOnly([
+          'id', 'type', 'title', 'description', 'status', 'createdBy',
+          'createdByEmail', 'recipientEmail', 'companyId', 'companyName',
+          'route', 'appVersion', 'client', 'technicalErrors', 'screenshot',
+          'createdAt'
+        ]) &&
+        request.resource.data.id == reportId &&
+        request.resource.data.createdBy == request.auth.uid &&
+        request.resource.data.recipientEmail == 'm.osmandonmezyurek@gmail.com' &&
+        request.resource.data.type in ['BUG', 'SUPPORT', 'SUGGESTION'] &&
+        request.resource.data.status == 'OPEN' &&
+        request.resource.data.companyId is string &&
+        isMember(request.resource.data.companyId) &&
+        request.resource.data.companyName is string &&
+        request.resource.data.companyName.size() <= 120 &&
+        request.resource.data.title is string &&
+        request.resource.data.title.size() >= 3 &&
+        request.resource.data.title.size() <= 120 &&
+        request.resource.data.description is string &&
+        request.resource.data.description.size() >= 5 &&
+        request.resource.data.description.size() <= 1500 &&
+        request.resource.data.route is string &&
+        request.resource.data.route.size() <= 500 &&
+        request.resource.data.appVersion is string &&
+        request.resource.data.appVersion.size() <= 100 &&
+        request.resource.data.client is map &&
+        request.resource.data.technicalErrors is list &&
+        request.resource.data.technicalErrors.size() <= 10 &&
+        request.resource.data.createdAt is string &&
+        isValidSupportScreenshot();
+    }
+
+    function isValidSupportNotification(notificationId) {
+      return request.resource.data.keys().hasOnly([
+          'id', 'kind', 'recipientEmail', 'title', 'body', 'resourceType',
+          'resourceId', 'createdBy', 'companyId', 'isRead', 'createdAt', 'delivery'
+        ]) &&
+        request.resource.data.id == notificationId &&
+        request.resource.data.kind == 'SUPPORT_REPORT' &&
+        request.resource.data.recipientEmail == 'm.osmandonmezyurek@gmail.com' &&
+        request.resource.data.title == 'Yeni destek kaydı' &&
+        request.resource.data.body is string &&
+        request.resource.data.body.size() <= 350 &&
+        request.resource.data.resourceType == 'supportReport' &&
+        request.resource.data.resourceId is string &&
+        request.resource.data.createdBy == request.auth.uid &&
+        request.resource.data.companyId is string &&
+        isMember(request.resource.data.companyId) &&
+        request.resource.data.isRead == false &&
+        request.resource.data.createdAt is string &&
+        request.resource.data.delivery is map;
     }
 
     match /users/{userId} {
@@ -208,6 +282,26 @@ service cloud.firestore {
       allow read: if isMember(companyId);
       allow create, update: if hasPermission(companyId, 'MANAGE_COMPANY_QUICK_ADD') &&
         request.resource.data.companyId == companyId;
+    }
+
+    match /supportReports/{reportId} {
+      allow create: if signedIn() && isValidSupportReport(reportId);
+      allow read: if isPlatformAdmin() || resource.data.createdBy == request.auth.uid;
+      allow update, delete: if isPlatformAdmin();
+    }
+
+    match /notifications/{notificationId} {
+      allow create: if signedIn() && isValidSupportNotification(notificationId);
+      allow read, update, delete: if isPlatformAdmin();
+    }
+
+    match /notificationDevices/{deviceId} {
+      allow read: if signedIn() && resource.data.userId == request.auth.uid;
+      allow create: if signedIn() && request.resource.data.userId == request.auth.uid;
+      allow update: if signedIn() &&
+        resource.data.userId == request.auth.uid &&
+        request.resource.data.userId == request.auth.uid;
+      allow delete: if signedIn() && resource.data.userId == request.auth.uid;
     }
   }
 }

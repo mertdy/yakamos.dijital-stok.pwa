@@ -20,8 +20,10 @@ import {
 } from './core/config/prefetchRegistry';
 import { runPrefetch } from './shared/utils/prefetch';
 import { initializeThemeMode } from './shared/hooks/useThemeMode';
+import { startTechnicalErrorCapture } from './features/support/utils/technicalContext';
 
 initializeThemeMode();
+startTechnicalErrorCapture();
 
 // 1. PostHog Init
 if (ENV.POSTHOG_KEY && ENV.POSTHOG_HOST) {

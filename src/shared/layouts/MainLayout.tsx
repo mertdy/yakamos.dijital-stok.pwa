@@ -34,7 +34,6 @@ import {
   CreditCard,
   CircleUserRound,
   LifeBuoy,
-  ExternalLink,
   Moon,
   Sun,
   Sparkles,
@@ -60,6 +59,7 @@ import * as z from 'zod';
 import { FormInput } from '@/shared/components/FormInput';
 import { PhoneInput } from '@/shared/components/PhoneInput';
 import { KeyboardShortcutsModal } from '@/shared/components/KeyboardShortcutsModal';
+import { SupportModal } from '@/features/support/routes';
 import {
   normalizePhoneNumber,
   optionalPhoneNumberSchema
@@ -131,6 +131,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ onCheckForUpdate }) => {
   const [isSidebarHovered, setIsSidebarHovered] = useState(false);
   const [newCompanyModalOpen, setNewCompanyModalOpen] = useState(false);
   const [keyboardShortcutsOpen, setKeyboardShortcutsOpen] = useState(false);
+  const [supportModalOpen, setSupportModalOpen] = useState(false);
   const [isCreatingCompany, setIsCreatingCompany] = useState(false);
   const [isSwitching, setIsSwitching] = useState(false);
   const [isCheckingForUpdate, setIsCheckingForUpdate] = useState(false);
@@ -312,11 +313,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ onCheckForUpdate }) => {
     }
 
     if (key === 'support') {
-      window.open(
-        'https://example.com/destek',
-        '_blank',
-        'noopener,noreferrer'
-      );
+      setSupportModalOpen(true);
     }
   };
 
@@ -801,7 +798,6 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ onCheckForUpdate }) => {
                     <span className="flex w-full items-center gap-2.5">
                       <LifeBuoy size={17} className="text-gray-500" />
                       <span className="flex-1">Destek</span>
-                      <ExternalLink size={14} className="text-gray-400" />
                     </span>
                   </Dropdown.Item>
                   <Dropdown.Item
@@ -983,6 +979,12 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ onCheckForUpdate }) => {
         isOpen={keyboardShortcutsOpen}
         onOpenChange={setKeyboardShortcutsOpen}
       />
+      <Suspense fallback={null}>
+        <SupportModal
+          isOpen={supportModalOpen}
+          onClose={() => setSupportModalOpen(false)}
+        />
+      </Suspense>
     </div>
   );
 };
