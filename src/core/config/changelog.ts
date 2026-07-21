@@ -11,7 +11,7 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
     id: '2026-07-21',
     date: '21 Temmuz 2026',
-    title: 'Kampanyalar ve otomatik fiyat kuralları',
+    title: 'Kampanyalar ve kullanım iyileştirmeleri',
     items: [
       {
         type: 'new',
@@ -46,21 +46,6 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
         text: 'Yeni fiyat kuralı ekranı geniş ürün listelerinde daha hızlı açılır.'
       },
       {
-        type: 'fixed',
-        text: 'Fiyat kuralı hedef ürün seçimlerinin ve koyu temadaki görünümünün tutarlılığı iyileştirildi.'
-      },
-      {
-        type: 'fixed',
-        text: 'Barkod cihazıyla art arda ürün okuturken satışın yanlışlıkla tamamlanması engellendi.'
-      }
-    ]
-  },
-  {
-    id: '2026-07-21',
-    date: '21 Temmuz 2026',
-    title: 'Kullanım iyileştirmeleri',
-    items: [
-      {
         type: 'improved',
         text: 'Hızlı ekle menüsünü düzenlerken ürün aramasını sabit tutup iki listeyi ayrı ayrı kaydırabilirsiniz.'
       },
@@ -79,6 +64,14 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
       {
         type: 'improved',
         text: 'Çalışan davetinde seçtiğiniz hazır ünvana uygun yetkiler otomatik olarak belirlenir.'
+      },
+      {
+        type: 'fixed',
+        text: 'Fiyat kuralı hedef ürün seçimlerinin ve koyu temadaki görünümünün tutarlılığı iyileştirildi.'
+      },
+      {
+        type: 'fixed',
+        text: 'Barkod cihazıyla art arda ürün okuturken satışın yanlışlıkla tamamlanması engellendi.'
       },
       {
         type: 'fixed',
