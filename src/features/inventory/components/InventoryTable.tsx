@@ -94,6 +94,11 @@ const INVENTORY_FILTER_PARAM_KEYS = [
 const numberParam = (value: string | null) =>
   value && !Number.isNaN(Number(value)) ? Number(value) : undefined;
 
+const getLatestInventoryTimestamp = (item: InventoryItem) => {
+  const timestamp = Date.parse(item.updatedAt || item.createdAt || '');
+  return Number.isNaN(timestamp) ? 0 : timestamp;
+};
+
 const filtersFromSearchParams = (
   searchParams: URLSearchParams
 ): InventoryFilterValues => ({
@@ -509,6 +514,15 @@ export const InventoryTable: React.FC<InventoryTableProps> = ({
     return Object.keys(rowSelection).filter(id => rowSelection[id]);
   }, [rowSelection]);
 
+  const tableItems = useMemo(() => {
+    if (sorting.length > 0) return filteredItems;
+
+    return [...filteredItems].sort(
+      (first, second) =>
+        getLatestInventoryTimestamp(second) - getLatestInventoryTimestamp(first)
+    );
+  }, [filteredItems, sorting.length]);
+
   const selectedItems = useMemo(() => {
     const selectedIdSet = new Set(selectedIds);
     return filteredItems.filter(item => selectedIdSet.has(item.id));
@@ -558,7 +572,7 @@ export const InventoryTable: React.FC<InventoryTableProps> = ({
 
   // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
-    data: filteredItems,
+    data: tableItems,
     columns,
     state: { sorting, pagination, rowSelection },
     onSortingChange: updater => {
@@ -623,23 +637,6 @@ export const InventoryTable: React.FC<InventoryTableProps> = ({
                       variant="tertiary"
                       isIconOnly
                       size="sm"
-                      onPress={() => setIsBulkEditOpen(true)}
-                      aria-label="Seçili Ürünleri Düzenle">
-                      <SquarePen size={18} />
-                    </Button>
-                  </Tooltip.Trigger>
-                  <Tooltip.Content showArrow>
-                    <Tooltip.Arrow />
-                    Seçili ürünleri düzenle
-                  </Tooltip.Content>
-                </Tooltip>
-
-                <Tooltip delay={0} closeDelay={0}>
-                  <Tooltip.Trigger>
-                    <Button
-                      variant="tertiary"
-                      isIconOnly
-                      size="sm"
                       onPress={() => {
                         table.toggleAllPageRowsSelected(true);
                       }}
@@ -690,6 +687,23 @@ export const InventoryTable: React.FC<InventoryTableProps> = ({
                   <Tooltip.Content showArrow>
                     <Tooltip.Arrow />
                     Seçimi Temizle
+                  </Tooltip.Content>
+                </Tooltip>
+
+                <Tooltip delay={0} closeDelay={0}>
+                  <Tooltip.Trigger>
+                    <Button
+                      variant="tertiary"
+                      isIconOnly
+                      size="sm"
+                      onPress={() => setIsBulkEditOpen(true)}
+                      aria-label="Seçili Ürünleri Düzenle">
+                      <SquarePen size={18} />
+                    </Button>
+                  </Tooltip.Trigger>
+                  <Tooltip.Content showArrow>
+                    <Tooltip.Arrow />
+                    Seçili ürünleri düzenle
                   </Tooltip.Content>
                 </Tooltip>
 

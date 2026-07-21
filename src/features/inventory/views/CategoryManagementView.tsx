@@ -83,6 +83,14 @@ export const CategoryManagementView = () => {
       ]);
     });
 
+    grouped.forEach(products => {
+      products.sort((first, second) =>
+        first.name.localeCompare(second.name, 'tr-TR', {
+          sensitivity: 'base'
+        })
+      );
+    });
+
     return grouped;
   }, [items]);
 
@@ -302,7 +310,7 @@ export const CategoryManagementView = () => {
         </Button>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-hidden rounded-[28px] bg-white shadow-sm">
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[28px] bg-white shadow-sm">
         <div className="border-b border-gray-100 bg-gray-50/50 p-4">
           <div className="relative w-full max-w-xl">
             <Search
@@ -320,7 +328,9 @@ export const CategoryManagementView = () => {
           </div>
         </div>
 
-        <div className="overflow-y-auto">
+        <div
+          data-testid="category-list"
+          className="min-h-0 flex-1 overflow-y-auto">
           {isLoading ? (
             <div className="animate-pulse divide-y divide-gray-100">
               {Array.from({ length: 5 }, (_, index) => (

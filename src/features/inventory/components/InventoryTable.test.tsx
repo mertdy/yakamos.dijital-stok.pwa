@@ -158,6 +158,36 @@ describe('InventoryTable', () => {
     expect(screen.getByText('₺3.50')).toBeInTheDocument();
   });
 
+  it('shows most recently updated products first by default', () => {
+    mockUseInventoryStore.mockReturnValue({
+      items: [
+        {
+          id: 'old',
+          name: 'Eski ürün',
+          stock: 1,
+          price: 1,
+          updatedAt: '2026-07-19T10:00:00.000Z'
+        },
+        {
+          id: 'new',
+          name: 'Yeni ürün',
+          stock: 1,
+          price: 1,
+          updatedAt: '2026-07-21T10:00:00.000Z'
+        }
+      ],
+      deleteItem: deleteItemMock,
+      deleteItems: deleteItemsMock,
+      updateItem: updateItemMock
+    });
+
+    const { container } = render(<InventoryTable />);
+    const rows = Array.from(container.querySelectorAll('tbody tr'));
+
+    expect(rows[0]).toHaveTextContent('Yeni ürün');
+    expect(rows[1]).toHaveTextContent('Eski ürün');
+  });
+
   it('copies a barcode without opening the product form', async () => {
     Object.assign(navigator, {
       clipboard: { writeText: vi.fn().mockResolvedValue(undefined) }

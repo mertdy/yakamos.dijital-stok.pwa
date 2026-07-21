@@ -49,6 +49,11 @@ describe('CategoryManagementView', () => {
 
     expect(screen.getAllByTestId('category-loading-skeleton')).toHaveLength(5);
     expect(screen.queryByText(/Henüz kategori yok/)).not.toBeInTheDocument();
+    expect(screen.getByTestId('category-list')).toHaveClass(
+      'min-h-0',
+      'flex-1',
+      'overflow-y-auto'
+    );
   });
 
   it('reloads categories when the active company changes', () => {

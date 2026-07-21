@@ -67,6 +67,14 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
       },
       {
         type: 'improved',
+        text: 'Kategori ürün listesindeki ürünler artık ada göre alfabetik sıralanır.'
+      },
+      {
+        type: 'improved',
+        text: 'Envanter açıldığında son güncellenen ürünler listenin başında görünür.'
+      },
+      {
+        type: 'improved',
         text: 'Çalışan davetinde seçtiğiniz hazır ünvana uygun yetkiler otomatik olarak belirlenir.'
       },
       {
@@ -84,6 +92,10 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
       {
         type: 'fixed',
         text: 'Yeni fiyat kuralında hedef kategorilerin yüklenmesi ve görüntülenmesi daha güvenilir hale getirildi.'
+      },
+      {
+        type: 'fixed',
+        text: 'Kategori ürün listesini açtığınızda tüm kategorilere yeniden kaydırarak ulaşabilirsiniz.'
       }
     ]
   },
