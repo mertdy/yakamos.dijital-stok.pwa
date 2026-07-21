@@ -76,6 +76,10 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
       {
         type: 'fixed',
         text: 'Koyu temada bekleyen davetiyelerin bilgi ve yetki etiketleri daha okunaklı hale getirildi.'
+      },
+      {
+        type: 'fixed',
+        text: 'Yeni fiyat kuralında hedef kategorilerin yüklenmesi ve görüntülenmesi daha güvenilir hale getirildi.'
       }
     ]
   },

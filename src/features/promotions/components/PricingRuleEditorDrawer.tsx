@@ -8,6 +8,7 @@ import {
   Radio,
   RadioGroup,
   Skeleton,
+  Spinner,
   Switch
 } from '@heroui/react';
 import {
@@ -88,7 +89,11 @@ export const PricingRuleEditorDrawer = ({
   onClose,
   onSave
 }: Props) => {
-  const { categories } = useCategoryStore();
+  const {
+    categories,
+    isLoading: areCategoriesLoading,
+    loadCategories
+  } = useCategoryStore();
   const { items } = useInventoryStore();
   const [draft, setDraft] = useState(() => createDraft(rule));
   const [isAlwaysValid, setIsAlwaysValid] = useState(
@@ -103,9 +108,10 @@ export const PricingRuleEditorDrawer = ({
 
   useEffect(() => {
     if (!isOpen) return;
+    loadCategories();
     const frame = requestAnimationFrame(() => setIsTargetTableReady(true));
     return () => cancelAnimationFrame(frame);
-  }, [isOpen]);
+  }, [isOpen, loadCategories]);
 
   const handleTargetProductsChange = useCallback(
     (targetProductIds: string[]) =>
@@ -306,25 +312,35 @@ export const PricingRuleEditorDrawer = ({
                     <Label className="mb-2 block text-sm">
                       Hedef kategoriler
                     </Label>
-                    <div className="flex flex-wrap gap-2">
-                      {categories.map(category => (
-                        <Checkbox
-                          key={category.id}
-                          isSelected={draft.targetCategoryIds.includes(
-                            category.id
-                          )}
-                          onChange={() =>
-                            toggle('targetCategoryIds', category.id)
-                          }>
-                          <Checkbox.Content className="data-[selected=true]:border-primary data-[selected=true]:bg-primary/5 rounded-xl border border-gray-200 px-3 py-2 text-sm">
-                            <Checkbox.Control>
-                              <Checkbox.Indicator />
-                            </Checkbox.Control>
-                            {category.name}
-                          </Checkbox.Content>
-                        </Checkbox>
-                      ))}
-                    </div>
+                    {areCategoriesLoading && categories.length === 0 ? (
+                      <div className="flex min-h-12 items-center gap-2 rounded-xl border border-gray-100 bg-gray-50 px-3 text-sm text-gray-500">
+                        <Spinner size="sm" /> Kategoriler yükleniyor...
+                      </div>
+                    ) : categories.length === 0 ? (
+                      <p className="rounded-xl border border-gray-100 bg-gray-50 px-3 py-3 text-sm text-gray-500">
+                        Bu işletmede seçilebilecek kategori bulunmuyor.
+                      </p>
+                    ) : (
+                      <div className="flex flex-wrap gap-2">
+                        {categories.map(category => (
+                          <Checkbox
+                            key={category.id}
+                            isSelected={draft.targetCategoryIds.includes(
+                              category.id
+                            )}
+                            onChange={() =>
+                              toggle('targetCategoryIds', category.id)
+                            }>
+                            <Checkbox.Content className="data-[selected=true]:border-primary data-[selected=true]:bg-primary/5 rounded-xl border border-gray-200 px-3 py-2 text-sm">
+                              <Checkbox.Control>
+                                <Checkbox.Indicator />
+                              </Checkbox.Control>
+                              {category.name}
+                            </Checkbox.Content>
+                          </Checkbox>
+                        ))}
+                      </div>
+                    )}
                   </div>
                   <div>
                     <Label className="mb-2 block text-sm">Hedef ürünler</Label>

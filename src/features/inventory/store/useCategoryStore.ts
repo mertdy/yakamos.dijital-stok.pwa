@@ -71,7 +71,10 @@ export const useCategoryStore = create<CategoryState>((set, get) => ({
           isLoading: false
         });
       },
-      () => set({ isLoading: false })
+      () => {
+        if (get().subscriptionCompanyId !== companyId) return;
+        set({ isLoading: false, unsubscribe: null });
+      }
     );
     set({ unsubscribe });
   },
