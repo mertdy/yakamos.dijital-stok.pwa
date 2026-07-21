@@ -3,20 +3,26 @@ import { clsx } from 'clsx';
 import {
   Checkbox,
   Button,
+  DateField,
+  DateRangePicker,
   Description,
   Label,
   Modal,
   Radio,
   RadioGroup,
+  RangeCalendar,
+  Spinner,
   toast
 } from '@heroui/react';
 import { Download, FileSpreadsheet, FileText, Loader2 } from 'lucide-react';
+import { parseDate } from '@internationalized/date';
 import type { Company } from '@/core/types/tenant';
 import {
   EXPORT_OPTIONS,
   exportDatasets,
   loadExportDatasets,
   type ExportDataKey,
+  type ExportDateRange,
   type ExportDelivery,
   type ExportFormat
 } from '../utils/dataExport';
@@ -33,15 +39,42 @@ export const DataExportWizard = ({ isOpen, onClose, company }: Props) => {
     EXPORT_OPTIONS.map(option => option.key)
   );
   const [format, setFormat] = useState<ExportFormat>('xlsx');
-  const [delivery, setDelivery] = useState<ExportDelivery>('combined');
+  const [delivery, setDelivery] = useState<ExportDelivery>('separate');
+  const [isAllTime, setIsAllTime] = useState(true);
+  const [dateRange, setDateRange] = useState<ExportDateRange>({});
+  const [previewDatasets, setPreviewDatasets] = useState<Awaited<
+    ReturnType<typeof loadExportDatasets>
+  > | null>(null);
+  const [isLoadingSummary, setIsLoadingSummary] = useState(false);
+  const [summaryError, setSummaryError] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState(false);
 
   useEffect(() => {
     if (isOpen) setStep(1);
   }, [isOpen]);
   useEffect(() => {
-    setDelivery('combined');
-  }, [format]);
+    if (step !== 3) return;
+    let isCurrent = true;
+    setIsLoadingSummary(true);
+    setSummaryError(null);
+    setPreviewDatasets(null);
+    loadExportDatasets(company, selected, isAllTime ? {} : dateRange)
+      .then(datasets => {
+        if (isCurrent) setPreviewDatasets(datasets);
+      })
+      .catch(error => {
+        console.error('Data export preview failed', error);
+        if (isCurrent) {
+          setSummaryError('Dışa aktarma özeti hazırlanamadı.');
+        }
+      })
+      .finally(() => {
+        if (isCurrent) setIsLoadingSummary(false);
+      });
+    return () => {
+      isCurrent = false;
+    };
+  }, [step, company, selected, isAllTime, dateRange]);
 
   const selectedLabels = useMemo(
     () =>
@@ -56,11 +89,30 @@ export const DataExportWizard = ({ isOpen, onClose, company }: Props) => {
         ? current.filter(item => item !== key)
         : [...current, key]
     );
+  const previewRowCount = previewDatasets?.reduce(
+    (total, dataset) => total + dataset.rows.length,
+    0
+  );
+  const estimatedSize = previewDatasets
+    ? new Blob([JSON.stringify(previewDatasets)]).size
+    : null;
+  const formatByteSize = (value: number) =>
+    value < 1024
+      ? `${value} bayt`
+      : `${(value / 1024).toLocaleString('tr-TR', {
+          maximumFractionDigits: 1
+        })} KB`;
   const handleExport = async () => {
     if (selected.length === 0) return;
     setIsExporting(true);
     try {
-      const datasets = await loadExportDatasets(company, selected);
+      const datasets =
+        previewDatasets ??
+        (await loadExportDatasets(
+          company,
+          selected,
+          isAllTime ? {} : dateRange
+        ));
       await exportDatasets(
         datasets,
         format,
@@ -195,6 +247,89 @@ export const DataExportWizard = ({ isOpen, onClose, company }: Props) => {
               )}
               {step === 2 && (
                 <div className="space-y-5">
+                  <Checkbox isSelected={isAllTime} onChange={setIsAllTime}>
+                    <Checkbox.Content>
+                      <Checkbox.Control>
+                        <Checkbox.Indicator />
+                      </Checkbox.Control>
+                      <span className="text-sm font-medium">Tüm zamanlar</span>
+                    </Checkbox.Content>
+                  </Checkbox>
+                  <DateRangePicker
+                    className="w-full"
+                    isDisabled={isAllTime}
+                    value={
+                      dateRange.start && dateRange.end
+                        ? {
+                            start: parseDate(dateRange.start),
+                            end: parseDate(dateRange.end)
+                          }
+                        : null
+                    }
+                    onChange={range =>
+                      setDateRange(
+                        range
+                          ? {
+                              start: range.start.toString(),
+                              end: range.end.toString()
+                            }
+                          : {}
+                      )
+                    }>
+                    <Label>İşlem tarih aralığı</Label>
+                    <DateField.Group>
+                      <DateField.InputContainer>
+                        <DateField.Input slot="start">
+                          {segment => <DateField.Segment segment={segment} />}
+                        </DateField.Input>
+                        <DateRangePicker.RangeSeparator />
+                        <DateField.Input slot="end">
+                          {segment => <DateField.Segment segment={segment} />}
+                        </DateField.Input>
+                      </DateField.InputContainer>
+                      <DateField.Suffix>
+                        <DateRangePicker.Trigger>
+                          <DateRangePicker.TriggerIndicator />
+                        </DateRangePicker.Trigger>
+                      </DateField.Suffix>
+                    </DateField.Group>
+                    <Description>
+                      Satışlar, satış kalemleri, tahsilatlar, hesap hareketleri
+                      ve ekstre paylaşım kayıtları bu aralığa göre
+                      sınırlandırılır.
+                    </Description>
+                    <DateRangePicker.Popover>
+                      <RangeCalendar aria-label="İşlem tarih aralığı">
+                        <RangeCalendar.Header>
+                          <RangeCalendar.YearPickerTrigger>
+                            <RangeCalendar.YearPickerTriggerHeading />
+                            <RangeCalendar.YearPickerTriggerIndicator />
+                          </RangeCalendar.YearPickerTrigger>
+                          <RangeCalendar.NavButton slot="previous" />
+                          <RangeCalendar.NavButton slot="next" />
+                        </RangeCalendar.Header>
+                        <RangeCalendar.Grid>
+                          <RangeCalendar.GridHeader>
+                            {day => (
+                              <RangeCalendar.HeaderCell>
+                                {day}
+                              </RangeCalendar.HeaderCell>
+                            )}
+                          </RangeCalendar.GridHeader>
+                          <RangeCalendar.GridBody>
+                            {date => <RangeCalendar.Cell date={date} />}
+                          </RangeCalendar.GridBody>
+                        </RangeCalendar.Grid>
+                        <RangeCalendar.YearPickerGrid>
+                          <RangeCalendar.YearPickerGridBody>
+                            {({ year }) => (
+                              <RangeCalendar.YearPickerCell year={year} />
+                            )}
+                          </RangeCalendar.YearPickerGridBody>
+                        </RangeCalendar.YearPickerGrid>
+                      </RangeCalendar>
+                    </DateRangePicker.Popover>
+                  </DateRangePicker>
                   <div>
                     <p className="text-sm font-medium text-gray-700">
                       Dosya biçimini ve teslim şeklini belirleyin
@@ -247,8 +382,8 @@ export const DataExportWizard = ({ isOpen, onClose, company }: Props) => {
                             <Radio.Indicator />
                           </Radio.Control>
                           {format === 'xlsx'
-                            ? 'Tek Excel çalışma kitabı (Önerilen)'
-                            : 'Tek ZIP dosyası (Önerilen)'}
+                            ? 'Tek dosya · tüm sayfalar tek Excel içinde'
+                            : 'Tek dosya · tüm veriler tek CSV içinde'}
                         </Radio.Content>
                       </Radio>
                       <Radio value="separate">
@@ -257,8 +392,8 @@ export const DataExportWizard = ({ isOpen, onClose, company }: Props) => {
                             <Radio.Indicator />
                           </Radio.Control>
                           {format === 'xlsx'
-                            ? 'Her veri grubu için ayrı Excel dosyası'
-                            : 'Her veri grubu için ayrı CSV dosyası'}
+                            ? 'Ayrı dosyalar · ZIP içinde (Önerilen)'
+                            : 'Ayrı dosyalar · ZIP içinde (Önerilen)'}
                         </Radio.Content>
                       </Radio>
                     </RadioGroup>
@@ -278,9 +413,42 @@ export const DataExportWizard = ({ isOpen, onClose, company }: Props) => {
                     {delivery === 'combined'
                       ? format === 'xlsx'
                         ? 'Tek çalışma kitabı'
-                        : 'Tek ZIP dosyası'
-                      : 'Ayrı dosyalar'}
+                        : 'Tek CSV dosyası'
+                      : 'Ayrı dosyaları içeren ZIP'}
                   </p>
+                  {!isAllTime && dateRange.start && dateRange.end && (
+                    <p className="mt-1 text-xs text-gray-500">
+                      İşlem tarih aralığı: {dateRange.start} – {dateRange.end}
+                    </p>
+                  )}
+                  {isLoadingSummary && (
+                    <div className="mt-4 flex items-center gap-2 text-sm text-gray-500">
+                      <Spinner size="sm" /> Kayıtlar hesaplanıyor…
+                    </div>
+                  )}
+                  {summaryError && (
+                    <p className="text-danger mt-4 text-sm">{summaryError}</p>
+                  )}
+                  {previewDatasets && (
+                    <>
+                      <p className="mt-4 text-sm font-medium text-gray-800">
+                        {previewRowCount?.toLocaleString('tr-TR')} kayıt ·
+                        yaklaşık {formatByteSize(estimatedSize ?? 0)} ham veri
+                      </p>
+                      <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                        {previewDatasets.map(dataset => (
+                          <div
+                            key={dataset.key}
+                            className="flex items-center justify-between rounded-xl bg-white px-3 py-2 text-xs text-gray-600">
+                            <span>{dataset.label}</span>
+                            <span className="font-semibold text-gray-800">
+                              {dataset.rows.length.toLocaleString('tr-TR')}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  )}
                 </div>
               )}
             </Modal.Body>

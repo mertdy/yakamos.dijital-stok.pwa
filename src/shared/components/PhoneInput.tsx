@@ -141,7 +141,7 @@ export const PhoneInput = <TFieldValues extends FieldValues>({
       isInvalid={Boolean(error)}
       isRequired={isRequired}>
       <Label>{label}</Label>
-      <InputGroup fullWidth>
+      <InputGroup fullWidth className="overflow-hidden">
         <InputGroup.Prefix className="p-0">
           <Dropdown>
             <Dropdown.Trigger
@@ -189,7 +189,7 @@ export const PhoneInput = <TFieldValues extends FieldValues>({
           type="tel"
           inputMode="tel"
           autoComplete="tel"
-          className="focus:shadow-none focus:ring-0"
+          className="pl-2 focus:shadow-none focus:ring-0"
           placeholder={placeholder}
           aria-label={label}
         />

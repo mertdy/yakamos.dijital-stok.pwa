@@ -43,6 +43,8 @@ describe('PhoneInput', () => {
     ).toHaveTextContent('+90');
 
     const input = screen.getByLabelText('Telefon Numarası');
+    expect(input.parentElement).toHaveClass('overflow-hidden');
+    expect(input).toHaveClass('pl-2');
     await user.type(input, '5551234567');
 
     expect(input).toHaveValue('555 123 45 67');

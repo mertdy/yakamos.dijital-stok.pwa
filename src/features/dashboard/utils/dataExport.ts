@@ -1,4 +1,11 @@
-import { collection, getDocs, query, where } from 'firebase/firestore';
+import {
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  query,
+  where
+} from 'firebase/firestore';
 import { db } from '@/core/firebase/config';
 import type { Company } from '@/core/types/tenant';
 
@@ -6,6 +13,7 @@ export type ExportFormat = 'xlsx' | 'csv';
 export type ExportDelivery = 'combined' | 'separate';
 export type ExportDataKey =
   | 'company'
+  | 'companyPreferences'
   | 'team'
   | 'inventory'
   | 'categories'
@@ -13,7 +21,14 @@ export type ExportDataKey =
   | 'sales'
   | 'saleItems'
   | 'payments'
-  | 'statements';
+  | 'statements'
+  | 'statementShares'
+  | 'pricingRules';
+
+export interface ExportDateRange {
+  start?: string;
+  end?: string;
+}
 
 export interface ExportDataset {
   key: ExportDataKey;
@@ -31,6 +46,11 @@ export const EXPORT_OPTIONS: {
     key: 'company',
     label: 'İşletme Profili',
     description: 'İşletme iletişim ve fiş bilgileri'
+  },
+  {
+    key: 'companyPreferences',
+    label: 'Ortak Hızlı Ekle Menüsü',
+    description: 'Şirketin ortak hızlı ekle ürünleri'
   },
   {
     key: 'team',
@@ -71,15 +91,51 @@ export const EXPORT_OPTIONS: {
     key: 'statements',
     label: 'Hesap Hareketleri',
     description: 'Veresiye satış ve tahsilat hareketleri'
+  },
+  {
+    key: 'statementShares',
+    label: 'Ekstre Paylaşım Kayıtları',
+    description: 'Müşteri ekstre paylaşımı denetim kayıtları'
+  },
+  {
+    key: 'pricingRules',
+    label: 'Kampanyalar',
+    description: 'Otomatik fiyat kuralları ve koşulları'
   }
 ];
 
-const formatDate = (value: unknown) => {
-  if (!value) return '';
+const getDate = (value: unknown): Date | null => {
+  if (!value) return null;
+  if (value instanceof Date) return value;
+  if (
+    typeof value === 'object' &&
+    value !== null &&
+    'toDate' in value &&
+    typeof value.toDate === 'function'
+  ) {
+    return value.toDate();
+  }
   const date = new Date(String(value));
-  return Number.isNaN(date.getTime())
-    ? String(value)
-    : date.toLocaleString('tr-TR');
+  return Number.isNaN(date.getTime()) ? null : date;
+};
+
+const formatDate = (value: unknown) => {
+  const date = getDate(value);
+  return date ? date.toLocaleString('tr-TR') : value ? String(value) : '';
+};
+
+const isWithinDateRange = (
+  record: Record<string, any>,
+  dateRange: ExportDateRange
+) => {
+  if (!dateRange.start && !dateRange.end) return true;
+  const createdAt = getDate(record.createdAt);
+  if (!createdAt) return false;
+  const start = dateRange.start
+    ? new Date(`${dateRange.start}T00:00:00`)
+    : null;
+  const end = dateRange.end ? new Date(`${dateRange.end}T23:59:59.999`) : null;
+  return (!start || createdAt >= start) && (!end || createdAt <= end);
 };
 
 const downloadBlob = (blob: Blob, fileName: string) => {
@@ -105,7 +161,8 @@ const toCsv = (rows: ExportDataset['rows']) => {
 
 export const loadExportDatasets = async (
   company: Company,
-  selected: readonly ExportDataKey[] = EXPORT_OPTIONS.map(option => option.key)
+  selected: readonly ExportDataKey[] = EXPORT_OPTIONS.map(option => option.key),
+  dateRange: ExportDateRange = {}
 ): Promise<ExportDataset[]> => {
   const scoped = (name: string) =>
     getDocs(query(collection(db, name), where('companyId', '==', company.id)));
@@ -119,10 +176,23 @@ export const loadExportDatasets = async (
     paymentsSnap,
     membershipsSnap,
     invitationsSnap,
-    categoriesSnap
+    categoriesSnap,
+    saleItemsSnap,
+    statementSharesSnap,
+    pricingRulesSnap,
+    companyPreferencesSnap
   ] = await Promise.all([
-    hasSelected('inventory') ? scoped('inventory') : emptySnapshot,
-    hasSelected('customers', 'sales', 'payments', 'statements')
+    hasSelected('inventory', 'companyPreferences', 'pricingRules')
+      ? scoped('inventory')
+      : emptySnapshot,
+    hasSelected(
+      'customers',
+      'sales',
+      'saleItems',
+      'payments',
+      'statements',
+      'statementShares'
+    )
       ? scoped('customers')
       : emptySnapshot,
     hasSelected('sales', 'saleItems', 'statements')
@@ -131,7 +201,15 @@ export const loadExportDatasets = async (
     hasSelected('payments', 'statements') ? scoped('payments') : emptySnapshot,
     hasSelected('team') ? scoped('memberships') : emptySnapshot,
     hasSelected('team') ? scoped('invitations') : emptySnapshot,
-    hasSelected('categories') ? scoped('productCategories') : emptySnapshot
+    hasSelected('categories', 'pricingRules')
+      ? scoped('productCategories')
+      : emptySnapshot,
+    hasSelected('saleItems') ? scoped('saleItems') : emptySnapshot,
+    hasSelected('statementShares') ? scoped('statementShares') : emptySnapshot,
+    hasSelected('pricingRules') ? scoped('pricingRules') : emptySnapshot,
+    hasSelected('companyPreferences')
+      ? getDoc(doc(db, 'companyPreferences', company.id))
+      : Promise.resolve(null)
   ]);
   const toRecord = (snapshot: { id: string; data: () => unknown }) =>
     ({
@@ -140,14 +218,35 @@ export const loadExportDatasets = async (
     }) as Record<string, any>;
   const inventory = inventorySnap.docs.map(toRecord);
   const customers = customersSnap.docs.map(toRecord);
-  const sales = salesSnap.docs.map(toRecord);
-  const payments = paymentsSnap.docs.map(toRecord);
+  const sales = salesSnap.docs
+    .map(toRecord)
+    .filter(item => isWithinDateRange(item, dateRange));
+  const payments = paymentsSnap.docs
+    .map(toRecord)
+    .filter(item => isWithinDateRange(item, dateRange));
   const categories = categoriesSnap.docs.map(toRecord);
+  const saleItems = saleItemsSnap.docs.map(toRecord).filter(item => {
+    if (!dateRange.start && !dateRange.end) return true;
+    return sales.some(sale => sale.id === item.saleId);
+  });
+  const statementShares = statementSharesSnap.docs
+    .map(toRecord)
+    .filter(item => isWithinDateRange(item, dateRange));
+  const pricingRules = pricingRulesSnap.docs.map(toRecord);
+  const companyPreferences = companyPreferencesSnap?.exists?.()
+    ? companyPreferencesSnap.data()
+    : null;
   const customerNames = new Map(
     customers.map(customer => [
       customer.id,
       `${customer.name || ''} ${customer.surname || ''}`.trim()
     ])
+  );
+  const inventoryNames = new Map(
+    inventory.map(item => [item.id, item.name || 'Bilinmeyen ürün'])
+  );
+  const categoryNames = new Map(
+    categories.map(item => [item.id, item.name || 'Bilinmeyen kategori'])
   );
 
   const datasets: ExportDataset[] = [
@@ -162,6 +261,26 @@ export const loadExportDatasets = async (
           Telefon: company.phone || '',
           Adres: company.address || '',
           'Oluşturulma Tarihi': formatDate(company.createdAt)
+        }
+      ]
+    },
+    {
+      key: 'companyPreferences',
+      label: 'Ortak Hızlı Ekle Menüsü',
+      fileName: 'ortak-hizli-ekle-menusu',
+      rows: [
+        {
+          'Hızlı Ekle Ürünleri': Array.isArray(
+            companyPreferences?.quickAddItems
+          )
+            ? companyPreferences.quickAddItems
+                .map((id: string) => inventoryNames.get(id) || id)
+                .join(', ')
+            : '',
+          'Ürün Sayısı': Array.isArray(companyPreferences?.quickAddItems)
+            ? companyPreferences.quickAddItems.length
+            : 0,
+          'Güncellenme Tarihi': formatDate(companyPreferences?.updatedAt)
         }
       ]
     },
@@ -264,6 +383,22 @@ export const loadExportDatasets = async (
         'Ödeme Yöntemi': sale.paymentMethod || '',
         AraToplam: sale.subtotal || 0,
         İndirim: sale.discount || 0,
+        'Otomatik Fiyat Etkileri': Array.isArray(sale.pricingAdjustments)
+          ? sale.pricingAdjustments
+              .map(
+                (adjustment: { name?: string; amount?: number }) =>
+                  `${adjustment.name || 'Kural'}: ${adjustment.amount || 0}`
+              )
+              .join(', ')
+          : '',
+        'Kaldırılan Kampanyalar': Array.isArray(sale.dismissedPricingRules)
+          ? sale.dismissedPricingRules
+              .map(
+                (rule: { ruleId?: string; reason?: string }) =>
+                  `${rule.ruleId || 'Kural'}: ${rule.reason || ''}`
+              )
+              .join(', ')
+          : '',
         Toplam: sale.totalAmount || 0,
         Durum: sale.status || '',
         'Kullanıcı ID': sale.userId || ''
@@ -273,18 +408,20 @@ export const loadExportDatasets = async (
       key: 'saleItems',
       label: 'Satış Kalemleri',
       fileName: 'satis-kalemleri',
-      rows: sales.flatMap(sale =>
-        (sale.cart || []).map((item: any) => ({
-          'Fatura No': sale.invoiceNumber || '',
-          'Satış Tarihi': formatDate(sale.createdAt),
+      rows: saleItems.map(item => {
+        const sale = sales.find(record => record.id === item.saleId);
+        return {
+          ID: item.id,
+          'Satış ID': item.saleId || '',
+          'Fatura No': sale?.invoiceNumber || '',
+          'Satış Tarihi': formatDate(sale?.createdAt),
           'Ürün ID': item.inventoryId || '',
-          'Ürün Adı': item.name || '',
-          Barkod: item.barcode || '',
+          'Ürün Adı': inventoryNames.get(item.inventoryId) || '',
           Adet: item.quantity || 0,
-          'Birim Fiyat': item.price || 0,
-          Toplam: (item.quantity || 0) * (item.price || 0)
-        }))
-      )
+          'Birim Fiyat': item.unitPrice || 0,
+          Toplam: (item.quantity || 0) * (item.unitPrice || 0)
+        };
+      })
     },
     {
       key: 'payments',
@@ -326,6 +463,55 @@ export const loadExportDatasets = async (
             payment.collectedBy?.displayName || 'Kullanıcı bilgisi yok'
         }))
       ]
+    },
+    {
+      key: 'statementShares',
+      label: 'Ekstre Paylaşım Kayıtları',
+      fileName: 'ekstre-paylasim-kayitlari',
+      rows: statementShares.map(share => ({
+        ID: share.id,
+        Tarih: formatDate(share.createdAt),
+        Müşteri: customerNames.get(share.customerId) || '',
+        Kanal: share.channel || '',
+        Durum: share.status || '',
+        'Dönem Başlangıcı': share.periodStart || '',
+        'Dönem Bitişi': share.periodEnd || '',
+        'İşlem Sayısı': share.transactionCount || 0,
+        'Hareketler Dahil': share.includedTransactions ? 'Evet' : 'Hayır',
+        'Paylaşan Kullanıcı ID': share.createdBy || ''
+      }))
+    },
+    {
+      key: 'pricingRules',
+      label: 'Kampanyalar',
+      fileName: 'kampanyalar',
+      rows: pricingRules.map(rule => ({
+        ID: rule.id,
+        'Kural Adı': rule.name || '',
+        Açıklama: rule.description || '',
+        Aktif: rule.isActive !== false ? 'Evet' : 'Hayır',
+        Öncelik: rule.priority ?? 0,
+        'Hedef Kategoriler': (rule.targetCategoryIds || [])
+          .map((id: string) => categoryNames.get(id) || id)
+          .join(', '),
+        'Hedef Ürünler': (rule.targetProductIds || [])
+          .map((id: string) => inventoryNames.get(id) || id)
+          .join(', '),
+        'Ödeme Yöntemleri': (rule.paymentMethods || []).join(', '),
+        'Diğer Ürünler En Fazla': rule.otherItemsMaxTotal ?? '',
+        Etki: rule.effect === 'surcharge' ? 'Ek ücret' : 'İndirim',
+        'Tutar Türü': rule.amountType === 'percentage' ? 'Yüzde' : 'Sabit',
+        Tutar: rule.amount ?? 0,
+        Uygulama:
+          rule.application === 'per_item' ? 'Ürün başına' : 'Sepete bir kez',
+        'Başlangıç Tarihi': rule.schedule?.startsAt || '',
+        'Bitiş Tarihi': rule.schedule?.endsAt || '',
+        Günler: (rule.schedule?.daysOfWeek || []).join(', '),
+        'Başlangıç Saati': rule.schedule?.startTime || '',
+        'Bitiş Saati': rule.schedule?.endTime || '',
+        'Oluşturulma Tarihi': formatDate(rule.createdAt),
+        'Güncellenme Tarihi': formatDate(rule.updatedAt)
+      }))
     }
   ];
 
@@ -340,24 +526,25 @@ export const exportDatasets = async (
 ) => {
   if (format === 'csv') {
     if (delivery === 'separate') {
-      datasets.forEach(dataset =>
-        downloadBlob(
-          new Blob([toCsv(dataset.rows)], { type: 'text/csv;charset=utf-8' }),
-          `${filePrefix}-${dataset.fileName}.csv`
-        )
+      const { strToU8, zipSync } = await import('fflate');
+      const files = Object.fromEntries(
+        datasets.map(dataset => [
+          `${dataset.fileName}.csv`,
+          strToU8(toCsv(dataset.rows))
+        ])
+      );
+      downloadBlob(
+        new Blob([zipSync(files)], { type: 'application/zip' }),
+        `${filePrefix}.zip`
       );
       return;
     }
-    const { strToU8, zipSync } = await import('fflate');
-    const files = Object.fromEntries(
-      datasets.map(dataset => [
-        `${dataset.fileName}.csv`,
-        strToU8(toCsv(dataset.rows))
-      ])
+    const rows = datasets.flatMap(dataset =>
+      dataset.rows.map(row => ({ 'Veri grubu': dataset.label, ...row }))
     );
     downloadBlob(
-      new Blob([zipSync(files)], { type: 'application/zip' }),
-      `${filePrefix}.zip`
+      new Blob([toCsv(rows)], { type: 'text/csv;charset=utf-8' }),
+      `${filePrefix}.csv`
     );
     return;
   }
@@ -380,11 +567,21 @@ export const exportDatasets = async (
     });
     return;
   }
-  datasets.forEach(dataset =>
-    XLSX.writeFileXLSX(
-      createWorkbook([dataset]),
-      `${filePrefix}-${dataset.fileName}.xlsx`,
-      { compression: true }
-    )
+  const { zipSync } = await import('fflate');
+  const files = Object.fromEntries(
+    datasets.map(dataset => [
+      `${dataset.fileName}.xlsx`,
+      new Uint8Array(
+        XLSX.write(createWorkbook([dataset]), {
+          bookType: 'xlsx',
+          type: 'array',
+          compression: true
+        })
+      )
+    ])
+  );
+  downloadBlob(
+    new Blob([zipSync(files)], { type: 'application/zip' }),
+    `${filePrefix}.zip`
   );
 };

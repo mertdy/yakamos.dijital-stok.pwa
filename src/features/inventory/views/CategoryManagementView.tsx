@@ -18,7 +18,8 @@ import {
   Pencil,
   Power,
   Search,
-  Trash2
+  Trash2,
+  X
 } from 'lucide-react';
 import { ROUTES } from '@/core/config/routes';
 import { useInventoryStore } from '../store/useInventoryStore';
@@ -45,6 +46,7 @@ export const CategoryManagementView = () => {
   const navigate = useNavigate();
   const [query, setQuery] = useState('');
   const debouncedQuery = useDebounce(query, 300);
+  const effectiveQuery = query ? debouncedQuery : '';
   const [editing, setEditing] = useState<ProductCategory | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [name, setName] = useState('');
@@ -66,10 +68,10 @@ export const CategoryManagementView = () => {
         category =>
           !category.parentId &&
           normalizeSearchText(category.name).includes(
-            normalizeSearchText(debouncedQuery)
+            normalizeSearchText(effectiveQuery)
           )
       ),
-    [categories, debouncedQuery]
+    [categories, effectiveQuery]
   );
 
   const productsByCategory = useMemo(() => {
@@ -312,19 +314,26 @@ export const CategoryManagementView = () => {
 
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[28px] bg-white shadow-sm">
         <div className="border-b border-gray-100 bg-gray-50/50 p-4">
-          <div className="relative w-full max-w-xl">
-            <Search
-              className="absolute top-1/2 left-3 -translate-y-1/2 text-gray-400"
-              size={20}
-            />
-            <Input
-              type="text"
-              fullWidth
-              className="pl-10"
-              value={query}
-              onChange={event => setQuery(event.target.value)}
-              placeholder="Kategori ara..."
-            />
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+            <div className="relative w-full max-w-xl flex-1">
+              <Search
+                className="absolute top-1/2 left-3 -translate-y-1/2 text-gray-400"
+                size={20}
+              />
+              <Input
+                type="text"
+                fullWidth
+                className="pl-10"
+                value={query}
+                onChange={event => setQuery(event.target.value)}
+                placeholder="Kategori ara..."
+              />
+            </div>
+            {query && (
+              <Button variant="tertiary" onPress={() => setQuery('')}>
+                <X size={17} className="mr-1.5" /> Temizle
+              </Button>
+            )}
           </div>
         </div>
 

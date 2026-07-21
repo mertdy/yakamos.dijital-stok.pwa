@@ -30,8 +30,20 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
         text: 'Seçtiğiniz envanter ürünlerinin kategori, birim, vergi, fiyat ve stok ayarlarını toplu olarak güncelleyebilirsiniz.'
       },
       {
+        type: 'new',
+        text: 'Veri dışa aktarmada kampanyaları, ortak hızlı ekle menüsünü ve ekstre paylaşım kayıtlarını seçebilir; işlem tarih aralığını ve kayıt özetini görebilirsiniz.'
+      },
+      {
+        type: 'new',
+        text: 'Kategori aramasını tek dokunuşla temizleyebilirsiniz.'
+      },
+      {
         type: 'improved',
         text: 'Yetkili kullanıcılar otomatik fiyat kuralını gerekçe ekleyerek yalnızca ilgili satış için kaldırabilir.'
+      },
+      {
+        type: 'improved',
+        text: 'Veri dışa aktarmada ayrı dosyaları ZIP içinde veya tüm verileri tek dosyada almayı daha açık şekilde seçebilirsiniz.'
       },
       {
         type: 'improved',
@@ -96,6 +108,14 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
       {
         type: 'fixed',
         text: 'Kategori ürün listesini açtığınızda tüm kategorilere yeniden kaydırarak ulaşabilirsiniz.'
+      },
+      {
+        type: 'fixed',
+        text: 'Telefon numarası alanının köşeleri ve yazı hizası daha tutarlı hale getirildi.'
+      },
+      {
+        type: 'fixed',
+        text: 'Envanter, müşteri ve satış geçmişi aramalarını temizlediğinizde sonuçlar ve bağlantıdaki arama bilgisi birlikte sıfırlanır.'
       }
     ]
   },

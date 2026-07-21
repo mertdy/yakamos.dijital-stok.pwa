@@ -60,10 +60,13 @@ export const CustomerFilters = ({ value, onChange }: CustomerFiltersProps) => {
   }, [value]);
 
   useEffect(() => {
-    if (debouncedSearchQuery !== (value.searchQuery ?? '')) {
+    if (
+      debouncedSearchQuery === searchQuery &&
+      debouncedSearchQuery !== (value.searchQuery ?? '')
+    ) {
       onChange({ ...value, searchQuery: debouncedSearchQuery || undefined });
     }
-  }, [debouncedSearchQuery, onChange, value]);
+  }, [debouncedSearchQuery, onChange, searchQuery, value]);
 
   const activeFilterCount = useMemo(
     () =>

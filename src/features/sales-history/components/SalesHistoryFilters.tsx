@@ -114,7 +114,10 @@ export const SalesHistoryFilters: React.FC = () => {
   }, [clearFilters, searchParams, setFilters]);
 
   useEffect(() => {
-    if (debouncedSearchQuery !== (filters.searchQuery ?? '')) {
+    if (
+      debouncedSearchQuery === searchQuery &&
+      debouncedSearchQuery !== (filters.searchQuery ?? '')
+    ) {
       setSearchParams(
         getSearchParamsFromFilters({
           ...filters,
@@ -122,7 +125,7 @@ export const SalesHistoryFilters: React.FC = () => {
         })
       );
     }
-  }, [debouncedSearchQuery, filters, setSearchParams]);
+  }, [debouncedSearchQuery, filters, searchQuery, setSearchParams]);
 
   const handleApplyFilters = () => {
     setSearchParams(

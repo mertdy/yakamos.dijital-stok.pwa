@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { CategoryManagementView } from './CategoryManagementView';
 import { useCategoryStore } from '../store/useCategoryStore';
 
@@ -65,5 +66,38 @@ describe('CategoryManagementView', () => {
     rerender(<CategoryManagementView />);
 
     expect(loadCategories).toHaveBeenCalledTimes(2);
+  });
+
+  it('clears the category search with the toolbar action', async () => {
+    const user = userEvent.setup();
+    mockUseCategoryStore.mockReturnValue({
+      categories: [
+        {
+          id: 'category-1',
+          companyId: 'company-a',
+          name: 'İçecekler',
+          parentId: null,
+          isActive: true,
+          sortOrder: 0
+        }
+      ],
+      isLoading: false,
+      loadCategories,
+      addCategory: vi.fn(),
+      updateCategory: vi.fn(),
+      setCategoryActive: vi.fn(),
+      deleteCategory: vi.fn()
+    });
+
+    render(<CategoryManagementView />);
+
+    const search = screen.getByPlaceholderText('Kategori ara...');
+    await user.type(search, 'İçecek');
+    await user.click(screen.getByRole('button', { name: 'Temizle' }));
+
+    expect(search).toHaveValue('');
+    expect(
+      screen.queryByRole('button', { name: 'Temizle' })
+    ).not.toBeInTheDocument();
   });
 });
