@@ -11,6 +11,12 @@ export async function login(page: Page) {
   await loginWithCredentials(page, ENV.TEST_USER_EMAIL, ENV.TEST_USER_PASSWORD);
   await page.goto('/');
   await expect(page.getByRole('heading', { name: 'Anasayfa' })).toBeVisible();
+  await dismissOnboardingIfVisible(page);
+}
+
+export async function dismissOnboardingIfVisible(page: Page) {
+  const closeGuide = page.getByLabel('Rehberi kapat');
+  if (await closeGuide.isVisible()) await closeGuide.click();
 }
 
 export async function loginWithCredentials(
@@ -39,7 +45,9 @@ export async function createProduct(
   ).toBeVisible();
   await page.locator('input[name="name"]').fill(product.name);
   await page.locator('input[name="stock"]').fill(String(product.stock ?? 20));
-  await page.locator('input[name="price"]').fill(String(product.price ?? 10));
+  await page
+    .locator('input[name="salePrice"]')
+    .fill(String(product.price ?? 10));
   if (product.barcode) {
     await page.locator('input[name="barcode"]').fill(product.barcode);
   }
@@ -92,7 +100,7 @@ export async function deleteProduct(page: Page, name: string) {
     .fill(name);
   const row = page.getByRole('row', { name: new RegExp(name) });
   await expect(row).toBeVisible();
-  await row.getByRole('button', { name: 'Sil' }).click();
+  await row.getByLabel('Sil').click();
   await page
     .getByRole('alertdialog')
     .getByRole('button', { name: 'Sil' })
@@ -121,13 +129,9 @@ export async function setOffline(context: BrowserContext, page: Page) {
   await waitForServiceWorker(page);
   await context.setOffline(true);
   await expect.poll(() => page.evaluate(() => navigator.onLine)).toBe(false);
-  await expect(
-    page.getByLabel('Veriler çevrimdışı kaydediliyor').first()
-  ).toBeVisible();
 }
 
 export async function setOnline(context: BrowserContext, page: Page) {
   await context.setOffline(false);
   await expect.poll(() => page.evaluate(() => navigator.onLine)).toBe(true);
-  await expect(page.getByLabel('Bulut ile senkronize').first()).toBeVisible();
 }

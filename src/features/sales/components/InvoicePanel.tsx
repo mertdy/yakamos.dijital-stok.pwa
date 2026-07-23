@@ -53,9 +53,6 @@ export const InvoicePanel: React.FC<Props> = ({
   const { activeMembership } = useAuthStore();
   const { customers } = useCustomerStore();
 
-  const [invoiceRef] = useState(
-    () => `INV-${Math.floor(10000 + Math.random() * 90000)}`
-  ); // UI Mock
   const [givenAmount, setGivenAmount] = useState<number | ''>('');
   const [isCustomAmountFocused, setIsCustomAmountFocused] = useState(false);
   const [lastSale, setLastSale] = useState<any>(null);
@@ -121,7 +118,6 @@ export const InvoicePanel: React.FC<Props> = ({
   const handleCheckout = async () => {
     // Save current state for receipt before checkout clears it
     const saleData = {
-      id: invoiceRef,
       createdAt: new Date().toISOString(),
       items: [...cart],
       totalAmount: totalPayable
@@ -230,12 +226,11 @@ export const InvoicePanel: React.FC<Props> = ({
 
   return (
     <div className="flex flex-col overflow-hidden rounded-3xl border border-gray-100 bg-white shadow-sm">
-      <div className="flex items-center justify-between border-b border-gray-100 bg-gray-50/50 px-4 py-3">
+      <div className="flex items-center border-b border-gray-100 bg-gray-50/50 px-4 py-3">
         <h2 className="flex items-center gap-2 text-base font-bold tracking-tight text-gray-900">
           <Receipt className="text-primary" size={18} />
           Ödeme
         </h2>
-        <span className="font-mono text-sm text-gray-500">#{invoiceRef}</span>
       </div>
 
       <div className="space-y-3 p-4">

@@ -19,7 +19,9 @@ test.describe('Online navigation and page availability @online', () => {
     for (const [path, heading] of pages) {
       await page.goto(path);
       await expect(page.getByRole('heading', { name: heading })).toBeVisible();
-      await expect(page.getByRole('navigation')).toBeVisible();
+      await expect(
+        page.locator('[data-onboarding="main-navigation"]')
+      ).toBeVisible();
     }
   });
 });

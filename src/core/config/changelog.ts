@@ -79,6 +79,14 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
       },
       {
         type: 'fixed',
+        text: 'Ödeme kartındaki satışla ilişkisiz geçici fatura numarası kaldırıldı.'
+      },
+      {
+        type: 'fixed',
+        text: 'Fiş ve tahsilat makbuzlarında sabit uygulama adı yerine işletmenizin fiş başlığı veya adı gösterilir.'
+      },
+      {
+        type: 'fixed',
         text: 'Satış rehberi açılırken satış ekranı ve ilk hedef alan hazırlandıktan sonra tur başlatılır; ilk adım artık atlanmaz.'
       },
       {

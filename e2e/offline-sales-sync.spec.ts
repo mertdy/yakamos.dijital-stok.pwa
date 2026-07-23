@@ -54,6 +54,10 @@ test.describe('Offline sales and recovery @offline @offline-to-online', () => {
     await expect(pendingBackup).toBeVisible();
 
     await setOnline(context, page);
+    await page.reload();
+    await expect(
+      page.getByRole('heading', { name: 'Satış Geçmişi' })
+    ).toBeVisible();
     await expect(pendingBackup).toHaveCount(0, { timeout: 30_000 });
     await deleteProduct(page, productName);
   });

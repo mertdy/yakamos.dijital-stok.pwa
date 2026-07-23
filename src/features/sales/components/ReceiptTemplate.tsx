@@ -17,7 +17,7 @@ interface ReceiptTemplateProps {
 export const ReceiptTemplate = React.forwardRef<
   HTMLDivElement,
   ReceiptTemplateProps
->(({ sale, companyName = 'DİJİTAL STOK A.Ş.' }, ref) => {
+>(({ sale, companyName = 'Dijital Stok' }, ref) => {
   if (!sale) return null;
 
   return (
@@ -30,9 +30,11 @@ export const ReceiptTemplate = React.forwardRef<
         <p className="text-xs text-gray-600">
           Tarih: {dayjs(sale.createdAt).format('DD/MM/YYYY HH:mm')}
         </p>
-        <p className="text-xs text-gray-600">
-          Fiş No: {sale.id?.slice(0, 8).toUpperCase()}
-        </p>
+        {sale.id && (
+          <p className="text-xs text-gray-600">
+            Fiş No: {sale.id.slice(0, 8).toUpperCase()}
+          </p>
+        )}
       </div>
 
       <div className="mb-2 border-b border-dashed border-gray-400"></div>

@@ -55,7 +55,7 @@ test.describe('Data management workflows @online', () => {
     await exportDialog.getByRole('button', { name: 'Seçimi temizle' }).click();
     await exportDialog.getByText('Envanter').first().click();
     await exportDialog.getByRole('button', { name: 'Devam Et' }).click();
-    await exportDialog.getByRole('button', { name: 'CSV' }).click();
+    await exportDialog.getByText('CSV', { exact: true }).click();
     await exportDialog.getByRole('button', { name: 'Devam Et' }).click();
     const downloadPromise = page.waitForEvent('download');
     await exportDialog.getByRole('button', { name: 'Dışa Aktar' }).click();

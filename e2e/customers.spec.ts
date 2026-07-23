@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { ENV } from '../src/core/config/env';
 import { ROUTES } from '../src/core/config/routes';
+import { dismissOnboardingIfVisible } from './support/app';
 
 test.describe('Customer Management Flow', () => {
   test.beforeEach(async ({ page }) => {
@@ -9,6 +10,7 @@ test.describe('Customer Management Flow', () => {
     await page.locator('#login-password').fill(ENV.TEST_USER_PASSWORD);
     await page.click('#login-submit-btn');
     await expect(page.getByRole('heading', { name: 'Anasayfa' })).toBeVisible();
+    await dismissOnboardingIfVisible(page);
   });
 
   test('should create customer, navigate to details, and record a payment', async ({
@@ -35,8 +37,8 @@ test.describe('Customer Management Flow', () => {
     await page
       .locator('input[placeholder="İsim, soyisim veya telefon ile ara..."]')
       .fill(name);
-    // Click on the row with customer name to navigate to details
-    await page.getByText(name).click();
+    const customerRow = page.getByRole('row', { name: new RegExp(name) });
+    await customerRow.getByLabel('Hesap Detayı').click();
     await expect(
       page.getByRole('heading', { name: `${name} Surname` })
     ).toBeVisible();

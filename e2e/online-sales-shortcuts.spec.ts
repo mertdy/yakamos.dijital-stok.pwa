@@ -8,6 +8,14 @@ import {
   uniqueName
 } from './support/app';
 
+const quickAddButton = (
+  page: import('@playwright/test').Page,
+  productName: string
+) =>
+  page.getByRole('button', {
+    name: new RegExp(`^${productName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')} ₺`)
+  });
+
 async function addQuickAddShortcut(
   page: import('@playwright/test').Page,
   productName: string
@@ -113,7 +121,7 @@ test.describe('Online sales composition @online', () => {
       page.getByText('Kısayollar başarıyla kaydedildi.')
     ).toBeVisible();
 
-    await page.getByRole('button', { name: productName }).click();
+    await quickAddButton(page, productName).click();
     await addProductToCart(page, productName);
     await page.getByRole('button', { name: '% Yüzde' }).click();
     await page.locator('input[placeholder="İndirim Miktarı"]').fill('10');
@@ -201,9 +209,7 @@ test.describe('Company-specific quick-add shortcuts @online', () => {
       price: 10
     });
     await addQuickAddShortcut(page, firstCompanyProduct);
-    await expect(
-      page.getByRole('button', { name: firstCompanyProduct })
-    ).toBeVisible();
+    await expect(quickAddButton(page, firstCompanyProduct)).toBeVisible();
 
     await createCompany(page, secondCompanyName);
     await createProduct(page, {
@@ -212,13 +218,9 @@ test.describe('Company-specific quick-add shortcuts @online', () => {
       price: 20
     });
     await addQuickAddShortcut(page, secondCompanyProduct);
-    await expect(
-      page.getByRole('button', { name: secondCompanyProduct })
-    ).toBeVisible();
+    await expect(quickAddButton(page, secondCompanyProduct)).toBeVisible();
     await switchCompany(page, firstCompanyName);
-    await expect(
-      page.getByRole('button', { name: firstCompanyProduct })
-    ).toBeVisible();
+    await expect(quickAddButton(page, firstCompanyProduct)).toBeVisible();
 
     // Start observing just before the switch. Once the new company is active,
     // the previous company's shortcut must not be inserted even for one frame.
@@ -263,9 +265,7 @@ test.describe('Company-specific quick-add shortcuts @online', () => {
     );
 
     await switchCompany(page, secondCompanyName);
-    await expect(
-      page.getByRole('button', { name: secondCompanyProduct })
-    ).toBeVisible();
+    await expect(quickAddButton(page, secondCompanyProduct)).toBeVisible();
     await page.waitForTimeout(700);
     await expect
       .poll(() =>

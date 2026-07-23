@@ -39,7 +39,10 @@ test.describe('Customer credit sale and collection @online', () => {
     await page
       .locator('input[placeholder="İsim, soyisim veya telefon ile ara..."]')
       .fill(customerName);
-    await page.getByText(customerName).click();
+    const customerRow = page.getByRole('row', {
+      name: new RegExp(customerName)
+    });
+    await customerRow.getByLabel('Hesap Detayı').click();
     await expect(page.getByText('₺20,00')).toBeVisible();
     await page.getByRole('button', { name: 'Tahsilat Al' }).click();
     const paymentDialog = page.getByRole('dialog');

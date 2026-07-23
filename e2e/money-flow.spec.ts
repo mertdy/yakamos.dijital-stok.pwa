@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { ENV } from '../src/core/config/env';
 import { ROUTES } from '../src/core/config/routes';
+import { dismissOnboardingIfVisible } from './support/app';
 
 test.describe('Kritik Para Akışı (Money Flow)', () => {
   test('Kullanıcı giriş yapıp sepetine ürün ekleyerek satışı tamamlayabilmeli', async ({
@@ -17,6 +18,7 @@ test.describe('Kritik Para Akışı (Money Flow)', () => {
     await page.locator('#login-password').fill(ENV.TEST_USER_PASSWORD);
     await page.click('#login-submit-btn');
     await expect(page.getByRole('heading', { name: 'Anasayfa' })).toBeVisible();
+    await dismissOnboardingIfVisible(page);
 
     // 3. Satış (POS) Ekranında Olduğumuzu Doğrula
     await page.goto(ROUTES.SALES);
@@ -33,7 +35,7 @@ test.describe('Kritik Para Akışı (Money Flow)', () => {
     const productName = `Flow Item ${Date.now()}`;
     await page.locator('input[name="name"]').fill(productName);
     await page.locator('input[name="stock"]').fill('10');
-    await page.locator('input[name="price"]').fill('15.00');
+    await page.locator('input[name="salePrice"]').fill('15.00');
     await page.click('button:has-text("Ürünü Kaydet")');
     await expect(page.getByText('Yeni ürün eklendi')).toBeVisible();
 
@@ -47,7 +49,7 @@ test.describe('Kritik Para Akışı (Money Flow)', () => {
     await page.click(`button:has-text("${productName}")`);
 
     // 5. Sepette Ürünün Göründüğünü Doğrula
-    await expect(page.locator('text="Genel Toplam"')).toBeVisible();
+    await expect(page.getByText('Toplam Tutar')).toBeVisible();
 
     // 6. Ödemeyi Al Butonuna Tıkla
     await page.click('button:has-text("Ödemeyi Al")');

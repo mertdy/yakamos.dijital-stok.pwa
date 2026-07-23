@@ -80,11 +80,13 @@ test.describe('Company switch sales history @online', () => {
       ENV.TEST_USER_2_PASSWORD
     );
     await employeePage.goto(ROUTES.ACCOUNT_SETTINGS);
-    const invitationCard = employeePage
-      .getByText(hostCompanyName, { exact: true })
-      .locator('xpath=../..');
-    await invitationCard.getByRole('button', { name: 'Kabul Et' }).click();
-    await expect(employeePage.getByText('Davet kabul edildi')).toBeVisible();
+    await employeePage
+      .getByRole('button', { name: 'Kabul Et' })
+      .first()
+      .click();
+    await expect(
+      employeePage.getByRole('button', { name: 'İşletme Seç' })
+    ).toContainText(hostCompanyName);
 
     const expandSidebar = employeePage.getByRole('button', {
       name: 'Kenar çubuğunu genişlet'

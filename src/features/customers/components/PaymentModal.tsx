@@ -10,6 +10,7 @@ import {
   toast
 } from '@heroui/react';
 import { useCustomerStore } from '../store/useCustomerStore';
+import { useAuthStore } from '@/features/auth';
 import { useReactToPrint } from 'react-to-print';
 import { Printer } from 'lucide-react';
 import { ReceiptTemplate } from '@/features/sales';
@@ -40,6 +41,12 @@ export const PaymentModal: React.FC<Props> = ({
   currentDebt,
   onPaymentSuccess
 }) => {
+  const companyName = useAuthStore(
+    state =>
+      state.activeCompany?.receiptHeader?.trim() ||
+      state.activeCompany?.name ||
+      'Dijital Stok'
+  );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [modalDebt, setModalDebt] = useState(currentDebt);
   const [paymentId, setPaymentId] = useState<string | null>(null);
@@ -133,6 +140,7 @@ export const PaymentModal: React.FC<Props> = ({
                 <div className="hidden">
                   <ReceiptTemplate
                     ref={receiptRef}
+                    companyName={companyName}
                     sale={{
                       id: paymentId || 'new-payment',
                       createdAt: new Date().toISOString(),
