@@ -4,6 +4,7 @@ import {
   Label,
   ListBox,
   Modal,
+  SearchField,
   Select,
   Spinner,
   TextArea,
@@ -39,7 +40,10 @@ interface Props {
 const ALL_PERMISSIONS = AVAILABLE_PERMISSIONS.map(permission => permission.key);
 
 const displayName = (membership: Membership) =>
-  membership.employeeName || membership.email || membership.userId;
+  membership.employeeName?.trim() || membership.email || membership.userId;
+
+const includesSearch = (value: string, query: string) =>
+  value.toLocaleLowerCase('tr-TR').includes(query.toLocaleLowerCase('tr-TR'));
 
 export const SupportAccessModal = ({ isOpen, onClose }: Props) => {
   const { user, memberships, switchCompany } = useAuthStore();
@@ -49,6 +53,8 @@ export const SupportAccessModal = ({ isOpen, onClose }: Props) => {
   const [targetMembershipId, setTargetMembershipId] = useState<string | null>(
     null
   );
+  const [companySearch, setCompanySearch] = useState('');
+  const [memberSearch, setMemberSearch] = useState('');
   const [reason, setReason] = useState('');
   const [duration, setDuration] = useState('60');
   const [isLoading, setIsLoading] = useState(false);
@@ -60,6 +66,17 @@ export const SupportAccessModal = ({ isOpen, onClose }: Props) => {
   );
   const existingMembership = memberships.find(
     membership => membership.companyId === companyId
+  );
+  const filteredCompanies = companies.filter(company =>
+    includesSearch(company.name, companySearch)
+  );
+  const filteredTargetMemberships = targetMemberships.filter(membership =>
+    includesSearch(
+      [membership.employeeName, membership.email, membership.userId]
+        .filter(Boolean)
+        .join(' '),
+      memberSearch
+    )
   );
 
   useEffect(() => {
@@ -79,7 +96,7 @@ export const SupportAccessModal = ({ isOpen, onClose }: Props) => {
         toast.danger('İşletmeler yüklenemedi.');
       })
       .finally(() => setIsLoading(false));
-  }, [isOpen, user?.email]);
+  }, [isOpen, user]);
 
   useEffect(() => {
     setTargetMembershipId(null);
@@ -93,6 +110,9 @@ export const SupportAccessModal = ({ isOpen, onClose }: Props) => {
           snapshot.docs
             .map(item => item.data() as Membership)
             .filter(membership => membership.userId !== user?.uid)
+            .sort((first, second) =>
+              displayName(first).localeCompare(displayName(second), 'tr')
+            )
         )
       )
       .catch(error => {
@@ -105,6 +125,8 @@ export const SupportAccessModal = ({ isOpen, onClose }: Props) => {
     if (isOpen) return;
     setCompanyId(null);
     setTargetMembershipId(null);
+    setCompanySearch('');
+    setMemberSearch('');
     setReason('');
     setDuration('60');
   }, [isOpen]);
@@ -220,7 +242,11 @@ export const SupportAccessModal = ({ isOpen, onClose }: Props) => {
                 <>
                   <Select
                     selectedKey={companyId}
-                    onSelectionChange={key => setCompanyId(key as string)}
+                    onSelectionChange={key => {
+                      setCompanyId(key as string);
+                      setCompanySearch('');
+                      setMemberSearch('');
+                    }}
                     fullWidth>
                     <Label>İşletme</Label>
                     <Select.Trigger>
@@ -228,21 +254,39 @@ export const SupportAccessModal = ({ isOpen, onClose }: Props) => {
                       <Select.Indicator />
                     </Select.Trigger>
                     <Select.Popover>
+                      <div className="p-2">
+                        <SearchField
+                          value={companySearch}
+                          onChange={setCompanySearch}
+                          fullWidth>
+                          <SearchField.Group>
+                            <SearchField.SearchIcon />
+                            <SearchField.Input placeholder="İşletme ara..." />
+                            <SearchField.ClearButton />
+                          </SearchField.Group>
+                        </SearchField>
+                      </div>
                       <ListBox>
-                        {companies.map(company => (
+                        {filteredCompanies.map(company => (
                           <ListBox.Item id={company.id} key={company.id}>
                             {company.name}
                           </ListBox.Item>
                         ))}
                       </ListBox>
+                      {!filteredCompanies.length && (
+                        <p className="text-default-500 px-3 pb-3 text-sm">
+                          İşletme bulunamadı.
+                        </p>
+                      )}
                     </Select.Popover>
                   </Select>
                   <Select
                     isDisabled={!companyId}
                     selectedKey={targetMembershipId}
-                    onSelectionChange={key =>
-                      setTargetMembershipId(key as string)
-                    }
+                    onSelectionChange={key => {
+                      setTargetMembershipId(key as string);
+                      setMemberSearch('');
+                    }}
                     fullWidth>
                     <Label>Yetkileri yansıtılacak kullanıcı</Label>
                     <Select.Trigger>
@@ -250,13 +294,47 @@ export const SupportAccessModal = ({ isOpen, onClose }: Props) => {
                       <Select.Indicator />
                     </Select.Trigger>
                     <Select.Popover>
+                      <div className="p-2">
+                        <SearchField
+                          value={memberSearch}
+                          onChange={setMemberSearch}
+                          fullWidth>
+                          <SearchField.Group>
+                            <SearchField.SearchIcon />
+                            <SearchField.Input placeholder="Kullanıcı ara..." />
+                            <SearchField.ClearButton />
+                          </SearchField.Group>
+                        </SearchField>
+                      </div>
                       <ListBox>
-                        {targetMemberships.map(membership => (
-                          <ListBox.Item id={membership.id} key={membership.id}>
-                            {displayName(membership)}
+                        {filteredTargetMemberships.map(membership => (
+                          <ListBox.Item
+                            id={membership.id}
+                            key={membership.id}
+                            textValue={[
+                              displayName(membership),
+                              membership.email
+                            ]
+                              .filter(Boolean)
+                              .join(' ')}>
+                            <div className="flex min-w-0 flex-col">
+                              <span className="truncate">
+                                {displayName(membership)}
+                              </span>
+                              {membership.employeeName && membership.email && (
+                                <span className="text-default-500 truncate text-xs">
+                                  {membership.email}
+                                </span>
+                              )}
+                            </div>
                           </ListBox.Item>
                         ))}
                       </ListBox>
+                      {!filteredTargetMemberships.length && (
+                        <p className="text-default-500 px-3 pb-3 text-sm">
+                          Kullanıcı bulunamadı.
+                        </p>
+                      )}
                     </Select.Popover>
                   </Select>
                   {permissionSummary && (

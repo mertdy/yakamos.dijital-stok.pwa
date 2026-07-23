@@ -41,7 +41,7 @@ export const GettingStartedCard = ({
   const { items, addItem, deleteItem } = useInventoryStore();
   const {
     progress,
-    loadedCompanyId,
+    loadedUserId,
     isLoading,
     startModule,
     dismissChecklist,
@@ -68,7 +68,7 @@ export const GettingStartedCard = ({
     !user ||
     !activeCompany ||
     isLoading ||
-    loadedCompanyId !== activeCompany.id ||
+    loadedUserId !== user.uid ||
     progress.dismissedAt
   ) {
     return null;
@@ -254,19 +254,30 @@ export const GettingStartedCard = ({
               </p>
             </div>
           </div>
-          <div className="shrink-0">
+          <div className="flex shrink-0 items-center gap-1">
             {compact && (
-              <Button
-                isIconOnly
-                variant="ghost"
-                aria-label={isExpanded ? 'Rehberi daralt' : 'Rehberi genişlet'}
-                onPress={() => setIsExpanded(value => !value)}>
-                {isExpanded ? (
-                  <ChevronDown size={18} />
-                ) : (
-                  <ChevronUp size={18} />
-                )}
-              </Button>
+              <>
+                <Button
+                  isIconOnly
+                  variant="ghost"
+                  aria-label={
+                    isExpanded ? 'Rehberi daralt' : 'Rehberi genişlet'
+                  }
+                  onPress={() => setIsExpanded(value => !value)}>
+                  {isExpanded ? (
+                    <ChevronDown size={18} />
+                  ) : (
+                    <ChevronUp size={18} />
+                  )}
+                </Button>
+                <Button
+                  isIconOnly
+                  variant="ghost"
+                  aria-label="Rehberi kapat"
+                  onPress={() => void dismissChecklist()}>
+                  <X size={18} />
+                </Button>
+              </>
             )}
           </div>
         </div>

@@ -55,8 +55,7 @@ Capabilities
 
 - Permission-aware short interface tour covering company selection,
   navigation, synchronization status and the profile menu
-- Per-user, company-scoped achievement checklist for sales, inventory filters
-  and customer management
+- Per-user achievement checklist shared across the user's companies
 - Optional sample product creation for inventory managers
 - Sales guidance covering product search, barcode scanning, cart, payment,
   customer selection, quick add, hold and reset actions

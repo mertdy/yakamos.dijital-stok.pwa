@@ -1,22 +1,23 @@
 import { create } from 'zustand';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { deleteField, doc, getDoc, setDoc } from 'firebase/firestore';
 import { auth, db } from '@/core/firebase/config';
 import { getSingletonStore } from '@/shared/utils/getSingletonStore';
 import {
   EMPTY_ONBOARDING_PROGRESS,
-  ONBOARDING_VERSION,
+  mergeLegacyOnboardingProgress,
+  normalizeOnboardingProgress,
   type OnboardingProgress
 } from '../domain/onboardingTasks';
 import type { OnboardingModuleId } from '../domain/onboardingModules';
 
 interface OnboardingState {
   progress: OnboardingProgress;
-  loadedCompanyId: string | null;
+  loadedUserId: string | null;
   isLoading: boolean;
   isWelcomeOpen: boolean;
   isTourRunning: boolean;
   activeModule: OnboardingModuleId | null;
-  loadOnboarding: (companyId: string | null) => Promise<void>;
+  loadOnboarding: () => Promise<void>;
   markWelcomeSeen: () => Promise<void>;
   startTour: () => Promise<void>;
   stopTour: () => void;
@@ -29,50 +30,42 @@ interface OnboardingState {
   clearOnboarding: () => void;
 }
 
-const normalizeProgress = (value?: Partial<OnboardingProgress>) => ({
-  ...EMPTY_ONBOARDING_PROGRESS,
-  ...value,
-  completedModules: {
-    ...(value?.tourCompletedAt ? { 'quick-tour': value.tourCompletedAt } : {}),
-    ...value?.completedModules
-  },
-  version: ONBOARDING_VERSION
-});
-
 export const useOnboardingStore = getSingletonStore('onboarding', () =>
   create<OnboardingState>((set, get) => {
     const persistProgress = async (patch: Partial<OnboardingProgress>) => {
       const user = auth.currentUser;
-      const companyId = get().loadedCompanyId;
-      if (!user || !companyId) return;
+      if (!user || get().loadedUserId !== user.uid) return;
 
-      const nextProgress = normalizeProgress({ ...get().progress, ...patch });
+      const nextProgress = normalizeOnboardingProgress({
+        ...get().progress,
+        ...patch
+      });
       set({ progress: nextProgress });
       await setDoc(
         doc(db, 'userPreferences', user.uid),
-        { onboardingByCompany: { [companyId]: nextProgress } },
+        { onboarding: nextProgress },
         { merge: true }
       );
     };
 
     return {
       progress: EMPTY_ONBOARDING_PROGRESS,
-      loadedCompanyId: null,
+      loadedUserId: null,
       isLoading: false,
       isWelcomeOpen: false,
       isTourRunning: false,
       activeModule: null,
 
-      loadOnboarding: async companyId => {
+      loadOnboarding: async () => {
         const user = auth.currentUser;
-        if (!user || !companyId) {
+        if (!user) {
           get().clearOnboarding();
           return;
         }
-        if (get().loadedCompanyId === companyId) return;
+        if (get().loadedUserId === user.uid) return;
 
         set({
-          loadedCompanyId: companyId,
+          loadedUserId: user.uid,
           isLoading: true,
           isWelcomeOpen: false,
           isTourRunning: false,
@@ -82,11 +75,26 @@ export const useOnboardingStore = getSingletonStore('onboarding', () =>
 
         try {
           const snapshot = await getDoc(doc(db, 'userPreferences', user.uid));
-          if (get().loadedCompanyId !== companyId) return;
-          const stored = snapshot.data()?.onboardingByCompany?.[companyId] as
+          if (get().loadedUserId !== user.uid) return;
+          const preferences = snapshot.data();
+          const stored = preferences?.onboarding as
             | Partial<OnboardingProgress>
             | undefined;
-          const progress = normalizeProgress(stored);
+          const legacyProgress = preferences?.onboardingByCompany as
+            | Record<string, Partial<OnboardingProgress>>
+            | undefined;
+          const progress = stored
+            ? normalizeOnboardingProgress(stored)
+            : legacyProgress
+              ? mergeLegacyOnboardingProgress(legacyProgress)
+              : EMPTY_ONBOARDING_PROGRESS;
+          if (!stored && legacyProgress) {
+            await setDoc(
+              doc(db, 'userPreferences', user.uid),
+              { onboarding: progress, onboardingByCompany: deleteField() },
+              { merge: true }
+            );
+          }
           set({
             progress,
             isWelcomeOpen: !progress.welcomeSeenAt,
@@ -94,7 +102,7 @@ export const useOnboardingStore = getSingletonStore('onboarding', () =>
           });
         } catch (error) {
           console.error('Onboarding preferences could not be loaded:', error);
-          if (get().loadedCompanyId === companyId) {
+          if (get().loadedUserId === user.uid) {
             set({ isLoading: false });
           }
         }
@@ -119,7 +127,12 @@ export const useOnboardingStore = getSingletonStore('onboarding', () =>
       stopTour: () => set({ isTourRunning: false, activeModule: null }),
 
       dismissChecklist: async () => {
-        await persistProgress({ dismissedAt: new Date().toISOString() });
+        const now = new Date().toISOString();
+        await persistProgress({
+          welcomeSeenAt: get().progress.welcomeSeenAt ?? now,
+          dismissedAt: now
+        });
+        set({ isWelcomeOpen: false, isTourRunning: false, activeModule: null });
       },
 
       restartOnboarding: async () => {
@@ -164,7 +177,7 @@ export const useOnboardingStore = getSingletonStore('onboarding', () =>
       clearOnboarding: () =>
         set({
           progress: EMPTY_ONBOARDING_PROGRESS,
-          loadedCompanyId: null,
+          loadedUserId: null,
           isLoading: false,
           isWelcomeOpen: false,
           isTourRunning: false,

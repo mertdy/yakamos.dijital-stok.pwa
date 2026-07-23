@@ -23,6 +23,18 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
       },
       {
         type: 'improved',
+        text: 'Başlangıç rehberi ilerlemesi artık işletmeye göre ayrılmadan hesabınız için tek kez kaydedilir.'
+      },
+      {
+        type: 'improved',
+        text: 'Sabit başlangıç rehberi kartına, tüm rehberi atlayan hızlı kapatma düğmesi eklendi.'
+      },
+      {
+        type: 'improved',
+        text: 'Destek oturumu açarken işletme ve kullanıcı listelerinde arama yapılabilir; tanımlı çalışan adı ve e-posta birlikte görüntülenir.'
+      },
+      {
+        type: 'improved',
         text: 'Başlangıç rehberini gizleme seçeneği, rehberi tamamlama eyleminin yanına taşındı.'
       },
       {

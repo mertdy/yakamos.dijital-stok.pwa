@@ -29,7 +29,7 @@ const findVisibleTarget = (name: string) => () => {
 };
 
 export const OnboardingExperience = () => {
-  const { activeCompany, activeMembership } = useAuthStore();
+  const { user, activeMembership } = useAuthStore();
   const navigate = useNavigate();
   const { isDark } = useThemeMode();
   const customers = useCustomerStore(state => state.customers);
@@ -46,8 +46,8 @@ export const OnboardingExperience = () => {
   } = useOnboardingStore();
 
   useEffect(() => {
-    void loadOnboarding(activeCompany?.id ?? null);
-  }, [activeCompany?.id, loadOnboarding]);
+    void loadOnboarding();
+  }, [user?.uid, loadOnboarding]);
 
   const hasCustomerGuidePermission =
     (activeMembership?.role === 'OWNER' ||

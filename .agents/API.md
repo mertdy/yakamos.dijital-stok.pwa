@@ -69,11 +69,9 @@ require the `MANAGE_COMPANY_QUICK_ADD` permission or company ownership.
 userPreferences
 
 Private account-level interface preferences. Guided onboarding progress is
-stored in `onboardingByCompany`, keyed by company ID, so each user can complete
-or dismiss the guide independently in each company. Each entry contains the
-onboarding version, welcome/tour timestamps, dismissal timestamp, optional
-sample product ID and a `completedModules` timestamp map for completed guide
-achievements.
+stored once in `onboarding`; it applies to the user's account across every
+company. Legacy `onboardingByCompany` data is merged into this record and then
+removed on first load.
 
 pricingRules
 
