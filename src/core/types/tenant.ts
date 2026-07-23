@@ -1,3 +1,5 @@
+import type { Timestamp } from 'firebase/firestore';
+
 export interface Company {
   id: string;
   name: string;
@@ -44,7 +46,26 @@ export interface Membership {
   permissions: PermissionKey[];
   /** Present only for employee memberships created by accepting an invitation. */
   invitationId?: string;
+  /** Temporary, platform-admin-created membership used for support sessions. */
+  supportSessionId?: string;
+  supportTargetUserId?: string;
+  supportExpiresAt?: Timestamp;
   createdAt: string;
+}
+
+export interface SupportSession {
+  id: string;
+  companyId: string;
+  companyName: string;
+  openedBy: string;
+  targetUserId: string;
+  targetMembershipId: string;
+  permissionSnapshot: PermissionKey[];
+  reason: string;
+  status: 'ACTIVE' | 'CLOSED';
+  startedAt: Timestamp;
+  expiresAt: Timestamp;
+  endedAt?: Timestamp;
 }
 
 export interface Invitation {

@@ -5,3 +5,9 @@ export const SupportModal = lazy(() =>
     default: module.SupportModal
   }))
 );
+
+export const SupportAccessModal = lazy(() =>
+  import('./components/SupportAccessModal').then(module => ({
+    default: module.SupportAccessModal
+  }))
+);

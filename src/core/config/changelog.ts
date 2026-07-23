@@ -15,6 +15,10 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
     items: [
       {
         type: 'new',
+        text: 'Platform destek yöneticisi, seçilen kullanıcının yetkilerini geçici olarak yansıtan süreli destek oturumu açabilir; işlemler destek yöneticisi olarak kaydedilir.'
+      },
+      {
+        type: 'new',
         text: 'Başlangıç rehberinde kısa uygulama turu ile satış, envanter filtreleri ve müşteri yönetimi için ayrı başarımlar bulunur.'
       },
       {

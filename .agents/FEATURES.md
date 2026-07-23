@@ -2,26 +2,23 @@
 
 ## Purpose
 
-Describes business capabilities.
-
-Implementation details belong elsewhere.
+Describes current business capabilities. Implementation contracts belong in
+`API.md` and technical design details belong elsewhere.
 
 ---
 
-# Authentication
+# Authentication and Account Preferences
 
 Goal
 
-Authenticate users.
+Authenticate users and retain their account-level preferences.
 
-Inputs
+Capabilities
 
-- Email
-- Password
-
-Outputs
-
-- Authenticated session
+- Email/password registration, login and password reset
+- Google login, using redirect on mobile browsers and popup on desktop browsers
+- Account-level light/dark theme preference
+- Account settings, changelog and secure logout
 
 Dependencies
 
@@ -33,16 +30,18 @@ Firebase Authentication
 
 Goal
 
-Select active company.
+Work in the correct active company context.
 
-Outputs
+Capabilities
 
-Current company context.
+- Create and switch between companies
+- Configure company profile, receipt information and default low-stock threshold
+- Invite employees with a display name, job title and granular permissions
+- Show employee titles in the navigation profile badge
+- Import/export company data and transfer a one-time package into an empty
+  target company
 
-All subsequent operations use this company.
-
-Company owners can invite employees with an owner-only display name and a job
-title. Employee titles are shown in the employee's navigation profile badge.
+All company-scoped operations use the active company.
 
 ---
 
@@ -50,38 +49,77 @@ title. Employee titles are shown in the employee's navigation profile badge.
 
 Goal
 
-Help owners and employees reach a usable first sale without hiding the real
-application workflow.
+Help owners and employees discover the real workflow without blocking it.
 
 Capabilities
 
-- Permission-aware short interface tour covering dashboard, sales, inventory,
-  customers and the profile menu
-- Company-scoped, per-user achievement checklist for sales, inventory filters
+- Permission-aware short interface tour covering company selection,
+  navigation, synchronization status and the profile menu
+- Per-user, company-scoped achievement checklist for sales, inventory filters
   and customer management
 - Optional sample product creation for inventory managers
-- Guide achievements complete when the user reaches the final step of the
-  corresponding module; the workflows themselves remain optional
-- Detailed customer guidance includes editing and WhatsApp statement sharing
-- Modules that require unavailable permissions are hidden
-- Persistent restart entry in the profile menu
+- Sales guidance covering product search, barcode scanning, cart, payment,
+  customer selection, quick add, hold and reset actions
+- Customer guidance covering creation, editing and WhatsApp statement sharing
+- Achievements complete when the corresponding tour reaches its final step;
+  performing a real sale or creating a customer is not required
+- Modules with unavailable permissions are hidden and guides can be restarted
+  from the profile menu
 
 ---
 
-# Inventory
+# Support Requests
 
 Goal
 
-Manage products.
+Let users report problems, request support or send suggestions without leaving
+the application.
 
 Capabilities
 
-- Create
-- Update
-- Delete
-- Search
-- Barcode lookup
-- Browser-printable product, shelf, discount and package labels with bulk selection
+- Profile-menu support form with a title, description and report type
+- Optional compressed screenshot and recent client error context
+- Private report visibility for its author and the platform support
+  administrator
+- Notification event structure for current client-side WirePusher delivery and
+  future PWA/native notification channels
+
+---
+
+# Support Access
+
+Goal
+
+Allow platform support to investigate a company without taking over a user's
+authentication identity.
+
+Capabilities
+
+- Platform support administrators select a target company, a member whose
+  permissions are mirrored, a duration and a support reason
+- A time-limited employee membership grants the matching company access while
+  the administrator remains the authenticated and auditable actor
+- Active sessions can be ended early from the profile menu
+- Expired support memberships cannot remain the active company
+- Owner-only company, personnel and invitation controls remain owner-only;
+  a support session never becomes an owner role
+
+---
+
+# Inventory and Categories
+
+Goal
+
+Manage products and their categories.
+
+Capabilities
+
+- Create, edit, delete, search and barcode lookup for products
+- Category management and alphabetically ordered category product views
+- Quick and detailed filters for stock, price, category, unit, product state,
+  image state and last-update date
+- Bulk editing of common product values and bulk label printing
+- Browser-printable product, shelf, discount and package labels
 
 Dependencies
 
@@ -93,35 +131,37 @@ Firestore
 
 Goal
 
-Quick product lookup.
-
-Platforms
-
-- Web
-- Mobile
-
-Web
-
-ZXing
-
-Mobile
-
-ML Kit
-
----
-
-# Sales
-
-Goal
-
-Create sales.
+Find products quickly with a device camera or barcode input device.
 
 Capabilities
 
-- Cart
-- Discounts
-- Payment
-- Receipt
+- Single sale mode: add a found product and close the scanner
+- Multiple sale mode: retain scanned products, edit quantities and add the
+  confirmed list to the cart
+- Price view: show product name, barcode and sale price and optionally add the
+  most recently viewed product to the cart
+- Camera flip and torch controls when the device supports them
+
+Web implementation
+
+ZXing
+
+---
+
+# Sales and Suspended Carts
+
+Goal
+
+Create sales and keep the cashier workflow fast.
+
+Capabilities
+
+- Product search, barcode scanning, cart quantity management and cart reset
+- Customer selection, discounts and automatic price rules
+- Cash, card, QR code and on-account payment options
+- Personal and shared-company quick-add menus
+- Printable receipt and change calculation
+- Local suspended-cart storage and restoration
 
 Updates
 
@@ -131,19 +171,19 @@ Updates
 
 ---
 
-# Suspended Sales
+# Campaigns and Price Rules
 
 Goal
 
-Temporarily save carts.
+Apply understandable discounts or surcharges automatically at checkout.
 
-Storage
+Capabilities
 
-LocalStorage
-
-Restore
-
-Any suspended cart.
+- Fixed or percentage discount/surcharge, per item or once per cart
+- Product/category, payment method and other-items subtotal conditions
+- Date/time and day-of-week validity schedules
+- Priority ordering and conflict handling
+- Permission-protected campaign management and reasoned checkout overrides
 
 ---
 
@@ -151,74 +191,87 @@ Any suspended cart.
 
 Goal
 
-Manage customer accounts.
+Manage customer accounts and statements.
 
 Capabilities
 
-- Credit
-- Payments
-- History
+- Customer records, credit balances, payments and history
 - Date-ranged account statements with opening and closing balances
-- User-confirmed WhatsApp statement sharing
-- Tenant-scoped statement share audit history
+- User-confirmed WhatsApp statement sharing and share audit history
+- Quick and detailed customer filters
 
 ---
 
-# Dashboard
+# Dashboard and Sales History
 
 Goal
 
-Display business metrics.
+Give the company a clear operational overview and searchable sales records.
 
-Includes
+Dashboard includes
 
 - Revenue
 - Sales
 - Stock
 - Top products
 
----
+Sales history supports
 
-# Reports
-
-Generate historical sales information.
-
-Supports
-
-Filtering
-
-Export
+- Search and detailed filters retained in the URL
+- Clear filters action
+- Client-side Excel or CSV export, as one file or a ZIP of separate files
 
 ---
 
-# Offline Mode
+# Data Management
 
-Firestore cache.
+Goal
 
-Automatic synchronization.
+Move and archive company data safely from company settings.
+
+Capabilities
+
+- Import inventory and customer records with field mapping and validation
+- Export selected company datasets in Excel or CSV
+- Filter exported transactions by date range or all time
+- Create and import a one-time company transfer package, including operational
+  history while preserving the target company's identities and access model
 
 ---
 
-# Application Recovery
+# Offline Mode and Recovery
 
-Unexpected React render errors and uncaught browser errors show a recovery screen with retry and support actions. Technical context is recorded in PostHog without form data.
+Offline mode
+
+- Firestore persistent cache with per-company preparation for offline use
+- Automatic synchronization when connectivity returns
+
+Application recovery
+
+- Unexpected React render errors and uncaught browser errors show a recovery
+  screen with retry and support actions
+- Technical context is recorded in PostHog without form data
 
 ---
 
-# User Roles
+# Access Roles
 
-Admin
+Company owner
 
-Full access.
+Full company access, including settings, personnel and invitations.
 
 Employee
 
-Limited permissions.
+Permission-scoped company access.
+
+Platform support administrator
+
+Can receive support reports and open time-limited support sessions without
+impersonating a user's authentication identity.
 
 ---
 
 # Related Documents
 
-API.md
-
-SRS.md
+- `API.md`
+- `SRS.md`

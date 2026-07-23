@@ -40,9 +40,11 @@ import {
   Keyboard,
   Tag,
   RefreshCw,
-  GraduationCap
+  GraduationCap,
+  ShieldCheck
 } from 'lucide-react';
 import { useAuthStore } from '@/features/auth';
+import { isActiveMembership } from '@/features/auth/store/useAuthStore';
 import {
   Button,
   Dropdown,
@@ -55,12 +57,15 @@ import {
   Switch
 } from '@heroui/react';
 import { useForm } from 'react-hook-form';
+import { Timestamp, doc, writeBatch } from 'firebase/firestore';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { FormInput } from '@/shared/components/FormInput';
 import { PhoneInput } from '@/shared/components/PhoneInput';
 import { KeyboardShortcutsModal } from '@/shared/components/KeyboardShortcutsModal';
-import { SupportModal } from '@/features/support/routes';
+import { SupportAccessModal, SupportModal } from '@/features/support/routes';
+import { PLATFORM_SUPPORT_ADMIN_EMAIL } from '@/core/config/support';
+import { db } from '@/core/firebase/config';
 import { GettingStartedCard, useOnboardingStore } from '@/features/onboarding';
 import { OnboardingExperience } from '@/features/onboarding/routes';
 import {
@@ -135,6 +140,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ onCheckForUpdate }) => {
   const [newCompanyModalOpen, setNewCompanyModalOpen] = useState(false);
   const [keyboardShortcutsOpen, setKeyboardShortcutsOpen] = useState(false);
   const [supportModalOpen, setSupportModalOpen] = useState(false);
+  const [supportAccessModalOpen, setSupportAccessModalOpen] = useState(false);
   const [isCreatingCompany, setIsCreatingCompany] = useState(false);
   const [isSwitching, setIsSwitching] = useState(false);
   const [isCheckingForUpdate, setIsCheckingForUpdate] = useState(false);
@@ -148,6 +154,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ onCheckForUpdate }) => {
   const restartOnboarding = useOnboardingStore(
     state => state.restartOnboarding
   );
+  const switchableMemberships = memberships.filter(isActiveMembership);
 
   const handleCollapsedSidebarClick = (
     event: React.MouseEvent<HTMLElement>
@@ -320,6 +327,38 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ onCheckForUpdate }) => {
 
     if (key === 'support') {
       setSupportModalOpen(true);
+    }
+
+    if (key === 'support-access') {
+      setSupportAccessModalOpen(true);
+    }
+
+    if (key === 'end-support-access') {
+      const supportSessionId = activeMembership?.supportSessionId;
+      if (!user || !supportSessionId) return;
+      void (async () => {
+        const confirmed = await confirm({
+          title: 'Destek oturumu sonlandırılsın mı?',
+          description:
+            'Bu işletmeye olan geçici erişiminiz hemen kaldırılacak.',
+          confirmText: 'Oturumu Sonlandır',
+          cancelText: 'Vazgeç',
+          variant: 'danger',
+          status: 'warning'
+        });
+        if (!confirmed) return;
+        const batch = writeBatch(db);
+        batch.update(doc(db, 'supportSessions', supportSessionId), {
+          status: 'CLOSED',
+          endedAt: Timestamp.now()
+        });
+        batch.delete(doc(db, 'memberships', activeMembership.id));
+        await batch.commit();
+        toast.success('Destek oturumu sonlandırıldı.');
+      })().catch(error => {
+        console.error('Support session could not be closed:', error);
+        toast.danger('Destek oturumu sonlandırılamadı.');
+      });
     }
 
     if (key === 'getting-started') {
@@ -560,7 +599,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ onCheckForUpdate }) => {
                     <Header className="pointer-events-none px-3 py-1 text-[10px] font-bold uppercase opacity-50">
                       {isOnline ? 'İşletmelerim' : 'Çevrim dışı işletmeler'}
                     </Header>
-                    {memberships.map(m => (
+                    {switchableMemberships.map(m => (
                       <Dropdown.Item
                         id={m.companyId}
                         key={m.companyId}
@@ -823,6 +862,29 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ onCheckForUpdate }) => {
                       <span className="flex-1">Destek</span>
                     </span>
                   </Dropdown.Item>
+                  {user?.email === PLATFORM_SUPPORT_ADMIN_EMAIL && (
+                    <Dropdown.Item
+                      id="support-access"
+                      textValue="Destek oturumu aç">
+                      <span className="flex w-full items-center gap-2.5">
+                        <ShieldCheck size={17} className="text-primary" />
+                        <span className="flex-1">Destek oturumu aç</span>
+                      </span>
+                    </Dropdown.Item>
+                  )}
+                  {activeMembership?.supportSessionId && (
+                    <Dropdown.Item
+                      id="end-support-access"
+                      textValue="Destek oturumunu sonlandır"
+                      className="text-warning">
+                      <span className="flex w-full items-center gap-2.5">
+                        <ShieldCheck size={17} />
+                        <span className="flex-1">
+                          Destek oturumunu sonlandır
+                        </span>
+                      </span>
+                    </Dropdown.Item>
+                  )}
                   <Dropdown.Item
                     id="logout"
                     textValue="Çıkış Yap"
@@ -1010,6 +1072,10 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ onCheckForUpdate }) => {
         <SupportModal
           isOpen={supportModalOpen}
           onClose={() => setSupportModalOpen(false)}
+        />
+        <SupportAccessModal
+          isOpen={supportAccessModalOpen}
+          onClose={() => setSupportAccessModalOpen(false)}
         />
       </Suspense>
     </div>

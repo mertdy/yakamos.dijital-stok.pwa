@@ -12,6 +12,7 @@ import {
   query,
   collection,
   setDoc,
+  Timestamp,
   updateDoc,
   where
 } from 'firebase/firestore';
@@ -329,6 +330,79 @@ describe('Firestore Security Rules', () => {
           'notifications',
           notification.id
         )
+      )
+    );
+  });
+
+  it('allows platform support to open a temporary, permission-mirrored support membership', async () => {
+    const admin = firestore(PLATFORM_ADMIN, PLATFORM_ADMIN_EMAIL);
+    const expiresAt = Timestamp.fromDate(new Date(Date.now() + 60 * 60 * 1000));
+    const supportMembership = {
+      ...membership(PLATFORM_ADMIN, COMPANY_A, 'EMPLOYEE', [
+        'MANAGE_INVENTORY'
+      ]),
+      email: PLATFORM_ADMIN_EMAIL,
+      supportSessionId: 'support-session-a',
+      supportTargetUserId: 'inventory-manager',
+      supportExpiresAt: expiresAt
+    };
+
+    await assertSucceeds(
+      setDoc(doc(admin, 'supportSessions', 'support-session-a'), {
+        id: 'support-session-a',
+        companyId: COMPANY_A,
+        companyName: 'AA',
+        openedBy: PLATFORM_ADMIN,
+        targetUserId: 'inventory-manager',
+        targetMembershipId: `inventory-manager_${COMPANY_A}`,
+        permissionSnapshot: ['MANAGE_INVENTORY'],
+        reason: 'Envanter desteği',
+        status: 'ACTIVE',
+        startedAt: Timestamp.now(),
+        expiresAt
+      })
+    );
+    await assertSucceeds(
+      setDoc(
+        doc(admin, 'memberships', `${PLATFORM_ADMIN}_${COMPANY_A}`),
+        supportMembership
+      )
+    );
+    await assertSucceeds(getDoc(doc(admin, 'inventory', 'product-a')));
+    await assertSucceeds(
+      updateDoc(doc(admin, 'inventory', 'product-a'), {
+        name: 'Destek ile güncellenen ürün'
+      })
+    );
+    await assertFails(
+      updateDoc(doc(admin, 'companies', COMPANY_A), {
+        name: 'Yetkisiz şirket güncellemesi'
+      })
+    );
+    await assertFails(
+      setDoc(
+        doc(firestore('cashier'), 'supportSessions', 'forbidden-session'),
+        {
+          id: 'forbidden-session',
+          companyId: COMPANY_A,
+          companyName: 'AA',
+          openedBy: 'cashier',
+          targetUserId: 'inventory-manager',
+          targetMembershipId: `inventory-manager_${COMPANY_A}`,
+          permissionSnapshot: ['MANAGE_INVENTORY'],
+          reason: 'Yetkisiz deneme',
+          status: 'ACTIVE',
+          startedAt: Timestamp.now(),
+          expiresAt
+        }
+      )
+    );
+  });
+
+  it('allows platform support to list companies for the support selector', async () => {
+    await assertSucceeds(
+      getDocs(
+        collection(firestore(PLATFORM_ADMIN, PLATFORM_ADMIN_EMAIL), 'companies')
       )
     );
   });

@@ -10,19 +10,9 @@ Core platform completed.
 
 - Improve bundle size
 
-- Route level code splitting
-
-- Better caching
-
-- Native printing
-
 ---
 
 # Mid Term
-
-- CSV import
-
-- CSV export
 
 - Advanced analytics
 

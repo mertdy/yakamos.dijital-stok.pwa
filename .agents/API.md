@@ -90,6 +90,13 @@ an optional, client-compressed WebP screenshot, and is readable by its author
 and the platform support administrator. Screenshot payloads are deliberately
 excluded from Firestore indexes.
 
+supportSessions
+
+Immutable support-access audit records. A platform administrator may create a
+temporary employee membership that mirrors a selected member's permissions; the
+membership expires automatically under Firestore Rules while the session record
+retains the actor, target, reason and duration.
+
 notifications
 
 Platform notification events. The initial event type is `SUPPORT_REPORT` and

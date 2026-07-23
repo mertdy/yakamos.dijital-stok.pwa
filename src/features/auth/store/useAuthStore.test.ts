@@ -264,6 +264,20 @@ describe('getAvailableActiveCompanyId', () => {
   it('clears the active company when no memberships remain', () => {
     expect(getAvailableActiveCompanyId('removed-company', [])).toBeNull();
   });
+
+  it('does not keep an expired support membership active', () => {
+    const memberships = [
+      {
+        companyId: 'expired-company',
+        supportExpiresAt: { toMillis: () => Date.now() - 1 }
+      },
+      { companyId: 'company-a' }
+    ] as never;
+
+    expect(getAvailableActiveCompanyId('expired-company', memberships)).toBe(
+      'company-a'
+    );
+  });
 });
 
 // ─── useAuthStore ─────────────────────────────────────────────────────────────

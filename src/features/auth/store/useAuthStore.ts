@@ -72,16 +72,23 @@ export function getAuthErrorMessage(code: string): string {
   }
 }
 
+export const isActiveMembership = (membership: Membership) =>
+  !membership.supportExpiresAt ||
+  membership.supportExpiresAt.toMillis() > Date.now();
+
 export const getAvailableActiveCompanyId = (
   activeCompanyId: string | null,
   memberships: Membership[]
 ): string | null => {
+  const activeMemberships = memberships.filter(isActiveMembership);
   if (
-    memberships.some(membership => membership.companyId === activeCompanyId)
+    activeMemberships.some(
+      membership => membership.companyId === activeCompanyId
+    )
   ) {
     return activeCompanyId;
   }
-  return memberships[0]?.companyId ?? null;
+  return activeMemberships[0]?.companyId ?? null;
 };
 
 interface AuthState {
@@ -304,9 +311,10 @@ export const useAuthStore = getSingletonStore('auth', () =>
                 ? profileData
                 : { ...profileData, activeCompanyId: nextActiveCompanyId };
             const activeMembership =
-              memberships.find(
-                m => m.companyId === normalizedProfile.activeCompanyId
-              ) || null;
+              memberships
+                .filter(isActiveMembership)
+                .find(m => m.companyId === normalizedProfile.activeCompanyId) ||
+              null;
 
             if (normalizedProfile !== profileData) {
               updateDoc(doc(db, 'users', user.uid), {
@@ -373,9 +381,11 @@ export const useAuthStore = getSingletonStore('auth', () =>
             memberships
           );
           const activeMembership =
-            memberships.find(
-              membership => membership.companyId === nextActiveCompanyId
-            ) || null;
+            memberships
+              .filter(isActiveMembership)
+              .find(
+                membership => membership.companyId === nextActiveCompanyId
+              ) || null;
 
           if (profile && nextActiveCompanyId !== activeCompanyId) {
             const { unsubscribeActiveCompany } = get();
