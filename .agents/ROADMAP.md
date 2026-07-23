@@ -16,8 +16,6 @@ Core platform completed.
 
 - Native printing
 
-- Better onboarding
-
 ---
 
 # Mid Term

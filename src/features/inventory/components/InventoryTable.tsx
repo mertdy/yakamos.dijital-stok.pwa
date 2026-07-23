@@ -375,6 +375,7 @@ export const InventoryTable: React.FC<InventoryTableProps> = ({
               <Tooltip>
                 <Tooltip.Trigger>
                   <Button
+                    data-onboarding="inventory-edit-item"
                     variant="tertiary"
                     isIconOnly
                     onPress={() =>
@@ -392,6 +393,7 @@ export const InventoryTable: React.FC<InventoryTableProps> = ({
               <Tooltip>
                 <Tooltip.Trigger>
                   <Button
+                    data-onboarding="inventory-print-label"
                     variant="tertiary"
                     isIconOnly
                     onPress={() => void openLabelPrint([props.row.original])}
@@ -422,6 +424,7 @@ export const InventoryTable: React.FC<InventoryTableProps> = ({
                         deleteItem(props.row.original.id);
                       }
                     }}
+                    data-onboarding="inventory-delete-item"
                     aria-label="Sil">
                     <Trash2 className="text-lg" />
                   </Button>

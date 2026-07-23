@@ -39,7 +39,8 @@ import {
   Sparkles,
   Keyboard,
   Tag,
-  RefreshCw
+  RefreshCw,
+  GraduationCap
 } from 'lucide-react';
 import { useAuthStore } from '@/features/auth';
 import {
@@ -60,6 +61,8 @@ import { FormInput } from '@/shared/components/FormInput';
 import { PhoneInput } from '@/shared/components/PhoneInput';
 import { KeyboardShortcutsModal } from '@/shared/components/KeyboardShortcutsModal';
 import { SupportModal } from '@/features/support/routes';
+import { GettingStartedCard, useOnboardingStore } from '@/features/onboarding';
+import { OnboardingExperience } from '@/features/onboarding/routes';
 import {
   normalizePhoneNumber,
   optionalPhoneNumberSchema
@@ -141,6 +144,9 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ onCheckForUpdate }) => {
   );
   const [preparingCompanyId, setPreparingCompanyId] = useState<string | null>(
     null
+  );
+  const restartOnboarding = useOnboardingStore(
+    state => state.restartOnboarding
   );
 
   const handleCollapsedSidebarClick = (
@@ -315,6 +321,10 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ onCheckForUpdate }) => {
     if (key === 'support') {
       setSupportModalOpen(true);
     }
+
+    if (key === 'getting-started') {
+      void restartOnboarding();
+    }
   };
 
   const handleCreateCompany = async (data: NewCompanyFormData) => {
@@ -406,6 +416,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ onCheckForUpdate }) => {
 
   const companySwitcherButton = (
     <Button
+      data-onboarding="company-switcher"
       variant="ghost"
       aria-label="İşletme Seç"
       className={clsx(
@@ -598,6 +609,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ onCheckForUpdate }) => {
 
         {/* Middle Section: Scrollable Navigation */}
         <nav
+          data-onboarding="main-navigation"
           className={clsx(
             'w-full flex-1 overflow-x-hidden overflow-y-auto p-3',
             isCollapsed
@@ -661,7 +673,9 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ onCheckForUpdate }) => {
             'flex w-full flex-col gap-3 border-t border-gray-100 p-3',
             isCollapsed && 'items-center px-2'
           )}>
-          <div className={clsx(isCollapsed && 'flex justify-center')}>
+          <div
+            data-onboarding="sync-indicator"
+            className={clsx(isCollapsed && 'flex justify-center')}>
             <SyncIndicator
               iconOnly={isCollapsed}
               tooltipPlacement="right"
@@ -672,6 +686,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ onCheckForUpdate }) => {
           {user && (
             <Dropdown>
               <Dropdown.Trigger
+                data-onboarding="profile-menu"
                 aria-label="Kullanıcı menüsünü aç"
                 className={clsx(
                   'group focus-visible:border-primary/40 flex w-full items-center gap-3 rounded-xl border border-transparent text-left transition-all duration-200 outline-none hover:border-gray-200 hover:bg-gray-100/70 focus-visible:bg-gray-100/70',
@@ -765,6 +780,14 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ onCheckForUpdate }) => {
                           aria-label="Yeni yenilikler var"
                         />
                       )}
+                    </span>
+                  </Dropdown.Item>
+                  <Dropdown.Item
+                    id="getting-started"
+                    textValue="Başlangıç rehberi">
+                    <span className="flex items-center gap-2.5">
+                      <GraduationCap size={17} className="text-gray-500" />
+                      <span>Başlangıç rehberi</span>
                     </span>
                   </Dropdown.Item>
                   <Dropdown.Item
@@ -980,6 +1003,10 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ onCheckForUpdate }) => {
         onOpenChange={setKeyboardShortcutsOpen}
       />
       <Suspense fallback={null}>
+        {location.pathname !== ROUTES.DASHBOARD && (
+          <GettingStartedCard compact />
+        )}
+        <OnboardingExperience />
         <SupportModal
           isOpen={supportModalOpen}
           onClose={() => setSupportModalOpen(false)}

@@ -66,6 +66,15 @@ Company-scoped shared interface preferences. The quick-add menu is stored in
 `quickAddItems`; read access is available to company members, while writes
 require the `MANAGE_COMPANY_QUICK_ADD` permission or company ownership.
 
+userPreferences
+
+Private account-level interface preferences. Guided onboarding progress is
+stored in `onboardingByCompany`, keyed by company ID, so each user can complete
+or dismiss the guide independently in each company. Each entry contains the
+onboarding version, welcome/tour timestamps, dismissal timestamp, optional
+sample product ID and a `completedModules` timestamp map for completed guide
+achievements.
+
 pricingRules
 
 Company-scoped automatic pricing rules. Rules can target product categories or

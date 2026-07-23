@@ -36,6 +36,7 @@ import { useCustomerStore } from '@/features/customers';
 import { useSalesStore, usePreferencesStore } from '@/features/sales';
 import { useSalesHistoryStore } from '@/features/sales-history';
 import { usePricingRuleStore } from '@/features/promotions';
+import { useOnboardingStore } from '@/features/onboarding/store';
 import type {
   Company,
   UserProfile,
@@ -555,6 +556,7 @@ export const useAuthStore = getSingletonStore('auth', () =>
         useSalesHistoryStore.getState().clearSales();
         usePricingRuleStore.getState().clearRules();
         usePreferencesStore.getState().clearPreferences();
+        useOnboardingStore.getState().clearOnboarding();
         clearUserLocalStorage();
         if (clearPersistence) {
           await clearFirestorePersistence();

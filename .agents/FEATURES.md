@@ -46,6 +46,28 @@ title. Employee titles are shown in the employee's navigation profile badge.
 
 ---
 
+# Guided Onboarding
+
+Goal
+
+Help owners and employees reach a usable first sale without hiding the real
+application workflow.
+
+Capabilities
+
+- Permission-aware short interface tour covering dashboard, sales, inventory,
+  customers and the profile menu
+- Company-scoped, per-user achievement checklist for sales, inventory filters
+  and customer management
+- Optional sample product creation for inventory managers
+- Guide achievements complete when the user reaches the final step of the
+  corresponding module; the workflows themselves remain optional
+- Detailed customer guidance includes editing and WhatsApp statement sharing
+- Modules that require unavailable permissions are hidden
+- Persistent restart entry in the profile menu
+
+---
+
 # Inventory
 
 Goal

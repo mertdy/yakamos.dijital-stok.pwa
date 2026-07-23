@@ -13,6 +13,7 @@ export const secondaryPrefetches = [
   () => import('@/features/dashboard/views/CompanySettingsView'),
   () => import('@/features/dashboard/components/CompanyTransferModal'),
   () => import('@/features/support/components/SupportModal'),
+  () => import('@/features/onboarding/components/OnboardingExperience'),
   () => import('@/features/dashboard/views/PricingPlansView'),
   () => import('@/features/promotions/views/PromotionsView'),
   () => import('@/features/inventory/components/BulkInventoryEditDrawer')

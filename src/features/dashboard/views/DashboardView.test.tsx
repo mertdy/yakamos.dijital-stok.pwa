@@ -4,6 +4,9 @@ import { DashboardView } from './DashboardView';
 import { useDashboardStats } from '../hooks/useDashboardStats';
 
 vi.mock('../hooks/useDashboardStats');
+vi.mock('@/features/onboarding', () => ({
+  GettingStartedCard: () => null
+}));
 
 vi.mock('react-chartjs-2', () => ({
   Line: () => <div data-testid="line-chart" />,

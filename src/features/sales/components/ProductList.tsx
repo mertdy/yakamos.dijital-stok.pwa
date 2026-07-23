@@ -65,7 +65,9 @@ export const ProductList: React.FC = () => {
   return (
     <div className="flex h-full flex-col overflow-hidden rounded-3xl border border-gray-100 bg-white shadow-sm">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-gray-100 bg-gray-50/50 px-4 py-3">
+      <div
+        data-onboarding="sales-quick-add"
+        className="flex items-center justify-between border-b border-gray-100 bg-gray-50/50 px-4 py-3">
         <h2 className="flex items-center gap-2 text-base font-bold tracking-tight text-gray-900">
           <Package className="text-primary" size={18} />
           Hızlı Ekle

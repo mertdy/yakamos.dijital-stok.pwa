@@ -129,7 +129,9 @@ export const CustomerFormView: React.FC = () => {
   }
 
   return (
-    <div className="max-w-3xl space-y-6 p-4 md:p-8">
+    <div
+      data-onboarding="customer-form"
+      className="max-w-3xl space-y-6 p-4 md:p-8">
       <div className="flex items-center gap-4">
         <Button
           variant="ghost"

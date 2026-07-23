@@ -171,6 +171,12 @@ vi.mock('@/features/sales-history', () => ({
   }
 }));
 
+vi.mock('@/features/onboarding/store', () => ({
+  useOnboardingStore: {
+    getState: vi.fn(() => ({ clearOnboarding: vi.fn() }))
+  }
+}));
+
 // ─── Store factory (fresh instance per test) ─────────────────────────────────
 
 async function buildStore() {
@@ -502,12 +508,14 @@ describe('useAuthStore', () => {
     const clearHeldSales = vi.fn();
     const clearSales = vi.fn();
     const clearPreferences = vi.fn();
+    const clearOnboarding = vi.fn();
 
     const { useInventoryStore } = await import('@/features/inventory');
     const { useCustomerStore } = await import('@/features/customers');
     const { useSalesStore, usePreferencesStore } =
       await import('@/features/sales');
     const { useSalesHistoryStore } = await import('@/features/sales-history');
+    const { useOnboardingStore } = await import('@/features/onboarding/store');
 
     vi.mocked(useInventoryStore.getState).mockReturnValue({
       clearItems
@@ -525,6 +533,9 @@ describe('useAuthStore', () => {
     vi.mocked(usePreferencesStore.getState).mockReturnValue({
       clearPreferences
     } as any);
+    vi.mocked(useOnboardingStore.getState).mockReturnValue({
+      clearOnboarding
+    } as any);
 
     const store = await buildStore();
     await store.getState().logout();
@@ -536,6 +547,7 @@ describe('useAuthStore', () => {
     expect(clearHeldSales).toHaveBeenCalled();
     expect(clearSales).toHaveBeenCalled();
     expect(clearPreferences).toHaveBeenCalled();
+    expect(clearOnboarding).toHaveBeenCalled();
     expect(notifyOtherTabsOfLogout).toHaveBeenCalled();
     expect(clearUserLocalStorage).toHaveBeenCalled();
     expect(clearFirestorePersistence).toHaveBeenCalled();

@@ -25,6 +25,7 @@ import {
   ArcElement
 } from 'chart.js';
 import { Line, Doughnut } from 'react-chartjs-2';
+import { GettingStartedCard } from '@/features/onboarding';
 
 const LOW_STOCK_PAGE_SIZE = 25;
 
@@ -254,6 +255,8 @@ export const DashboardView: React.FC = () => {
           İşletmenizin güncel performansını ve önemli özetlerini takip edin.
         </p>
       </div>
+
+      <GettingStartedCard />
 
       {/* Top Metric Cards */}
       <div className="mb-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">

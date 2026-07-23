@@ -53,6 +53,7 @@ export const InventoryView: React.FC = () => {
 
         {hasInventoryPermission && (
           <Button
+            data-onboarding="inventory-new-product"
             onPress={() => navigate(ROUTES.INVENTORY.NEW)}
             variant="primary">
             <Plus className="mr-2 text-xl" /> Yeni Ürün

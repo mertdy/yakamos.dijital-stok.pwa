@@ -156,6 +156,7 @@ export const CustomerListView: React.FC = () => {
         </div>
         {hasCustomerPermission && (
           <Button
+            data-onboarding="customer-new"
             onPress={() => navigate(ROUTES.CUSTOMERS.NEW)}
             variant="primary">
             <Plus className="mr-2 text-xl" /> Yeni Müşteri
@@ -330,6 +331,7 @@ export const CustomerListView: React.FC = () => {
                             <Tooltip>
                               <Tooltip.Trigger>
                                 <Button
+                                  data-onboarding="customer-detail-action"
                                   variant="tertiary"
                                   isIconOnly
                                   onPress={() =>

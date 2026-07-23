@@ -178,7 +178,10 @@ export const GlobalProductSearch: React.FC<Props> = ({ onOpenScanner }) => {
   };
 
   return (
-    <div className="relative z-10 flex-shrink-0" ref={containerRef}>
+    <div
+      data-onboarding="sales-search"
+      className="relative z-10 flex-shrink-0"
+      ref={containerRef}>
       <Search
         className="absolute top-1/2 left-4 -translate-y-1/2 text-gray-400"
         size={18}
@@ -194,6 +197,7 @@ export const GlobalProductSearch: React.FC<Props> = ({ onOpenScanner }) => {
         className="pr-14 pl-11"
       />
       <button
+        data-onboarding="sales-barcode-scanner"
         onClick={onOpenScanner}
         className="bg-primary/10 text-primary hover:bg-primary/20 absolute top-1/2 right-2 -translate-y-1/2 rounded-xl p-2 transition-colors"
         title="Kameradan Barkod Okut">

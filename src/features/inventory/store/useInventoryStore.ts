@@ -42,6 +42,7 @@ export interface InventoryItem {
   barcode?: string;
   sku?: string;
   imageUrl?: string;
+  isDemo?: boolean;
   updatedAt: string;
   userId?: string;
   companyId?: string;

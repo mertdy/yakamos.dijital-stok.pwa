@@ -23,7 +23,9 @@ export const OrderDetailsPanel: React.FC = () => {
     activeMembership?.permissions.includes('MANAGE_INVENTORY');
 
   return (
-    <div className="flex h-full flex-col overflow-hidden rounded-[28px] border border-gray-100 bg-white shadow-sm">
+    <div
+      data-onboarding="sales-cart"
+      className="flex h-full flex-col overflow-hidden rounded-[28px] border border-gray-100 bg-white shadow-sm">
       <div className="flex items-center justify-between border-b border-gray-100 bg-gray-50/50 px-4 py-3">
         <div className="flex items-center gap-3">
           <h2 className="flex items-center gap-2 text-base font-bold tracking-tight text-gray-900">

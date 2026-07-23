@@ -248,6 +248,7 @@ export const CustomerDetailView: React.FC = () => {
           {hasStatementSharePermission &&
             (hasValidWhatsAppPhone ? (
               <Button
+                data-onboarding="customer-whatsapp-statement"
                 variant="primary"
                 className="flex-1 border-none bg-[#25D366] py-4 text-lg text-white shadow-md hover:bg-[#1DB954]"
                 onPress={() => setIsStatementModalOpen(true)}>

@@ -9,10 +9,85 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-07-23',
+    date: '23 Temmuz 2026',
+    title: 'Kullanım iyileştirmeleri',
+    items: [
+      {
+        type: 'new',
+        text: 'Başlangıç rehberinde kısa uygulama turu ile satış, envanter filtreleri ve müşteri yönetimi için ayrı başarımlar bulunur.'
+      },
+      {
+        type: 'improved',
+        text: 'Başlangıç rehberini gizleme seçeneği, rehberi tamamlama eyleminin yanına taşındı.'
+      },
+      {
+        type: 'improved',
+        text: 'Platform yöneticisi başlangıç rehberinin ilerlemesini istediği zaman sıfırlayabilir.'
+      },
+      {
+        type: 'improved',
+        text: 'Kısa uygulama turu sayfa başlıklarını ve satış ekranındaki arama alanını hedefleyerek daha rahat takip edilir; sabit rehber kartından bir modül başlatınca kart otomatik küçülür.'
+      },
+      {
+        type: 'improved',
+        text: 'Müşteri yönetimi rehberindeki WhatsApp ekstresi adımı doğrudan paylaşım butonunu gösterir.'
+      },
+      {
+        type: 'improved',
+        text: 'Başlangıç rehberi başarımları artık satış ya da müşteri kaydı zorunlu olmadan ilgili rehberin tüm adımlarını tamamlayınca işaretlenir.'
+      },
+      {
+        type: 'improved',
+        text: 'Tamamlanan başlangıç rehberi modüllerindeki Tekrar göster eylemleri tutarlı yeniden dene ikonu kullanır.'
+      },
+      {
+        type: 'improved',
+        text: 'Kısa uygulama turu artık anasayfadan ayrılmadan işletme seçimini, tüm navigasyon bağlantılarını tek adımda, senkronizasyon durumunu ve profil menüsünü tanıtır.'
+      },
+      {
+        type: 'improved',
+        text: 'İlk satış rehberi ürün arama, kameradan barkod okutma, ödeme, müşteri seçimi, hızlı ekle, sepeti bekletme ve sıfırlama adımlarını açıklar.'
+      },
+      {
+        type: 'fixed',
+        text: 'Satış rehberi açılırken satış ekranı ve ilk hedef alan hazırlandıktan sonra tur başlatılır; ilk adım artık atlanmaz.'
+      },
+      {
+        type: 'improved',
+        text: 'Envanter rehberi yeni ürün eklemeyi ve listedeki ürünün düzenleme, etiket bastırma, silme eylemlerini ayrı adımlarda anlatır.'
+      },
+      {
+        type: 'fixed',
+        text: 'Sabit başlangıç rehberi kartındaki açma-kapatma düğmesi başlığın sağ üstünde hizalanır.'
+      },
+      {
+        type: 'improved',
+        text: 'Başlangıç rehberindeki kullanılmayan eski hedefler ve aksiyonlar temizlendi.'
+      }
+    ]
+  },
+  {
     id: '2026-07-22',
     date: '22 Temmuz 2026',
     title: 'Kullanım iyileştirmeleri',
     items: [
+      {
+        type: 'new',
+        text: 'İşletme sahibi ve çalışanlar, yetkilerine uygun başlangıç rehberiyle arayüzü tanıyabilir, ilk ürünü hazırlayabilir ve ilk gerçek satışını takip edebilir.'
+      },
+      {
+        type: 'improved',
+        text: 'Başlangıç rehberindeki yönlendirme metinleri Türkçeleştirildi ve rehber kartı daha okunaklı hale getirildi.'
+      },
+      {
+        type: 'improved',
+        text: 'Başlangıç rehberi artık Envanter ve Satış ekranlarında ürün ekleme, sepet, ödeme yöntemi ve gerçek satış tamamlama adımlarını gösteriyor.'
+      },
+      {
+        type: 'improved',
+        text: 'Başlangıç rehberinin son adımında, satış yapmadan da turu Bitir seçeneğiyle kapatabilirsiniz.'
+      },
       {
         type: 'fixed',
         text: 'Destek kaydı açıklama alanında başlığı ve yazı alanını daha düzenli görebilirsiniz.'

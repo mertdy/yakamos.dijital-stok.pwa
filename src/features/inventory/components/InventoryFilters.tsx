@@ -100,7 +100,9 @@ export const InventoryFilters = ({
   };
 
   return (
-    <div className="space-y-4 border-b border-gray-100 bg-gray-50/50 p-4">
+    <div
+      data-onboarding="inventory-filters"
+      className="space-y-4 border-b border-gray-100 bg-gray-50/50 p-4">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
         <div className="relative w-full max-w-xl flex-1">
           <Search
@@ -118,6 +120,7 @@ export const InventoryFilters = ({
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Button
+            data-onboarding="inventory-advanced-filters"
             variant={isFilterDrawerOpen ? 'primary' : 'outline'}
             onPress={() => setIsFilterDrawerOpen(true)}
             className={clsx(

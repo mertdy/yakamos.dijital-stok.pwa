@@ -262,6 +262,7 @@ export const InvoicePanel: React.FC<Props> = ({
             {customerId ? customerDisplayName : 'Müşteri Seçin'}
           </div>
           <Button
+            data-onboarding="sales-customer-select"
             variant="secondary"
             onPress={onOpenCustomerDrawer}
             className="h-auto rounded-xl px-3 py-2 text-sm">
@@ -411,7 +412,7 @@ export const InvoicePanel: React.FC<Props> = ({
         </div>
 
         {/* Payment Methods */}
-        <div className="pt-1">
+        <div data-onboarding="sales-payment-methods" className="pt-1">
           <div className="grid grid-cols-4 gap-2">
             {[
               { id: 'Cash', icon: Banknote, label: 'Nakit' },
@@ -551,6 +552,7 @@ export const InvoicePanel: React.FC<Props> = ({
         {/* Action Buttons */}
         <div className="flex flex-col gap-2 pt-1">
           <Button
+            data-onboarding="sales-checkout"
             variant="primary"
             className="h-12 w-full rounded-xl border-none bg-[#2E7D32] text-base shadow-md hover:bg-[#1B5E20]"
             isDisabled={cart.length === 0 || isProcessing}
@@ -565,6 +567,7 @@ export const InvoicePanel: React.FC<Props> = ({
 
           <div className="flex gap-2">
             <Button
+              data-onboarding="sales-hold"
               variant="secondary"
               className="h-10 flex-1 rounded-xl border-none bg-orange-500 text-sm text-white shadow-sm hover:bg-orange-600"
               onPress={() => {
@@ -577,6 +580,7 @@ export const InvoicePanel: React.FC<Props> = ({
               Beklet
             </Button>
             <Button
+              data-onboarding="sales-reset"
               variant="danger"
               className="h-10 flex-1 rounded-xl text-sm shadow-sm"
               onPress={() => {
