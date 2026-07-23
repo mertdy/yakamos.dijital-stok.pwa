@@ -30,11 +30,6 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from './core/firebase/config';
 import { Loader2 } from 'lucide-react';
 
-import { useInventoryStore } from '@/features/inventory';
-import { useCategoryStore } from '@/features/inventory/store/useCategoryStore';
-import { useCustomerStore } from '@/features/customers';
-import { useSalesHistoryStore } from '@/features/sales-history';
-import { usePricingRuleStore } from '@/features/promotions';
 import { PromotionsView } from '@/features/promotions/routes';
 
 import { usePWAUpdate } from './shared/hooks/usePWAUpdate';
@@ -42,6 +37,11 @@ import { LazyRouteErrorBoundary } from './shared/components/LazyRouteErrorBounda
 import { ROUTES } from '@/core/config/routes';
 import { listenForRemoteLogout } from '@/shared/utils/sessionCleanup';
 import { resumePendingSyncOperationTracking } from '@/shared/utils/pendingSyncOperations';
+import {
+  loadCompanyData,
+  refreshSalesHistoryData
+} from '@/shared/utils/companyDataPreparation';
+import { useOfflineExperiencePreparation } from '@/shared/hooks/useOfflineExperiencePreparation';
 
 function App() {
   const { user, profile, activeMembership, isInitialized, isLoading, setUser } =
@@ -75,20 +75,19 @@ function App() {
   );
 
   const activeCompanyId = profile?.activeCompanyId;
+  useOfflineExperiencePreparation(
+    Boolean(user && activeCompanyId && isInitialized && !isLoading)
+  );
 
   useEffect(() => {
     if (activeCompanyId) {
-      useInventoryStore.getState().loadItems();
-      useCategoryStore.getState().loadCategories();
-      useCustomerStore.getState().loadCustomers();
-      useSalesHistoryStore.getState().fetchSales();
-      usePricingRuleStore.getState().loadRules();
+      void loadCompanyData();
     }
   }, [activeCompanyId]);
 
   useEffect(() => {
     const refreshSalesAfterReconnect = () => {
-      useSalesHistoryStore.getState().fetchSales({ force: true });
+      void refreshSalesHistoryData();
     };
 
     window.addEventListener('online', refreshSalesAfterReconnect);

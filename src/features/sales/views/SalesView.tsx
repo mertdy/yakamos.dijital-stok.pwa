@@ -6,9 +6,7 @@ import { CustomerDrawer } from '@/features/customers';
 import { HeldSalesDrawer } from '../components/HeldSalesDrawer';
 import { GlobalProductSearch } from '../components/GlobalProductSearch';
 import { preloadBarcodeFeedback } from '@/shared/utils/barcodeFeedback';
-
-// Lazy load Scanner Modal
-const ScannerModal = React.lazy(() => import('../components/ScannerModal'));
+import { ScannerModal } from '../routes';
 
 export const SalesView: React.FC = () => {
   const [isScannerOpen, setIsScannerOpen] = useState(false);

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { Suspense, useEffect, useMemo, useState } from 'react';
 import { clsx } from 'clsx';
 import { useSalesStore, type PaymentMethod } from '../store/useSalesStore';
 import {
@@ -22,12 +22,9 @@ import {
 } from 'lucide-react';
 import { Button } from '@heroui/react';
 import { Tooltip } from '@heroui/react';
-import { useReactToPrint } from 'react-to-print';
-import { Printer } from 'lucide-react';
-import { ReceiptTemplate } from './ReceiptTemplate';
-import { useRef } from 'react';
 import posthog from 'posthog-js';
 import { useHotkeys } from 'react-hotkeys-hook';
+import { preloadReceiptPrint, ReceiptPrintButton } from '../routes';
 
 interface Props {
   onOpenCustomerDrawer: () => void;
@@ -67,12 +64,9 @@ export const InvoicePanel: React.FC<Props> = ({
     name: string;
   } | null>(null);
   const [dismissReason, setDismissReason] = useState('');
-  const receiptRef = useRef<HTMLDivElement>(null);
-
-  const handlePrint = useReactToPrint({
-    contentRef: receiptRef,
-    documentTitle: 'Satis_Fisi'
-  });
+  useEffect(() => {
+    if (lastSale) void preloadReceiptPrint();
+  }, [lastSale]);
 
   const subtotal = cart.reduce(
     (sum, item) => sum + item.price * item.quantity,
@@ -236,11 +230,6 @@ export const InvoicePanel: React.FC<Props> = ({
 
   return (
     <div className="flex flex-col overflow-hidden rounded-3xl border border-gray-100 bg-white shadow-sm">
-      {/* Hidden Receipt for Printing */}
-      <div className="hidden">
-        <ReceiptTemplate ref={receiptRef} sale={lastSale} />
-      </div>
-
       <div className="flex items-center justify-between border-b border-gray-100 bg-gray-50/50 px-4 py-3">
         <h2 className="flex items-center gap-2 text-base font-bold tracking-tight text-gray-900">
           <Receipt className="text-primary" size={18} />
@@ -602,13 +591,17 @@ export const InvoicePanel: React.FC<Props> = ({
           </div>
 
           {lastSale && (
-            <Button
-              variant="secondary"
-              className="mt-1 h-10 w-full rounded-xl text-sm"
-              onPress={() => handlePrint()}>
-              <Printer className="mr-1.5" size={16} />
-              Son Fişi Yazdır
-            </Button>
+            <Suspense
+              fallback={
+                <Button
+                  isDisabled
+                  variant="secondary"
+                  className="mt-1 h-10 w-full rounded-xl text-sm">
+                  Fiş hazırlanıyor…
+                </Button>
+              }>
+              <ReceiptPrintButton sale={lastSale} />
+            </Suspense>
           )}
 
           {useSalesStore.getState().heldSales.length > 0 && (

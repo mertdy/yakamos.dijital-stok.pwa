@@ -11,10 +11,18 @@ const toastMock = vi.hoisted(() =>
 );
 
 vi.mock('@heroui/react', () => ({ toast: toastMock }));
-vi.mock('@/features/sales/store/useSalesStore', () => ({
-  useSalesStore: (selector: (state: unknown) => unknown) =>
-    selector({ heldSales: [], isProcessing: false })
-}));
+vi.mock('@/features/sales/store/useSalesStore', () => {
+  const state = { heldSales: [], isProcessing: false };
+  return {
+    useSalesStore: Object.assign(
+      (selector: (value: typeof state) => unknown) => selector(state),
+      {
+        getState: () => state,
+        subscribe: () => () => undefined
+      }
+    )
+  };
+});
 
 describe('usePWAUpdate', () => {
   let registration: ServiceWorkerRegistration;

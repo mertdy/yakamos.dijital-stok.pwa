@@ -76,13 +76,17 @@ export const prepareCompanyForOffline = async (
       query(collection(db, 'customers'), where('companyId', '==', companyId))
     ),
     getDocsFromServer(
+      query(collection(db, 'pricingRules'), where('companyId', '==', companyId))
+    ),
+    getDocsFromServer(
       query(
         collection(db, 'sales'),
         where('companyId', '==', companyId),
         orderBy('createdAt', 'desc'),
         limit(500)
       )
-    )
+    ),
+    getDocFromServer(doc(db, 'userPreferences', userId))
   ]);
 
   markCompanyOfflineReady(userId, companyId);

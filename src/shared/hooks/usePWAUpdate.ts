@@ -1,5 +1,4 @@
-import { useCallback, useEffect, useRef } from 'react';
-import { useSalesStore } from '@/features/sales/store/useSalesStore';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from '@heroui/react';
 
 const UPDATE_CHECK_INTERVAL_MS = 10 * 60 * 1000;
@@ -18,11 +17,45 @@ const hasOpenedSuccessfullyBefore = () => {
  * and prompt the user to reload the page when a new version activates.
  */
 export const usePWAUpdate = (isAuthenticatedAndReady: boolean) => {
-  const heldSalesCount = useSalesStore(state => state.heldSales.length);
-  const isSaleProcessing = useSalesStore(state => state.isProcessing);
+  const [salesStatus, setSalesStatus] = useState({
+    heldSalesCount: 0,
+    isProcessing: false
+  });
+  const { heldSalesCount, isProcessing: isSaleProcessing } = salesStatus;
   const updateAvailableRef = useRef(false);
   const hasShownUpdateToastRef = useRef(false);
   const hasOpenedSuccessfullyRef = useRef(hasOpenedSuccessfullyBefore());
+
+  useEffect(() => {
+    if (!isAuthenticatedAndReady) {
+      setSalesStatus({ heldSalesCount: 0, isProcessing: false });
+      return;
+    }
+
+    let cancelled = false;
+    let unsubscribe: (() => void) | undefined;
+    const loadSalesStatus = async () => {
+      const { useSalesStore } =
+        await import('@/features/sales/store/useSalesStore');
+      if (cancelled) return;
+
+      const syncStatus = () => {
+        const state = useSalesStore.getState();
+        setSalesStatus({
+          heldSalesCount: state.heldSales.length,
+          isProcessing: state.isProcessing
+        });
+      };
+      syncStatus();
+      unsubscribe = useSalesStore.subscribe(syncStatus);
+    };
+
+    void loadSalesStatus();
+    return () => {
+      cancelled = true;
+      unsubscribe?.();
+    };
+  }, [isAuthenticatedAndReady]);
 
   const showUpdateToast = useCallback(() => {
     if (

@@ -9,7 +9,6 @@ import { useAppHotkeys } from '@/shared/hooks/useAppHotkeys';
 import { useThemeMode } from '@/shared/hooks/useThemeMode';
 import { hasUnseenChangelog } from '@/core/config/changelog';
 import { useSecureLogout } from '@/shared/hooks/useSecureLogout';
-import { useSalesStore } from '@/features/sales';
 import { useConfirm } from '@/shared/contexts/ConfirmDialogContext';
 import {
   Store,
@@ -130,7 +129,6 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ onCheckForUpdate }) => {
   } = useAuthStore();
   const location = useLocation();
   const navigate = useNavigate();
-  const { cart, clearCart } = useSalesStore();
   const { confirm } = useConfirm();
   const logout = useSecureLogout();
   const { isDark, setTheme } = useThemeMode();
@@ -269,6 +267,10 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ onCheckForUpdate }) => {
       );
       return;
     }
+
+    const { useSalesStore } =
+      await import('@/features/sales/store/useSalesStore');
+    const { cart, clearCart } = useSalesStore.getState();
 
     if (cart.length > 0) {
       const productCount = cart.reduce((sum, item) => sum + item.quantity, 0);

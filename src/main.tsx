@@ -14,11 +14,6 @@ import { FirebaseCrashlytics } from '@capacitor-firebase/crashlytics';
 import { Capacitor } from '@capacitor/core';
 
 import { ENV } from './core/config/env';
-import {
-  corePrefetches,
-  secondaryPrefetches
-} from './core/config/prefetchRegistry';
-import { runPrefetch } from './shared/utils/prefetch';
 import { initializeThemeMode } from './shared/hooks/useThemeMode';
 import { startTechnicalErrorCapture } from './features/support/utils/technicalContext';
 
@@ -68,7 +63,3 @@ createRoot(document.getElementById('root')!).render(
     </StrictMode>
   </AppErrorBoundary>
 );
-
-// 3. Staggered prefetch of chunks when the browser is idle to support offline usage
-runPrefetch(corePrefetches);
-runPrefetch(secondaryPrefetches, 20000);

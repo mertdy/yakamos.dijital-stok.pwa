@@ -1,5 +1,12 @@
+import {
+  preloadReceiptPrint,
+  preloadScannerModal
+} from '@/features/sales/routes';
+
 // Çevrimdışı ve günlük kritik olan sayfalar (Aşama 1 - Immediate Idle)
 export const corePrefetches = [
+  preloadScannerModal,
+  preloadReceiptPrint,
   () => import('@/features/dashboard/views/DashboardView'),
   () => import('@/features/inventory/views/InventoryView'),
   () => import('@/features/customers/views/CustomerListView'),

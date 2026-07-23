@@ -1,27 +1,56 @@
 /**
- * Runs a list of dynamic imports sequentially when the browser is idle.
- * Can be delayed using the `delay` parameter.
+ * Runs dynamic imports one-by-one when the browser is idle. A cancellation
+ * callback prevents a previous company/session from competing with the next.
  */
-export const runPrefetch = (tasks: (() => Promise<any>)[], delay = 0) => {
-  if (typeof window === 'undefined') return;
+export const runPrefetch = (
+  tasks: Array<() => Promise<unknown>>,
+  delay = 0
+) => {
+  if (typeof window === 'undefined') return () => {};
 
-  const execute = () => {
-    tasks.forEach(task => {
+  let cancelled = false;
+  let delayTimer: number | undefined;
+  let removeLoadListener: (() => void) | undefined;
+
+  const waitForIdle = () =>
+    new Promise<void>(resolve => {
       if ('requestIdleCallback' in window) {
-        requestIdleCallback(() => task());
+        requestIdleCallback(() => resolve(), { timeout: 2_000 });
       } else {
-        setTimeout(task, 100);
+        setTimeout(resolve, 100);
       }
     });
+
+  const execute = async () => {
+    for (const task of tasks) {
+      await waitForIdle();
+      if (cancelled) return;
+      try {
+        await task();
+      } catch (error) {
+        console.warn('Optional offline prefetch failed', error);
+      }
+    }
   };
 
-  if (delay > 0) {
-    setTimeout(execute, delay);
-  } else {
-    if (document.readyState === 'complete') {
-      execute();
-    } else {
-      window.addEventListener('load', execute);
+  const schedule = () => {
+    if (delay > 0) {
+      delayTimer = window.setTimeout(() => void execute(), delay);
+      return;
     }
+    void execute();
+  };
+
+  if (document.readyState === 'complete') schedule();
+  else {
+    const onLoad = () => schedule();
+    window.addEventListener('load', onLoad, { once: true });
+    removeLoadListener = () => window.removeEventListener('load', onLoad);
   }
+
+  return () => {
+    cancelled = true;
+    if (delayTimer !== undefined) window.clearTimeout(delayTimer);
+    removeLoadListener?.();
+  };
 };

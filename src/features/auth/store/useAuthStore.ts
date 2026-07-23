@@ -31,12 +31,7 @@ import {
   notifyOtherTabsOfLogout,
   releaseFirestoreClient
 } from '@/shared/utils/sessionCleanup';
-import { useInventoryStore } from '@/features/inventory';
-import { useCustomerStore } from '@/features/customers';
-import { useSalesStore, usePreferencesStore } from '@/features/sales';
-import { useSalesHistoryStore } from '@/features/sales-history';
-import { usePricingRuleStore } from '@/features/promotions';
-import { useOnboardingStore } from '@/features/onboarding/store';
+import { clearFeatureSessionData } from '@/shared/utils/featureSessionCleanup';
 import type {
   Company,
   UserProfile,
@@ -559,14 +554,7 @@ export const useAuthStore = getSingletonStore('auth', () =>
         if (notifyTabs) await notifyOtherTabsOfLogout();
         await signOut(auth);
         posthog.reset();
-        useInventoryStore.getState().clearItems();
-        useCustomerStore.getState().clearCustomers();
-        useSalesStore.getState().clearCart();
-        useSalesStore.getState().clearHeldSales();
-        useSalesHistoryStore.getState().clearSales();
-        usePricingRuleStore.getState().clearRules();
-        usePreferencesStore.getState().clearPreferences();
-        useOnboardingStore.getState().clearOnboarding();
+        await clearFeatureSessionData();
         clearUserLocalStorage();
         if (clearPersistence) {
           await clearFirestorePersistence();

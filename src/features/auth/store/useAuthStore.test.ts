@@ -177,6 +177,48 @@ vi.mock('@/features/onboarding/store', () => ({
   }
 }));
 
+vi.mock('@/features/onboarding/store/useOnboardingStore', () => ({
+  useOnboardingStore: {
+    getState: vi.fn(() => ({ clearOnboarding: vi.fn() }))
+  }
+}));
+
+vi.mock('@/features/inventory/store/useInventoryStore', () => ({
+  useInventoryStore: {
+    getState: vi.fn(() => ({ clearItems: vi.fn() }))
+  }
+}));
+
+vi.mock('@/features/customers/store/useCustomerStore', () => ({
+  useCustomerStore: {
+    getState: vi.fn(() => ({ clearCustomers: vi.fn() }))
+  }
+}));
+
+vi.mock('@/features/sales/store/useSalesStore', () => ({
+  useSalesStore: {
+    getState: vi.fn(() => ({ clearCart: vi.fn(), clearHeldSales: vi.fn() }))
+  }
+}));
+
+vi.mock('@/features/sales/store/usePreferencesStore', () => ({
+  usePreferencesStore: {
+    getState: vi.fn(() => ({ clearPreferences: vi.fn() }))
+  }
+}));
+
+vi.mock('@/features/sales-history/store/useSalesHistoryStore', () => ({
+  useSalesHistoryStore: {
+    getState: vi.fn(() => ({ clearSales: vi.fn() }))
+  }
+}));
+
+vi.mock('@/features/promotions/store/usePricingRuleStore', () => ({
+  usePricingRuleStore: {
+    getState: vi.fn(() => ({ clearRules: vi.fn() }))
+  }
+}));
+
 // ─── Store factory (fresh instance per test) ─────────────────────────────────
 
 async function buildStore() {
@@ -521,15 +563,24 @@ describe('useAuthStore', () => {
     const clearCart = vi.fn();
     const clearHeldSales = vi.fn();
     const clearSales = vi.fn();
+    const clearRules = vi.fn();
     const clearPreferences = vi.fn();
     const clearOnboarding = vi.fn();
 
-    const { useInventoryStore } = await import('@/features/inventory');
-    const { useCustomerStore } = await import('@/features/customers');
-    const { useSalesStore, usePreferencesStore } =
-      await import('@/features/sales');
-    const { useSalesHistoryStore } = await import('@/features/sales-history');
-    const { useOnboardingStore } = await import('@/features/onboarding/store');
+    const { useInventoryStore } =
+      await import('@/features/inventory/store/useInventoryStore');
+    const { useCustomerStore } =
+      await import('@/features/customers/store/useCustomerStore');
+    const { useSalesStore } =
+      await import('@/features/sales/store/useSalesStore');
+    const { usePreferencesStore } =
+      await import('@/features/sales/store/usePreferencesStore');
+    const { useSalesHistoryStore } =
+      await import('@/features/sales-history/store/useSalesHistoryStore');
+    const { usePricingRuleStore } =
+      await import('@/features/promotions/store/usePricingRuleStore');
+    const { useOnboardingStore } =
+      await import('@/features/onboarding/store/useOnboardingStore');
 
     vi.mocked(useInventoryStore.getState).mockReturnValue({
       clearItems
@@ -543,6 +594,9 @@ describe('useAuthStore', () => {
     } as any);
     vi.mocked(useSalesHistoryStore.getState).mockReturnValue({
       clearSales
+    } as any);
+    vi.mocked(usePricingRuleStore.getState).mockReturnValue({
+      clearRules
     } as any);
     vi.mocked(usePreferencesStore.getState).mockReturnValue({
       clearPreferences
@@ -560,6 +614,7 @@ describe('useAuthStore', () => {
     expect(clearCart).toHaveBeenCalled();
     expect(clearHeldSales).toHaveBeenCalled();
     expect(clearSales).toHaveBeenCalled();
+    expect(clearRules).toHaveBeenCalled();
     expect(clearPreferences).toHaveBeenCalled();
     expect(clearOnboarding).toHaveBeenCalled();
     expect(notifyOtherTabsOfLogout).toHaveBeenCalled();

@@ -66,20 +66,24 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
         text: 'İlk satış rehberi ürün arama, kameradan barkod okutma, ödeme, müşteri seçimi, hızlı ekle, sepeti bekletme ve sıfırlama adımlarını açıklar.'
       },
       {
-        type: 'fixed',
-        text: 'Satış rehberi açılırken satış ekranı ve ilk hedef alan hazırlandıktan sonra tur başlatılır; ilk adım artık atlanmaz.'
+        type: 'improved',
+        text: 'Satış ekranı daha hızlı açılır; kamera ve fiş yazdırma özellikleri uygulama kullanıma hazır olduktan sonra çevrim dışı kullanım için arka planda hazırlanır.'
       },
       {
         type: 'improved',
         text: 'Envanter rehberi yeni ürün eklemeyi ve listedeki ürünün düzenleme, etiket bastırma, silme eylemlerini ayrı adımlarda anlatır.'
       },
       {
-        type: 'fixed',
-        text: 'Sabit başlangıç rehberi kartındaki açma-kapatma düğmesi başlığın sağ üstünde hizalanır.'
-      },
-      {
         type: 'improved',
         text: 'Başlangıç rehberindeki kullanılmayan eski hedefler ve aksiyonlar temizlendi.'
+      },
+      {
+        type: 'fixed',
+        text: 'Satış rehberi açılırken satış ekranı ve ilk hedef alan hazırlandıktan sonra tur başlatılır; ilk adım artık atlanmaz.'
+      },
+      {
+        type: 'fixed',
+        text: 'Sabit başlangıç rehberi kartındaki açma-kapatma düğmesi başlığın sağ üstünde hizalanır.'
       }
     ]
   },

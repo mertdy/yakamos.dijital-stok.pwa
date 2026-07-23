@@ -133,6 +133,10 @@ Queued locally.
 
 Automatically synchronized when connectivity returns.
 
+After the authenticated workspace is visible, route chunks and optional POS
+features are prefetched sequentially during idle time. Core POS, camera and
+receipt code therefore remain available after a successful online opening.
+
 ---
 
 # Authentication Flow
@@ -182,6 +186,10 @@ Persistence:
 Only required state is persisted.
 
 Transient UI state must stay in memory.
+
+The authentication shell must not statically import feature stores. Company
+hydration and logout cleanup load feature stores on demand, keeping initial
+login code independent from inventory, customer and sales-history modules.
 
 ---
 
