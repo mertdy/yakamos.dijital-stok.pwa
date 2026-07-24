@@ -44,6 +44,7 @@ body {
   background-color: var(--color-background);
   color: #202124;
   -webkit-font-smoothing: antialiased;
+  overscroll-behavior-y: none;
 }
 
 html.dark {

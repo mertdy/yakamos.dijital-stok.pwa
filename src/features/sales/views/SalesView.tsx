@@ -7,8 +7,11 @@ import { HeldSalesDrawer } from '../components/HeldSalesDrawer';
 import { GlobalProductSearch } from '../components/GlobalProductSearch';
 import { preloadBarcodeFeedback } from '@/shared/utils/barcodeFeedback';
 import { ScannerModal } from '../routes';
+import { useMediaQuery } from '@/shared/hooks/useMediaQuery';
+import { MobileSalesView } from '../components/MobileSalesView';
 
 export const SalesView: React.FC = () => {
+  const isMobile = useMediaQuery('(max-width: 1023px)');
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [isCustomerDrawerOpen, setIsCustomerDrawerOpen] = useState(false);
   const [isHeldSalesDrawerOpen, setIsHeldSalesDrawerOpen] = useState(false);
@@ -16,6 +19,8 @@ export const SalesView: React.FC = () => {
   useEffect(() => {
     preloadBarcodeFeedback();
   }, []);
+
+  if (isMobile) return <MobileSalesView />;
 
   return (
     <div className="flex h-auto flex-col gap-4 overflow-y-auto p-4 lg:h-full lg:flex-row lg:overflow-hidden">

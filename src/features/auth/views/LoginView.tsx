@@ -346,6 +346,7 @@ const RegisterForm: React.FC = () => {
     clearError
   } = useAuthStore();
   const [emailSent, setEmailSent] = useState<string | null>(null);
+  const [showEmailForm, setShowEmailForm] = useState(false);
   const pw = usePasswordToggle();
   const confirmPw = usePasswordToggle();
 
@@ -380,91 +381,160 @@ const RegisterForm: React.FC = () => {
     );
   }
 
+  if (!showEmailForm) {
+    return (
+      <div className="flex flex-col gap-4">
+        <div className="text-center">
+          <h2 className="text-lg font-bold text-gray-900 dark:text-white">
+            Hesabınızı oluşturun
+          </h2>
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+            Google ile devam ederek daha hızlı başlayabilirsiniz.
+          </p>
+        </div>
+
+        <Button
+          type="button"
+          variant="primary"
+          size="lg"
+          id="google-register-btn"
+          className="relative flex w-full items-center justify-center gap-3 overflow-visible rounded-2xl py-3.5 text-sm font-semibold shadow-sm"
+          onPress={loginWithGoogle}
+          isPending={isLoading}>
+          {!isLoading && <GoogleIcon />}
+          Google ile hızlı kayıt ol
+          <span className="absolute -top-2 -right-1 rounded-full bg-white px-1.5 py-0.5 text-[10px] leading-none font-bold text-blue-600 shadow-sm ring-1 ring-blue-100">
+            Önerilen
+          </span>
+        </Button>
+
+        <GoogleDivider />
+
+        <Button
+          type="button"
+          variant="outline"
+          size="lg"
+          id="email-register-option-btn"
+          className="w-full rounded-2xl border-gray-200 py-3.5 text-sm font-semibold text-gray-700 shadow-sm transition-all hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-slate-700"
+          onPress={() => {
+            clearError();
+            setShowEmailForm(true);
+          }}>
+          E-posta ile kayıt ol
+        </Button>
+
+        {authError && (
+          <p
+            role="alert"
+            className="rounded-xl bg-red-50 px-4 py-3 text-sm font-medium text-red-600">
+            {authError}
+          </p>
+        )}
+      </div>
+    );
+  }
+
   return (
-    <form
-      onSubmit={handleSubmit(onSubmit)}
-      noValidate
-      className="flex flex-col gap-4">
-      <FormField
-        id="register-email"
-        label="E-posta"
-        type="email"
-        placeholder="ornek@eposta.com"
-        autoComplete="email"
-        error={errors.email?.message}
-        registration={register('email')}
-      />
+    <div className="flex flex-col gap-4">
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="text-lg font-bold text-gray-900 dark:text-white">
+          E-posta ile kayıt ol
+        </h2>
+        <button
+          type="button"
+          onClick={() => {
+            clearError();
+            setShowEmailForm(false);
+          }}
+          className="text-sm font-semibold text-blue-600 transition-colors hover:text-blue-700 hover:underline">
+          Geri
+        </button>
+      </div>
 
-      <FormField
-        id="register-password"
-        label="Şifre"
-        type={pw.show ? 'text' : 'password'}
-        placeholder="En az 6 karakter"
-        autoComplete="new-password"
-        error={errors.password?.message}
-        registration={register('password')}
-        rightElement={
-          <button
-            type="button"
-            onClick={pw.toggle}
-            aria-label={pw.show ? 'Şifreyi gizle' : 'Şifreyi göster'}
-            className="text-gray-400 transition-colors hover:text-gray-600">
-            <pw.Icon size={18} />
-          </button>
-        }
-      />
+      <form
+        onSubmit={handleSubmit(onSubmit)}
+        noValidate
+        className="flex flex-col gap-4">
+        <FormField
+          id="register-email"
+          label="E-posta"
+          type="email"
+          placeholder="ornek@eposta.com"
+          autoComplete="email"
+          error={errors.email?.message}
+          registration={register('email')}
+        />
 
-      <FormField
-        id="register-confirm-password"
-        label="Şifre Tekrar"
-        type={confirmPw.show ? 'text' : 'password'}
-        placeholder="Şifreyi tekrar girin"
-        autoComplete="new-password"
-        error={errors.confirmPassword?.message}
-        registration={register('confirmPassword')}
-        rightElement={
-          <button
-            type="button"
-            onClick={confirmPw.toggle}
-            aria-label={confirmPw.show ? 'Şifreyi gizle' : 'Şifreyi göster'}
-            className="text-gray-400 transition-colors hover:text-gray-600">
-            <confirmPw.Icon size={18} />
-          </button>
-        }
-      />
+        <FormField
+          id="register-password"
+          label="Şifre"
+          type={pw.show ? 'text' : 'password'}
+          placeholder="En az 6 karakter"
+          autoComplete="new-password"
+          error={errors.password?.message}
+          registration={register('password')}
+          rightElement={
+            <button
+              type="button"
+              onClick={pw.toggle}
+              aria-label={pw.show ? 'Şifreyi gizle' : 'Şifreyi göster'}
+              className="text-gray-400 transition-colors hover:text-gray-600">
+              <pw.Icon size={18} />
+            </button>
+          }
+        />
 
-      {authError && (
-        <p
-          role="alert"
-          className="rounded-xl bg-red-50 px-4 py-3 text-sm font-medium text-red-600">
-          {authError}
-        </p>
-      )}
+        <FormField
+          id="register-confirm-password"
+          label="Şifre Tekrar"
+          type={confirmPw.show ? 'text' : 'password'}
+          placeholder="Şifreyi tekrar girin"
+          autoComplete="new-password"
+          error={errors.confirmPassword?.message}
+          registration={register('confirmPassword')}
+          rightElement={
+            <button
+              type="button"
+              onClick={confirmPw.toggle}
+              aria-label={confirmPw.show ? 'Şifreyi gizle' : 'Şifreyi göster'}
+              className="text-gray-400 transition-colors hover:text-gray-600">
+              <confirmPw.Icon size={18} />
+            </button>
+          }
+        />
 
-      <Button
-        type="submit"
-        variant="primary"
-        size="lg"
-        id="register-submit-btn"
-        className="w-full rounded-2xl py-3.5 text-base font-semibold shadow-sm"
-        isPending={isLoading}>
-        Kayıt Ol
-      </Button>
+        {authError && (
+          <p
+            role="alert"
+            className="rounded-xl bg-red-50 px-4 py-3 text-sm font-medium text-red-600">
+            {authError}
+          </p>
+        )}
 
-      <GoogleDivider />
+        <Button
+          type="submit"
+          variant="primary"
+          size="lg"
+          id="register-submit-btn"
+          className="w-full rounded-2xl py-3.5 text-base font-semibold shadow-sm"
+          isPending={isLoading}>
+          Kayıt Ol
+        </Button>
 
-      <Button
-        type="button"
-        variant="outline"
-        size="lg"
-        id="google-register-btn"
-        className="flex w-full items-center justify-center gap-3 rounded-2xl border-gray-200 py-3.5 text-sm font-semibold text-gray-700 shadow-sm transition-all hover:bg-gray-50"
-        onPress={loginWithGoogle}
-        isPending={isLoading}>
-        {!isLoading && <GoogleIcon />}
-        Google ile Kayıt Ol
-      </Button>
-    </form>
+        <GoogleDivider />
+
+        <Button
+          type="button"
+          variant="outline"
+          size="lg"
+          className="flex w-full items-center justify-center gap-3 rounded-2xl border-gray-200 py-3.5 text-sm font-semibold text-gray-700 shadow-sm transition-all hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-slate-700"
+          onPress={loginWithGoogle}
+          isPending={isLoading}>
+          {!isLoading && <GoogleIcon />}
+          Bunun yerine Google ile kayıt ol
+        </Button>
+      </form>
+    </div>
   );
 };
 

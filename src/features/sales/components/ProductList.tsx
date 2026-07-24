@@ -1,4 +1,5 @@
 import React, { useMemo, useEffect, useState } from 'react';
+import { clsx } from 'clsx';
 import { Package, Settings2 } from 'lucide-react';
 import { Spinner, Tabs } from '@heroui/react';
 import { useInventoryStore } from '@/features/inventory';
@@ -7,7 +8,13 @@ import { usePreferencesStore } from '../store/usePreferencesStore';
 import { QuickAddEditModal } from './QuickAddEditModal';
 import { useAuthStore } from '@/features/auth';
 
-export const ProductList: React.FC = () => {
+interface ProductListProps {
+  isCompact?: boolean;
+}
+
+export const ProductList: React.FC<ProductListProps> = ({
+  isCompact = false
+}) => {
   const { items } = useInventoryStore();
   const { addToCart } = useSalesStore();
   const {
@@ -63,7 +70,13 @@ export const ProductList: React.FC = () => {
       : isLoading || quickAddCompanyId !== activeCompanyId);
 
   return (
-    <div className="flex h-full flex-col overflow-hidden rounded-3xl border border-gray-100 bg-white shadow-sm">
+    <div
+      className={clsx(
+        'flex h-full flex-col overflow-hidden bg-white',
+        isCompact
+          ? 'border-0 shadow-none'
+          : 'rounded-3xl border border-gray-100 shadow-sm'
+      )}>
       {/* Header */}
       <div
         data-onboarding="sales-quick-add"

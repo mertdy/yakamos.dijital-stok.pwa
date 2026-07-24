@@ -54,7 +54,7 @@ export const OrderDetailsPanel: React.FC = () => {
         ) : (
           <div className="w-full">
             {/* Table Header */}
-            <div className="grid grid-cols-12 gap-4 border-b border-gray-100 bg-gray-50/50 p-4 text-xs font-semibold tracking-wider text-gray-500 uppercase">
+            <div className="hidden grid-cols-12 gap-4 border-b border-gray-100 bg-gray-50/50 p-4 text-xs font-semibold tracking-wider text-gray-500 uppercase sm:grid">
               <div className="col-span-5">Ürün</div>
               <div className="col-span-2 text-center">Fiyat</div>
               <div className="col-span-3 text-center">Miktar</div>
@@ -102,9 +102,9 @@ export const OrderDetailsPanel: React.FC = () => {
                       nextRow?.focus();
                     }
                   }}
-                  className="group focus-visible:bg-primary/5 grid grid-cols-12 items-center gap-4 p-4 transition-colors hover:bg-gray-50/50 focus-visible:outline-none">
+                  className="group focus-visible:bg-primary/5 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 p-3 transition-colors hover:bg-gray-50/50 focus-visible:outline-none sm:grid-cols-12 sm:gap-4 sm:p-4">
                   {/* Product Column */}
-                  <div className="col-span-5 flex items-center gap-3">
+                  <div className="col-span-1 flex min-w-0 items-center gap-3 sm:col-span-5">
                     <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-gray-100 text-gray-400">
                       {item.imageUrl ? (
                         <img
@@ -136,12 +136,12 @@ export const OrderDetailsPanel: React.FC = () => {
                   </div>
 
                   {/* Price Column */}
-                  <div className="col-span-2 text-center text-sm font-medium text-gray-700">
+                  <div className="hidden text-center text-sm font-medium text-gray-700 sm:col-span-2 sm:block">
                     ₺{item.price.toFixed(2)}
                   </div>
 
                   {/* Quantity Column */}
-                  <div className="col-span-3 flex items-center justify-center">
+                  <div className="col-start-1 row-start-2 flex items-center justify-start sm:col-span-3 sm:col-start-auto sm:row-auto sm:justify-center">
                     <div className="flex items-center gap-2 rounded-full border border-gray-200 bg-gray-50 px-1 py-1">
                       <button
                         className="hover:text-danger flex h-6 w-6 items-center justify-center rounded-full text-gray-500 transition-all hover:bg-white hover:shadow-sm disabled:opacity-50"
@@ -169,7 +169,7 @@ export const OrderDetailsPanel: React.FC = () => {
                   </div>
 
                   {/* Subtotal & Action Column */}
-                  <div className="col-span-2 flex items-center justify-end gap-3">
+                  <div className="col-start-2 row-start-2 flex items-center justify-end gap-3 sm:col-span-2 sm:col-start-auto sm:row-auto">
                     <span className="text-sm font-bold text-gray-900">
                       ₺{(item.price * item.quantity).toFixed(2)}
                     </span>

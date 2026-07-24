@@ -10,6 +10,7 @@ import posthog from 'posthog-js';
 import { ROUTES } from '@/core/config/routes';
 import { useDebounce } from '@/shared/hooks/useDebounce';
 import { normalizeSearchText } from '@/shared/utils/searchText';
+import { useMediaQuery } from '@/shared/hooks/useMediaQuery';
 
 interface Props {
   isOpen: boolean;
@@ -20,6 +21,7 @@ export const CustomerDrawer: React.FC<Props> = ({ isOpen, onClose }) => {
   const { customers } = useCustomerStore();
   const { customerId, setCustomerId } = useSalesStore();
   const navigate = useNavigate();
+  const isMobile = useMediaQuery('(max-width: 639px)');
 
   const [search, setSearch] = useState('');
   const debouncedSearch = useDebounce(search, 300);
@@ -65,15 +67,20 @@ export const CustomerDrawer: React.FC<Props> = ({ isOpen, onClose }) => {
             onClick={onClose}
           />
           <motion.div
-            initial={{ x: '100%' }}
-            animate={{ x: 0 }}
-            exit={{ x: '100%' }}
+            initial={isMobile ? { y: '100%' } : { x: '100%' }}
+            animate={isMobile ? { y: 0 } : { x: 0 }}
+            exit={isMobile ? { y: '100%' } : { x: '100%' }}
             transition={{
               type: 'tween',
               duration: 0.3,
               ease: [0.16, 1, 0.3, 1]
             }}
-            className="fixed top-0 right-0 bottom-0 z-50 flex w-full max-w-sm flex-col bg-white shadow-2xl">
+            className={clsx(
+              'fixed z-50 flex w-full flex-col bg-white shadow-2xl',
+              isMobile
+                ? 'right-0 bottom-0 left-0 max-h-[min(44rem,calc(100dvh-0.75rem))] rounded-t-3xl'
+                : 'top-0 right-0 bottom-0 max-w-sm'
+            )}>
             <div className="flex items-center justify-between border-b border-gray-100 bg-gray-50/50 p-5">
               <h2 className="text-lg font-bold text-gray-900">
                 Müşteri Seçimi

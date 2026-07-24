@@ -7,6 +7,8 @@ import { Button, toast, Modal } from '@heroui/react';
 import { X, Clock, Trash2, ListRestart } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import posthog from 'posthog-js';
+import { clsx } from 'clsx';
+import { useMediaQuery } from '@/shared/hooks/useMediaQuery';
 
 interface Props {
   isOpen: boolean;
@@ -18,6 +20,7 @@ export const HeldSalesDrawer: React.FC<Props> = ({ isOpen, onClose }) => {
     useSalesStore();
   const { customers } = useCustomerStore();
   const { confirm } = useConfirm();
+  const isMobile = useMediaQuery('(max-width: 639px)');
 
   const [isAlertOpen, setIsAlertOpen] = useState(false);
   const [selectedSaleId, setSelectedSaleId] = useState<string | null>(null);
@@ -59,15 +62,20 @@ export const HeldSalesDrawer: React.FC<Props> = ({ isOpen, onClose }) => {
               onClick={onClose}
             />
             <motion.div
-              initial={{ x: '100%' }}
-              animate={{ x: 0 }}
-              exit={{ x: '100%' }}
+              initial={isMobile ? { y: '100%' } : { x: '100%' }}
+              animate={isMobile ? { y: 0 } : { x: 0 }}
+              exit={isMobile ? { y: '100%' } : { x: '100%' }}
               transition={{
                 type: 'tween',
                 duration: 0.3,
                 ease: [0.16, 1, 0.3, 1]
               }}
-              className="fixed top-0 right-0 bottom-0 z-50 flex w-full max-w-md flex-col bg-white shadow-2xl">
+              className={clsx(
+                'fixed z-50 flex w-full flex-col bg-white shadow-2xl',
+                isMobile
+                  ? 'right-0 bottom-0 left-0 max-h-[min(44rem,calc(100dvh-0.75rem))] rounded-t-3xl'
+                  : 'top-0 right-0 bottom-0 max-w-md'
+              )}>
               <div className="flex items-center justify-between border-b border-gray-100 bg-gray-50/50 p-5">
                 <div>
                   <h2 className="flex items-center gap-2 text-lg font-bold text-gray-900">

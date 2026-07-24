@@ -109,13 +109,51 @@ describe('LoginView', () => {
     expect(registerTab).toHaveAttribute('aria-selected', 'true');
   });
 
-  it('shows register form fields after switching to register tab', async () => {
+  it('shows the Google-first registration choices after switching to register tab', async () => {
     renderLoginView();
     await userEvent.click(screen.getByRole('tab', { name: /kayıt ol/i }));
     const registerPanel = getRegisterPanel();
     expect(
-      within(registerPanel).getByLabelText(/şifre tekrar/i)
+      within(registerPanel).getByRole('button', {
+        name: /^google ile hızlı kayıt ol/i
+      })
     ).toBeInTheDocument();
+    expect(
+      within(registerPanel).getByRole('button', {
+        name: /e-posta ile kayıt ol/i
+      })
+    ).toBeInTheDocument();
+    expect(
+      within(registerPanel).queryByLabelText(/^e-posta$/i)
+    ).not.toBeInTheDocument();
+  });
+
+  it('shows the email registration fields only after selecting email registration', async () => {
+    renderLoginView();
+    await userEvent.click(screen.getByRole('tab', { name: /kayıt ol/i }));
+    const registerPanel = getRegisterPanel();
+    await userEvent.click(
+      within(registerPanel).getByRole('button', {
+        name: /e-posta ile kayıt ol/i
+      })
+    );
+
+    expect(
+      within(getRegisterPanel()).getByLabelText(/şifre tekrar/i)
+    ).toBeInTheDocument();
+  });
+
+  it('starts Google registration from the preferred registration option', async () => {
+    mockLoginWithGoogle.mockResolvedValueOnce(undefined);
+    renderLoginView();
+    await userEvent.click(screen.getByRole('tab', { name: /kayıt ol/i }));
+    await userEvent.click(
+      within(getRegisterPanel()).getByRole('button', {
+        name: /^google ile hızlı kayıt ol/i
+      })
+    );
+
+    expect(mockLoginWithGoogle).toHaveBeenCalledTimes(1);
   });
 
   it('calls clearError when switching tabs', async () => {
@@ -303,6 +341,11 @@ describe('LoginView', () => {
   it('shows error when passwords do not match in register form', async () => {
     renderLoginView();
     await userEvent.click(screen.getByRole('tab', { name: /kayıt ol/i }));
+    await userEvent.click(
+      within(getRegisterPanel()).getByRole('button', {
+        name: /e-posta ile kayıt ol/i
+      })
+    );
     const registerPanel = getRegisterPanel();
     await userEvent.type(
       within(registerPanel).getByLabelText(/^e-posta$/i),
@@ -328,6 +371,11 @@ describe('LoginView', () => {
     mockRegisterWithEmail.mockResolvedValueOnce(undefined);
     renderLoginView();
     await userEvent.click(screen.getByRole('tab', { name: /kayıt ol/i }));
+    await userEvent.click(
+      within(getRegisterPanel()).getByRole('button', {
+        name: /e-posta ile kayıt ol/i
+      })
+    );
     const registerPanel = getRegisterPanel();
     await userEvent.type(
       within(registerPanel).getByLabelText(/^e-posta$/i),

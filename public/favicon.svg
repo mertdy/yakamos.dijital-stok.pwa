@@ -6,7 +6,6 @@
   fill="none"
   role="img"
   aria-labelledby="brand-mark-title"
-  style="overflow: visible"
 >
   <title id="brand-mark-title">Dijital Stok</title>
   <defs>
@@ -18,16 +17,12 @@
     <clipPath id="brand-mark-clip">
       <rect width="36" height="36" rx="12" />
     </clipPath>
-    <filter id="brand-mark-shadow" x="-12" y="-8" width="60" height="68" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse">
-      <feDropShadow dx="0" dy="4" stdDeviation="3" flood-color="#1A73E8" flood-opacity="0.25" />
-      <feDropShadow dx="0" dy="10" stdDeviation="7.5" flood-color="#1A73E8" flood-opacity="0.16" />
-    </filter>
     <filter id="brand-mark-dot-shadow" x="24" y="3" width="10" height="11" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse">
       <feDropShadow dx="0" dy="1" stdDeviation="1" flood-color="#000000" flood-opacity="0.05" />
     </filter>
   </defs>
 
-  <g filter="url(#brand-mark-shadow)">
+  <g>
     <rect width="36" height="36" rx="12" fill="url(#brand-mark-gradient)" />
     <rect x="0.5" y="0.5" width="35" height="35" rx="11.5" stroke="#1A73E8" stroke-opacity="0.1" />
   </g>
@@ -46,6 +41,5 @@
     </g>
 
     <circle cx="29" cy="7" r="3" fill="#FFFFFF" fill-opacity="0.9" filter="url(#brand-mark-dot-shadow)" />
-    <circle cx="2" cy="34" r="10" fill="#FFFFFF" fill-opacity="0.15" />
   </g>
 </svg>

@@ -29,11 +29,15 @@ import { preloadReceiptPrint, ReceiptPrintButton } from '../routes';
 interface Props {
   onOpenCustomerDrawer: () => void;
   onOpenHeldSalesDrawer: () => void;
+  isCompact?: boolean;
+  onCheckoutComplete?: () => void;
 }
 
 export const InvoicePanel: React.FC<Props> = ({
   onOpenCustomerDrawer,
-  onOpenHeldSalesDrawer
+  onOpenHeldSalesDrawer,
+  isCompact = false,
+  onCheckoutComplete
 }) => {
   const {
     cart,
@@ -129,6 +133,7 @@ export const InvoicePanel: React.FC<Props> = ({
       setLastSale(saleData);
 
       toast.success('Satış başarıyla tamamlandı!');
+      onCheckoutComplete?.();
     } else {
       toast.danger('Satış işlemi başarısız oldu.');
     }
@@ -225,15 +230,23 @@ export const InvoicePanel: React.FC<Props> = ({
   );
 
   return (
-    <div className="flex flex-col overflow-hidden rounded-3xl border border-gray-100 bg-white shadow-sm">
-      <div className="flex items-center border-b border-gray-100 bg-gray-50/50 px-4 py-3">
-        <h2 className="flex items-center gap-2 text-base font-bold tracking-tight text-gray-900">
-          <Receipt className="text-primary" size={18} />
-          Ödeme
-        </h2>
-      </div>
+    <div
+      className={clsx(
+        'flex flex-col overflow-hidden bg-white',
+        isCompact
+          ? 'h-full border-0 shadow-none'
+          : 'rounded-3xl border border-gray-100 shadow-sm'
+      )}>
+      {!isCompact && (
+        <div className="flex items-center border-b border-gray-100 bg-gray-50/50 px-4 py-3">
+          <h2 className="flex items-center gap-2 text-base font-bold tracking-tight text-gray-900">
+            <Receipt className="text-primary" size={18} />
+            Ödeme
+          </h2>
+        </div>
+      )}
 
-      <div className="space-y-3 p-4">
+      <div className="flex-1 space-y-3 overflow-y-auto p-4">
         {/* Customer Selection */}
         <div className="flex gap-2">
           <div

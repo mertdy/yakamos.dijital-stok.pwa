@@ -12,9 +12,18 @@ vi.mock('../store/useCustomerStore', () => ({
 // Mock react-router-dom
 vi.mock('@/features/auth', () => ({
   useAuthStore: Object.assign(
-    () => ({
-      activeMembership: { role: 'OWNER', permissions: [] }
-    }),
+    (
+      selector?: (state: {
+        activeMembership: { role: string; permissions: string[] };
+        activeCompany: null;
+      }) => unknown
+    ) => {
+      const state = {
+        activeMembership: { role: 'OWNER', permissions: [] },
+        activeCompany: null
+      };
+      return selector ? selector(state) : state;
+    },
     {
       getState: () => ({
         activeMembership: { role: 'OWNER', permissions: [] }

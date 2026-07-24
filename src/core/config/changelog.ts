@@ -9,6 +9,57 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-07-24',
+    date: '24 Temmuz 2026',
+    title: 'Mobil kullanım iyileştirmeleri',
+    items: [
+      {
+        type: 'new',
+        text: 'Mobil uygulamada Anasayfa, Satış, Envanter ve Müşteriler için sade bir alt menü; diğer işlemler için tek bir uygulama menüsü eklendi.'
+      },
+      {
+        type: 'improved',
+        text: 'İşletme seçimi, hesap işlemleri, destek, güncelleme ve senkronizasyon durumu mobil menüde daha ferah ve kolay erişilebilir hale getirildi.'
+      },
+      {
+        type: 'improved',
+        text: 'Mobil satış ekranı, sepeti öne çıkaran sabit ödeme adımı ile hızlı ekleme ve ödeme seçeneklerini alttan açılan panellere taşıyan POS düzenine kavuştu.'
+      },
+      {
+        type: 'improved',
+        text: 'Müşteri seçimi ve bekleyen satışlar, telefonda daha rahat kullanılmak üzere alttan açılan panellerde görüntülenir.'
+      },
+      {
+        type: 'improved',
+        text: 'Mobil satış ekranındaki menü düğmesi, uygulamanın işletme ve hesap seçeneklerini içeren ana menüsünü açar.'
+      },
+      {
+        type: 'improved',
+        text: 'Mobil uygulama menüsündeki işletme seçici, aktif işletmenin adını gösteren tam genişlikli bir düğme olarak görüntülenir.'
+      },
+      {
+        type: 'improved',
+        text: 'Mobil alt bardaki hesap fotoğrafı, tema ve hesap işlemlerini içeren kullanıcı menüsünü açar.'
+      },
+      {
+        type: 'improved',
+        text: 'Mobil satış başlığı, uygulamanın diğer sayfalarıyla uyumlu boşluk ve yüzey düzenine kavuştu.'
+      },
+      {
+        type: 'improved',
+        text: 'Mobil üst başlıktaki uzun işletme adları tek satırda kısaltılarak daha düzenli görüntülenir.'
+      },
+      {
+        type: 'improved',
+        text: 'Kayıt ekranında Google ile hızlı kayıt öne çıkarılır; e-posta ile kayıt formu yalnızca seçtiğinizde açılır.'
+      },
+      {
+        type: 'improved',
+        text: 'Giriş ekranındaki uygulama simgesi daha sade ve temiz bir görünümle görüntülenir.'
+      }
+    ]
+  },
+  {
     id: '2026-07-23',
     date: '23 Temmuz 2026',
     title: 'Kullanım iyileştirmeleri',
