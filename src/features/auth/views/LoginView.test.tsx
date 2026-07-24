@@ -19,6 +19,7 @@ const mockClearError = vi.fn();
 
 const storeState = {
   isLoading: false,
+  isAuthenticating: false,
   authError: null as string | null,
   loginWithEmail: mockLoginWithEmail,
   registerWithEmail: mockRegisterWithEmail,
@@ -53,6 +54,7 @@ describe('LoginView', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     storeState.isLoading = false;
+    storeState.isAuthenticating = false;
     storeState.authError = null;
   });
 
@@ -243,6 +245,20 @@ describe('LoginView', () => {
       within(loginPanel).getByRole('button', { name: /google ile giriş/i })
     );
     expect(mockLoginWithGoogle).toHaveBeenCalled();
+  });
+
+  it('shows login progress only in the submit button', () => {
+    storeState.isAuthenticating = true;
+    renderLoginView();
+
+    expect(
+      within(getLoginPanel()).getByRole('button', {
+        name: /hesabınıza giriş yapılıyor/i
+      })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: /dijital stok/i })
+    ).toBeInTheDocument();
   });
 
   // ── Auth error display ────────────────────────────────────────────────────

@@ -338,6 +338,7 @@ describe('useAuthStore', () => {
     const state = store.getState();
     expect(state.user).toBeNull();
     expect(state.isLoading).toBe(false);
+    expect(state.isAuthenticating).toBe(false);
     expect(state.isInitialized).toBe(false);
     expect(state.authError).toBeNull();
   });
@@ -380,7 +381,8 @@ describe('useAuthStore', () => {
       'test@example.com',
       'password123'
     );
-    expect(store.getState().isLoading).toBe(true);
+    expect(store.getState().isLoading).toBe(false);
+    expect(store.getState().isAuthenticating).toBe(false);
     expect(store.getState().authError).toBeNull();
   });
 
@@ -394,6 +396,7 @@ describe('useAuthStore', () => {
     ).rejects.toBeDefined();
     expect(store.getState().authError).toBe('E-posta veya şifre hatalı.');
     expect(store.getState().isLoading).toBe(false);
+    expect(store.getState().isAuthenticating).toBe(false);
   });
 
   // ── registerWithEmail ────────────────────────────────────────────────────
@@ -412,7 +415,8 @@ describe('useAuthStore', () => {
       'password123'
     );
     expect(sendEmailVerification).toHaveBeenCalledWith(fakeUser);
-    expect(store.getState().isLoading).toBe(true);
+    expect(store.getState().isLoading).toBe(false);
+    expect(store.getState().isAuthenticating).toBe(false);
     expect(store.getState().authError).toBeNull();
   });
 
@@ -428,6 +432,7 @@ describe('useAuthStore', () => {
       'Bu e-posta adresi zaten kullanılıyor.'
     );
     expect(store.getState().isLoading).toBe(false);
+    expect(store.getState().isAuthenticating).toBe(false);
   });
 
   // ── updateDisplayName ─────────────────────────────────────────────────────
@@ -528,7 +533,8 @@ describe('useAuthStore', () => {
     const store = await buildStore();
     await store.getState().loginWithGoogle();
     expect(signInWithPopup).toHaveBeenCalledWith({}, {});
-    expect(store.getState().isLoading).toBe(true);
+    expect(store.getState().isLoading).toBe(false);
+    expect(store.getState().isAuthenticating).toBe(false);
   });
 
   it('loginWithGoogle sets authError and re-throws on failure', async () => {
@@ -551,6 +557,7 @@ describe('useAuthStore', () => {
     await expect(store.getState().loginWithGoogle()).resolves.toBeUndefined();
     expect(store.getState().authError).toBeNull();
     expect(store.getState().isLoading).toBe(false);
+    expect(store.getState().isAuthenticating).toBe(false);
   });
 
   // ── logout ───────────────────────────────────────────────────────────────

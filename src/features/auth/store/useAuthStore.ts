@@ -93,6 +93,8 @@ interface AuthState {
   memberships: Membership[];
   activeCompany: Company | null;
   isLoading: boolean;
+  /** Pending sign-in or registration action; does not block the whole app shell. */
+  isAuthenticating: boolean;
   isLoggingOut: boolean;
   isInitialized: boolean;
   authError: string | null;
@@ -239,6 +241,7 @@ export const useAuthStore = getSingletonStore('auth', () =>
     memberships: [],
     activeCompany: null,
     isLoading: false,
+    isAuthenticating: false,
     isLoggingOut: false,
     isInitialized: false,
     authError: null,
@@ -427,7 +430,7 @@ export const useAuthStore = getSingletonStore('auth', () =>
     clearError: () => set({ authError: null }),
 
     loginWithGoogle: async () => {
-      set({ isLoading: true, authError: null });
+      set({ isAuthenticating: true, authError: null });
       try {
         const result = await signInWithPopup(auth, googleProvider);
         posthog.identify(result.user.uid, {
@@ -438,10 +441,11 @@ export const useAuthStore = getSingletonStore('auth', () =>
           login_method: 'google',
           is_email_verified: result.user.emailVerified
         });
+        set({ isAuthenticating: false });
       } catch (error: unknown) {
         const code = (error as { code?: string }).code ?? '';
         if (code === 'auth/popup-closed-by-user') {
-          set({ authError: null, isLoading: false });
+          set({ authError: null, isAuthenticating: false });
           return;
         }
 
@@ -449,13 +453,16 @@ export const useAuthStore = getSingletonStore('auth', () =>
         posthog.captureException(error, {
           context: 'login_with_google'
         });
-        set({ authError: getAuthErrorMessage(code), isLoading: false });
+        set({
+          authError: getAuthErrorMessage(code),
+          isAuthenticating: false
+        });
         throw error;
       }
     },
 
     loginWithEmail: async (email, password) => {
-      set({ isLoading: true, authError: null });
+      set({ isAuthenticating: true, authError: null });
       try {
         const credential = await signInWithEmailAndPassword(
           auth,
@@ -470,18 +477,22 @@ export const useAuthStore = getSingletonStore('auth', () =>
           login_method: 'email',
           is_email_verified: credential.user.emailVerified
         });
+        set({ isAuthenticating: false });
       } catch (error: unknown) {
         posthog.captureException(error, {
           context: 'login_with_email'
         });
         const code = (error as { code?: string }).code ?? '';
-        set({ authError: getAuthErrorMessage(code), isLoading: false });
+        set({
+          authError: getAuthErrorMessage(code),
+          isAuthenticating: false
+        });
         throw error;
       }
     },
 
     registerWithEmail: async (email, password) => {
-      set({ isLoading: true, authError: null });
+      set({ isAuthenticating: true, authError: null });
       try {
         const credential = await createUserWithEmailAndPassword(
           auth,
@@ -497,12 +508,16 @@ export const useAuthStore = getSingletonStore('auth', () =>
           registration_method: 'email',
           verification_email_sent: true
         });
+        set({ isAuthenticating: false });
       } catch (error: unknown) {
         posthog.captureException(error, {
           context: 'register_with_email'
         });
         const code = (error as { code?: string }).code ?? '';
-        set({ authError: getAuthErrorMessage(code), isLoading: false });
+        set({
+          authError: getAuthErrorMessage(code),
+          isAuthenticating: false
+        });
         throw error;
       }
     },

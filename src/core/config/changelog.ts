@@ -72,6 +72,10 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
       {
         type: 'improved',
         text: 'Yerel veri temizliği beklenmedik biçimde uzarsa, çıkış işlemi güvenli biçimde devam eder ve temizleme daha sonra yeniden denenir.'
+      },
+      {
+        type: 'improved',
+        text: 'Giriş denemesi sırasında yalnızca giriş butonu işlem durumunu gösterir; yanlış bilgilerde form ekranda kalır.'
       }
     ]
   },

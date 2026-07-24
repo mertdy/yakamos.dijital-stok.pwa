@@ -237,8 +237,13 @@ interface LoginFormProps {
 }
 
 const LoginForm: React.FC<LoginFormProps> = ({ onForgotPassword }) => {
-  const { loginWithEmail, loginWithGoogle, isLoading, authError, clearError } =
-    useAuthStore();
+  const {
+    loginWithEmail,
+    loginWithGoogle,
+    isAuthenticating,
+    authError,
+    clearError
+  } = useAuthStore();
   const pw = usePasswordToggle();
 
   const {
@@ -314,8 +319,8 @@ const LoginForm: React.FC<LoginFormProps> = ({ onForgotPassword }) => {
         size="lg"
         id="login-submit-btn"
         className="w-full rounded-2xl py-3.5 text-base font-semibold shadow-sm"
-        isPending={isLoading}>
-        Giriş Yap
+        isPending={isAuthenticating}>
+        {isAuthenticating ? 'Hesabınıza giriş yapılıyor…' : 'Giriş Yap'}
       </Button>
 
       <GoogleDivider />
@@ -327,9 +332,11 @@ const LoginForm: React.FC<LoginFormProps> = ({ onForgotPassword }) => {
         id="google-login-btn"
         className="flex w-full items-center justify-center gap-3 rounded-2xl border-gray-200 py-3.5 text-sm font-semibold text-gray-700 shadow-sm transition-all hover:bg-gray-50"
         onPress={loginWithGoogle}
-        isPending={isLoading}>
-        {!isLoading && <GoogleIcon />}
-        Google ile Giriş Yap
+        isPending={isAuthenticating}>
+        {!isAuthenticating && <GoogleIcon />}
+        {isAuthenticating
+          ? 'Google ile giriş yapılıyor…'
+          : 'Google ile Giriş Yap'}
       </Button>
     </form>
   );
@@ -341,7 +348,7 @@ const RegisterForm: React.FC = () => {
   const {
     registerWithEmail,
     loginWithGoogle,
-    isLoading,
+    isAuthenticating,
     authError,
     clearError
   } = useAuthStore();
@@ -400,8 +407,8 @@ const RegisterForm: React.FC = () => {
           id="google-register-btn"
           className="relative flex w-full items-center justify-center gap-3 overflow-visible rounded-2xl py-3.5 text-sm font-semibold shadow-sm"
           onPress={loginWithGoogle}
-          isPending={isLoading}>
-          {!isLoading && <GoogleIcon />}
+          isPending={isAuthenticating}>
+          {!isAuthenticating && <GoogleIcon />}
           Google ile hızlı kayıt ol
           <span className="absolute -top-2 -right-1 rounded-full bg-white px-1.5 py-0.5 text-[10px] leading-none font-bold text-blue-600 shadow-sm ring-1 ring-blue-100">
             Önerilen
@@ -417,9 +424,11 @@ const RegisterForm: React.FC = () => {
           id="email-register-option-btn"
           className="w-full rounded-2xl border-gray-200 py-3.5 text-sm font-semibold text-gray-700 shadow-sm transition-all hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-slate-700"
           onPress={() => {
+            if (isAuthenticating) return;
             clearError();
             setShowEmailForm(true);
-          }}>
+          }}
+          isDisabled={isAuthenticating}>
           E-posta ile kayıt ol
         </Button>
 
@@ -517,8 +526,8 @@ const RegisterForm: React.FC = () => {
           size="lg"
           id="register-submit-btn"
           className="w-full rounded-2xl py-3.5 text-base font-semibold shadow-sm"
-          isPending={isLoading}>
-          Kayıt Ol
+          isPending={isAuthenticating}>
+          {isAuthenticating ? 'Hesabınız oluşturuluyor…' : 'Kayıt Ol'}
         </Button>
 
         <GoogleDivider />
@@ -529,8 +538,8 @@ const RegisterForm: React.FC = () => {
           size="lg"
           className="flex w-full items-center justify-center gap-3 rounded-2xl border-gray-200 py-3.5 text-sm font-semibold text-gray-700 shadow-sm transition-all hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-slate-700"
           onPress={loginWithGoogle}
-          isPending={isLoading}>
-          {!isLoading && <GoogleIcon />}
+          isPending={isAuthenticating}>
+          {!isAuthenticating && <GoogleIcon />}
           Bunun yerine Google ile kayıt ol
         </Button>
       </form>
