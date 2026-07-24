@@ -64,6 +64,14 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
       {
         type: 'improved',
         text: 'E-posta ile kayıt olan kullanıcılar, işletme kurulumu sırasında ad soyad bilgilerini ekleyebilir.'
+      },
+      {
+        type: 'improved',
+        text: 'Hesaptan çıkış yapılırken yerel veriler temizlenirken gösterilen durum ekranı, giriş sayfasındaki geçici yenilenme görüntüsünü önler.'
+      },
+      {
+        type: 'improved',
+        text: 'Yerel veri temizliği beklenmedik biçimde uzarsa, çıkış işlemi güvenli biçimde devam eder ve temizleme daha sonra yeniden denenir.'
       }
     ]
   },

@@ -621,5 +621,6 @@ describe('useAuthStore', () => {
     expect(clearUserLocalStorage).toHaveBeenCalled();
     expect(clearFirestorePersistence).toHaveBeenCalled();
     expect(store.getState().isLoading).toBe(false);
+    expect(store.getState().isLoggingOut).toBe(true);
   });
 });

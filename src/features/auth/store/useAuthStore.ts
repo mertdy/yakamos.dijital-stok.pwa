@@ -93,6 +93,7 @@ interface AuthState {
   memberships: Membership[];
   activeCompany: Company | null;
   isLoading: boolean;
+  isLoggingOut: boolean;
   isInitialized: boolean;
   authError: string | null;
   hasLoadedMemberships: boolean;
@@ -238,6 +239,7 @@ export const useAuthStore = getSingletonStore('auth', () =>
     memberships: [],
     activeCompany: null,
     isLoading: false,
+    isLoggingOut: false,
     isInitialized: false,
     authError: null,
     hasLoadedMemberships: false,
@@ -543,7 +545,8 @@ export const useAuthStore = getSingletonStore('auth', () =>
       clearPersistence = true,
       releaseClient = false
     } = {}) => {
-      set({ isLoading: true });
+      let shouldKeepLogoutScreen = false;
+      set({ isLoading: true, isLoggingOut: true });
       try {
         const currentUser = auth.currentUser;
         if (currentUser) {
@@ -558,12 +561,14 @@ export const useAuthStore = getSingletonStore('auth', () =>
         clearUserLocalStorage();
         if (clearPersistence) {
           await clearFirestorePersistence();
+          shouldKeepLogoutScreen = true;
           // `terminate(db)` makes the singleton unusable. Start a fresh client
           // on the login page regardless of whether another tab delayed cache
           // deletion; the retry marker preserves that state.
           window.location.replace('/login');
         } else if (releaseClient) {
           await releaseFirestoreClient();
+          shouldKeepLogoutScreen = true;
         }
       } catch (error) {
         console.error('Logout failed:', error);
@@ -571,7 +576,7 @@ export const useAuthStore = getSingletonStore('auth', () =>
           context: 'logout'
         });
       } finally {
-        set({ isLoading: false });
+        set({ isLoading: false, isLoggingOut: shouldKeepLogoutScreen });
       }
     },
 

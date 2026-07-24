@@ -10,6 +10,7 @@ const CHANNEL_NAME = 'dijital-stok-session';
 const OFFLINE_CACHE_KEY = 'dijital-stok.offline-company-cache.v1';
 const SALES_STORAGE_KEY = 'sales-storage';
 const RETRY_CLEANUP_KEY = 'dijital-stok.local-cleanup-required.v1';
+const FIRESTORE_CLEANUP_TIMEOUT_MS = 5_000;
 
 type SessionMessage = { type: 'logout-start' | 'logout-ready'; id: string };
 
@@ -42,10 +43,31 @@ export const releaseFirestoreClient = async () => {
  * deleted. The application is reloaded after this operation, so `db` is not
  * used again in the current page lifecycle.
  */
-export const clearFirestorePersistence = async () => {
+export const clearFirestorePersistence = async (
+  timeoutMs = FIRESTORE_CLEANUP_TIMEOUT_MS
+) => {
+  let timeoutId: number | undefined;
+
   try {
-    await releaseFirestoreClient();
-    await clearIndexedDbPersistence(db);
+    const wasCleared = await Promise.race([
+      (async () => {
+        await releaseFirestoreClient();
+        await clearIndexedDbPersistence(db);
+        return true;
+      })(),
+      new Promise<false>(resolve => {
+        timeoutId = window.setTimeout(() => resolve(false), timeoutMs);
+      })
+    ]);
+
+    if (!wasCleared) {
+      localStorage.setItem(RETRY_CLEANUP_KEY, 'true');
+      console.warn(
+        'Firestore local cache cleanup timed out; it will be retried later.'
+      );
+      return false;
+    }
+
     localStorage.removeItem(RETRY_CLEANUP_KEY);
     return true;
   } catch (error) {
@@ -55,6 +77,8 @@ export const clearFirestorePersistence = async () => {
     localStorage.setItem(RETRY_CLEANUP_KEY, 'true');
     console.warn('Firestore local cache could not be cleared.', error);
     return false;
+  } finally {
+    if (timeoutId !== undefined) window.clearTimeout(timeoutId);
   }
 };
 

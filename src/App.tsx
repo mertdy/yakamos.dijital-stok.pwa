@@ -44,8 +44,15 @@ import {
 import { useOfflineExperiencePreparation } from '@/shared/hooks/useOfflineExperiencePreparation';
 
 function App() {
-  const { user, profile, activeMembership, isInitialized, isLoading, setUser } =
-    useAuthStore();
+  const {
+    user,
+    profile,
+    activeMembership,
+    isInitialized,
+    isLoading,
+    isLoggingOut,
+    setUser
+  } = useAuthStore();
   const { checkForUpdate } = usePWAUpdate(
     Boolean(user && isInitialized && !isLoading)
   );
@@ -95,6 +102,22 @@ function App() {
       window.removeEventListener('online', refreshSalesAfterReconnect);
     };
   }, []);
+
+  if (isLoggingOut) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-gray-50 px-6 text-center dark:bg-slate-950">
+        <Loader2 className="text-primary h-12 w-12 animate-spin" />
+        <div>
+          <h1 className="text-lg font-bold text-gray-900 dark:text-white">
+            Güvenli çıkış yapılıyor
+          </h1>
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+            Yerel verileriniz temizleniyor.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   if (!isInitialized || isLoading) {
     return (
