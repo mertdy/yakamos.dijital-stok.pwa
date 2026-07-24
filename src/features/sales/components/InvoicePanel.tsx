@@ -31,13 +31,17 @@ interface Props {
   onOpenHeldSalesDrawer: () => void;
   isCompact?: boolean;
   onCheckoutComplete?: () => void;
+  onSaleHeld?: () => void;
+  onCartReset?: () => void;
 }
 
 export const InvoicePanel: React.FC<Props> = ({
   onOpenCustomerDrawer,
   onOpenHeldSalesDrawer,
   isCompact = false,
-  onCheckoutComplete
+  onCheckoutComplete,
+  onSaleHeld,
+  onCartReset
 }) => {
   const {
     cart,
@@ -571,6 +575,7 @@ export const InvoicePanel: React.FC<Props> = ({
                 holdSale();
                 setGivenAmount('');
                 toast.success('Satış beklemeye alındı');
+                onSaleHeld?.();
               }}
               isDisabled={cart.length === 0 || isProcessing}>
               <Pause className="mr-1.5" size={16} />
@@ -592,6 +597,7 @@ export const InvoicePanel: React.FC<Props> = ({
                 });
                 useSalesStore.getState().clearCart();
                 setGivenAmount('');
+                onCartReset?.();
               }}
               isDisabled={!hasSaleDraft || isProcessing}>
               Sepeti Sıfırla

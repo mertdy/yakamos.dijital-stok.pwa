@@ -218,15 +218,15 @@ export const QuickAddEditModal: React.FC<Props> = ({
                     : 'Hızlı Ekle Kısayollarını Düzenle'}
                 </Modal.Heading>
                 <p className="mt-1 text-sm font-normal text-gray-500">
-                  Ürünleri arayın, sağ tarafa ekleyin ve sürükleyerek sıralayın.
+                  Ürünleri arayın, listeye ekleyin ve sürükleyerek sıralayın.
                 </p>
               </div>
             </Modal.Header>
 
             <Modal.Body className="flex min-h-0 flex-1 overflow-hidden p-0">
-              <div className="flex min-h-0 flex-1 flex-row overflow-hidden bg-gray-50/30">
+              <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-gray-50/30 md:flex-row">
                 {/* Left Panel: Search & Add */}
-                <div className="flex min-h-0 w-1/2 flex-col border-r border-gray-200 bg-white">
+                <div className="flex min-h-0 flex-1 flex-col border-b border-gray-200 bg-white md:w-1/2 md:border-r md:border-b-0">
                   <div className="border-b border-gray-100 p-4">
                     <div className="relative">
                       <Search
@@ -302,7 +302,7 @@ export const QuickAddEditModal: React.FC<Props> = ({
                 </div>
 
                 {/* Right Panel: Current Shortcuts & Sort */}
-                <div className="flex min-h-0 w-1/2 flex-col">
+                <div className="flex min-h-0 flex-1 flex-col md:w-1/2">
                   <div className="flex items-center justify-between border-b border-gray-200 bg-gray-50 p-5">
                     <h3 className="font-semibold text-gray-700">
                       Seçili Kısayollar ({localQuickAddItems.length})
@@ -319,7 +319,7 @@ export const QuickAddEditModal: React.FC<Props> = ({
                           Kısayol eklenmemiş
                         </p>
                         <p className="px-8 text-center text-xs">
-                          Soldaki listeden sık kullandığınız ürünleri buraya
+                          Üstteki listeden sık kullandığınız ürünleri buraya
                           ekleyin.
                         </p>
                       </div>

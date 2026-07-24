@@ -86,6 +86,38 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
         text: 'Hızlı ekleme menüsünde seçilen ürün, sepete eklendiğini anlık görsel geri bildirimle belirtir.'
       },
       {
+        type: 'improved',
+        text: 'Mobil hızlı ekleme menüsü yeniden açıldığında aynı işletmenin ürünleri beklemeden görüntülenir.'
+      },
+      {
+        type: 'improved',
+        text: 'Hızlı menü düzenleme ekranındaki ürün ve seçili kısayol listeleri telefonda alt alta görüntülenir.'
+      },
+      {
+        type: 'improved',
+        text: 'Mobil ödeme adımındaki müşteri seçimi ve bekleyen satış listesi, üst üste panel açmadan daha rahat kullanılabilir.'
+      },
+      {
+        type: 'improved',
+        text: 'Mobilde boş sepetle de Sepet ve Ödeme alanına erişerek bekleyen satışlarınızı açabilirsiniz.'
+      },
+      {
+        type: 'improved',
+        text: 'Mobil satış ekranında ürün adedi ve toplam tutar sepet özetinde gösterilir; ödeme panelini açma düğmesi daha anlaşılır hale getirildi.'
+      },
+      {
+        type: 'improved',
+        text: 'Mobilde bekleyen bir satış sepete aktarıldığında açık paneller kapanır ve doğrudan güncel sepet görüntülenir.'
+      },
+      {
+        type: 'improved',
+        text: 'Mobilde bir satışı beklemeye aldığınızda ödeme paneli kapanır ve satış ekranına dönersiniz.'
+      },
+      {
+        type: 'improved',
+        text: 'Mobilde sepeti sıfırladığınızda ödeme paneli kapanır ve temiz satış ekranına dönersiniz.'
+      },
+      {
         type: 'fixed',
         text: 'Satış geçmişi izni olmayan çalışanlar artık bu sayfaya yönlendirilmez ve yetki hatasıyla karşılaşmaz.'
       },

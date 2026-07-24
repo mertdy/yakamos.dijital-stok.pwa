@@ -60,26 +60,38 @@ export const MobileSalesView: React.FC = () => {
         <div className="min-h-0 flex-1">
           <OrderDetailsPanel />
         </div>
+        <div className="flex items-center justify-between rounded-2xl border border-gray-200/70 bg-white px-4 py-3 shadow-sm">
+          <div>
+            <p className="text-xs font-medium text-gray-500">Sepet özeti</p>
+            <p className="mt-0.5 text-sm font-semibold text-gray-900">
+              {itemCount} ürün
+            </p>
+          </div>
+          <p className="text-lg font-bold text-gray-900">
+            ₺{cartTotal.toFixed(2)}
+          </p>
+        </div>
       </div>
 
       <footer className="border-t border-gray-200/50 bg-white px-3 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
         <Button
           variant="primary"
           className="h-14 w-full justify-between rounded-2xl px-4 text-base shadow-md"
-          isDisabled={cart.length === 0}
-          onPress={() => setIsCheckoutOpen(true)}>
+          onPress={() => {
+            setIsCheckoutOpen(true);
+          }}>
           <span className="flex items-center gap-2">
             <ShoppingCart size={20} />
-            {itemCount} ürün
-          </span>
-          <span className="flex items-center gap-3 font-bold">
-            <span>₺{cartTotal.toFixed(2)}</span>
-            <span>Ödemeye geç</span>
+            Ödeme panelini aç
           </span>
         </Button>
       </footer>
 
-      <Drawer isOpen={isCheckoutOpen} onOpenChange={setIsCheckoutOpen}>
+      <Drawer
+        isOpen={isCheckoutOpen}
+        onOpenChange={isOpen => {
+          setIsCheckoutOpen(isOpen);
+        }}>
         <Drawer.Backdrop>
           <Drawer.Content placement="bottom">
             <Drawer.Dialog className="flex h-[min(48rem,calc(100dvh-0.75rem))] w-full flex-col rounded-t-3xl bg-white shadow-2xl outline-none">
@@ -92,9 +104,17 @@ export const MobileSalesView: React.FC = () => {
               <Drawer.Body className="min-h-0 flex-1 p-0">
                 <InvoicePanel
                   isCompact
-                  onOpenCustomerDrawer={() => setIsCustomerDrawerOpen(true)}
-                  onOpenHeldSalesDrawer={() => setIsHeldSalesDrawerOpen(true)}
+                  onOpenCustomerDrawer={() => {
+                    setIsCheckoutOpen(false);
+                    setIsCustomerDrawerOpen(true);
+                  }}
+                  onOpenHeldSalesDrawer={() => {
+                    setIsCheckoutOpen(false);
+                    setIsHeldSalesDrawerOpen(true);
+                  }}
                   onCheckoutComplete={() => setIsCheckoutOpen(false)}
+                  onSaleHeld={() => setIsCheckoutOpen(false)}
+                  onCartReset={() => setIsCheckoutOpen(false)}
                 />
               </Drawer.Body>
             </Drawer.Dialog>
@@ -122,11 +142,22 @@ export const MobileSalesView: React.FC = () => {
 
       <CustomerDrawer
         isOpen={isCustomerDrawerOpen}
-        onClose={() => setIsCustomerDrawerOpen(false)}
+        onClose={() => {
+          setIsCustomerDrawerOpen(false);
+          setIsCheckoutOpen(true);
+        }}
       />
       <HeldSalesDrawer
         isOpen={isHeldSalesDrawerOpen}
-        onClose={() => setIsHeldSalesDrawerOpen(false)}
+        onClose={() => {
+          setIsHeldSalesDrawerOpen(false);
+          setIsCheckoutOpen(true);
+        }}
+        onRestoreComplete={() => {
+          setIsCustomerDrawerOpen(false);
+          setIsHeldSalesDrawerOpen(false);
+          setIsCheckoutOpen(false);
+        }}
       />
       <Suspense fallback={null}>
         {isScannerOpen && (

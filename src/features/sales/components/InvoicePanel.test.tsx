@@ -331,10 +331,12 @@ describe('InvoicePanel', () => {
   });
 
   it('calls holdSale on Beklet click', () => {
+    const onSaleHeld = vi.fn();
     render(
       <InvoicePanel
         onOpenCustomerDrawer={onOpenCustomerDrawer}
         onOpenHeldSalesDrawer={onOpenHeldSalesDrawer}
+        onSaleHeld={onSaleHeld}
       />
     );
 
@@ -343,5 +345,22 @@ describe('InvoicePanel', () => {
 
     expect(holdSaleMock).toHaveBeenCalled();
     expect(toast.success).toHaveBeenCalledWith('Satış beklemeye alındı');
+    expect(onSaleHeld).toHaveBeenCalledOnce();
+  });
+
+  it('notifies the parent when the cart is reset', () => {
+    const onCartReset = vi.fn();
+    render(
+      <InvoicePanel
+        onOpenCustomerDrawer={onOpenCustomerDrawer}
+        onOpenHeldSalesDrawer={onOpenHeldSalesDrawer}
+        onCartReset={onCartReset}
+      />
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /Sepeti Sıfırla/i }));
+
+    expect(clearCartMock).toHaveBeenCalledOnce();
+    expect(onCartReset).toHaveBeenCalledOnce();
   });
 });

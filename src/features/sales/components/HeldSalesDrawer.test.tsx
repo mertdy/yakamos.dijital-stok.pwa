@@ -111,6 +111,22 @@ describe('HeldSalesDrawer', () => {
     expect(onClose).toHaveBeenCalled();
   });
 
+  it('uses the restore callback instead of reopening the previous drawer', () => {
+    const onRestoreComplete = vi.fn();
+    render(
+      <HeldSalesDrawer
+        isOpen={true}
+        onClose={onClose}
+        onRestoreComplete={onRestoreComplete}
+      />
+    );
+
+    fireEvent.click(screen.getByText('Bob Dylan').closest('div')!);
+
+    expect(onRestoreComplete).toHaveBeenCalledOnce();
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
   it('calls removeHeldSale when delete button is pressed on a sale', () => {
     render(<HeldSalesDrawer isOpen={true} onClose={onClose} />);
 

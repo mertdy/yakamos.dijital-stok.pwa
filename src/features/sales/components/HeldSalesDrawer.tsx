@@ -13,9 +13,14 @@ import { useMediaQuery } from '@/shared/hooks/useMediaQuery';
 interface Props {
   isOpen: boolean;
   onClose: () => void;
+  onRestoreComplete?: () => void;
 }
 
-export const HeldSalesDrawer: React.FC<Props> = ({ isOpen, onClose }) => {
+export const HeldSalesDrawer: React.FC<Props> = ({
+  isOpen,
+  onClose,
+  onRestoreComplete
+}) => {
   const { heldSales, cart, restoreSale, removeHeldSale, clearHeldSales } =
     useSalesStore();
   const { customers } = useCustomerStore();
@@ -27,6 +32,13 @@ export const HeldSalesDrawer: React.FC<Props> = ({ isOpen, onClose }) => {
 
   const onAlertOpen = () => setIsAlertOpen(true);
   const onAlertClose = () => setIsAlertOpen(false);
+  const handleRestoreComplete = () => {
+    if (onRestoreComplete) {
+      onRestoreComplete();
+    } else {
+      onClose();
+    }
+  };
 
   const handleRestoreClick = (saleId: string) => {
     if (cart.length > 0) {
@@ -35,7 +47,7 @@ export const HeldSalesDrawer: React.FC<Props> = ({ isOpen, onClose }) => {
     } else {
       restoreSale(saleId);
       toast.success('Bekleyen satış yüklendi');
-      onClose();
+      handleRestoreComplete();
     }
   };
 
@@ -44,7 +56,7 @@ export const HeldSalesDrawer: React.FC<Props> = ({ isOpen, onClose }) => {
       restoreSale(selectedSaleId);
       toast.success('Bekleyen satış yüklendi');
       onAlertClose();
-      onClose();
+      handleRestoreComplete();
     }
   };
 

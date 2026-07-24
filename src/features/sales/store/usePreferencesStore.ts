@@ -45,6 +45,14 @@ export const usePreferencesStore = getSingletonStore('preferences', () => {
         return;
       }
 
+      const cachedState = get();
+      if (
+        cachedState.quickAddCompanyId === companyId &&
+        !cachedState.isLoading
+      ) {
+        return;
+      }
+
       const isCurrentRequest = () =>
         requestId === latestLoadRequest &&
         useAuthStore.getState().profile?.activeCompanyId === companyId;
@@ -54,9 +62,7 @@ export const usePreferencesStore = getSingletonStore('preferences', () => {
       if (!isCurrentRequest()) return;
 
       set({
-        isLoading: true,
-        quickAddItems: [],
-        quickAddCompanyId: companyId
+        isLoading: true
       });
       try {
         const docRef = doc(db, 'userPreferences', user.uid);
@@ -80,6 +86,7 @@ export const usePreferencesStore = getSingletonStore('preferences', () => {
                 quickAddItems: Array.isArray(quickAddItemsByCompany[companyId])
                   ? quickAddItemsByCompany[companyId]
                   : [],
+                quickAddCompanyId: companyId,
                 quickAddScope
               });
             }
@@ -99,7 +106,10 @@ export const usePreferencesStore = getSingletonStore('preferences', () => {
             { merge: true }
           );
           if (isCurrentRequest()) {
-            set({ quickAddItems: legacyQuickAddItems });
+            set({
+              quickAddItems: legacyQuickAddItems,
+              quickAddCompanyId: companyId
+            });
           }
         } else {
           // Create default empty array if not exists
@@ -109,7 +119,7 @@ export const usePreferencesStore = getSingletonStore('preferences', () => {
             { merge: true }
           );
           if (isCurrentRequest()) {
-            set({ quickAddItems: [] });
+            set({ quickAddItems: [], quickAddCompanyId: companyId });
           }
         }
       } catch (error) {
@@ -133,9 +143,15 @@ export const usePreferencesStore = getSingletonStore('preferences', () => {
         return;
       }
 
+      const cachedState = get();
+      if (
+        cachedState.companyQuickAddCompanyId === companyId &&
+        !cachedState.isCompanyQuickAddLoading
+      ) {
+        return;
+      }
+
       set({
-        companyQuickAddItems: [],
-        companyQuickAddCompanyId: companyId,
         isCompanyQuickAddLoading: true
       });
       try {
@@ -147,7 +163,8 @@ export const usePreferencesStore = getSingletonStore('preferences', () => {
         set({
           companyQuickAddItems: Array.isArray(data.quickAddItems)
             ? data.quickAddItems
-            : []
+            : [],
+          companyQuickAddCompanyId: companyId
         });
       } catch (error) {
         console.error('Error loading company quick add items:', error);

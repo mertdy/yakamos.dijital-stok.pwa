@@ -36,7 +36,10 @@ describe('usePreferencesStore', () => {
     store.setState({
       quickAddItems: [],
       quickAddCompanyId: null,
-      isLoading: false
+      companyQuickAddItems: [],
+      companyQuickAddCompanyId: null,
+      isLoading: false,
+      isCompanyQuickAddLoading: false
     });
   });
 
@@ -72,6 +75,34 @@ describe('usePreferencesStore', () => {
       { quickAddItemsByCompany: { 'company-a': ['product-a'] } },
       { merge: true }
     );
+  });
+
+  it('keeps personal shortcuts in memory when the same company is loaded again', async () => {
+    const store = await buildStore();
+    store.setState({
+      quickAddItems: ['product-a'],
+      quickAddCompanyId: 'company-a',
+      isLoading: false
+    });
+
+    await store.getState().loadPreferences('company-a');
+
+    expect(getDoc).not.toHaveBeenCalled();
+    expect(store.getState().quickAddItems).toEqual(['product-a']);
+  });
+
+  it('keeps company shortcuts in memory when the same company is loaded again', async () => {
+    const store = await buildStore();
+    store.setState({
+      companyQuickAddItems: ['product-a'],
+      companyQuickAddCompanyId: 'company-a',
+      isCompanyQuickAddLoading: false
+    });
+
+    await store.getState().loadCompanyQuickAddItems('company-a');
+
+    expect(getDoc).not.toHaveBeenCalled();
+    expect(store.getState().companyQuickAddItems).toEqual(['product-a']);
   });
 
   it('removes deleted products from the active company shortcuts', async () => {
