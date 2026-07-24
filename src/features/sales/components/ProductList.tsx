@@ -110,7 +110,7 @@ export const ProductList: React.FC<ProductListProps> = ({
         'flex h-full flex-col overflow-hidden bg-white',
         isCompact
           ? 'border-0 shadow-none'
-          : 'rounded-3xl border border-gray-100 shadow-sm'
+          : 'rounded-2xl border border-gray-100 shadow-sm'
       )}>
       {/* Header */}
       <div

@@ -25,14 +25,14 @@ export const OrderDetailsPanel: React.FC = () => {
   return (
     <div
       data-onboarding="sales-cart"
-      className="flex h-full flex-col overflow-hidden rounded-[28px] border border-gray-100 bg-white shadow-sm">
+      className="flex h-full flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
       <div className="flex items-center justify-between border-b border-gray-100 bg-gray-50/50 px-4 py-3">
         <div className="flex items-center gap-3">
           <h2 className="flex items-center gap-2 text-base font-bold tracking-tight text-gray-900">
             <ShoppingCart className="text-primary" size={18} />
             Sipariş Detayları
           </h2>
-          <span className="rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-semibold text-green-700">
+          <span className="hidden rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-semibold text-green-700 sm:inline-block">
             Ürün: {cart.length}
           </span>
         </div>

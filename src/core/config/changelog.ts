@@ -118,6 +118,14 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
         text: 'Mobilde sepeti sıfırladığınızda ödeme paneli kapanır ve temiz satış ekranına dönersiniz.'
       },
       {
+        type: 'improved',
+        text: 'Satış ekranındaki tüm panel ve kartların köşe yuvarlaklığı (border-radius) arama çubuğu ile uyumlu ve tutarlı hale getirildi.'
+      },
+      {
+        type: 'improved',
+        text: 'Mobil sipariş detayları başlığındaki yeşil ürün sayısı etiketi gizlenerek daha sade bir görünüm sağlandı.'
+      },
+      {
         type: 'fixed',
         text: 'Satış geçmişi izni olmayan çalışanlar artık bu sayfaya yönlendirilmez ve yetki hatasıyla karşılaşmaz.'
       },

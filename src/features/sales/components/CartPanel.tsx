@@ -36,7 +36,7 @@ export const CartPanel: React.FC = () => {
   };
 
   return (
-    <div className="flex h-full flex-col overflow-hidden rounded-[28px] bg-white shadow-sm">
+    <div className="flex h-full flex-col overflow-hidden rounded-2xl bg-white shadow-sm">
       <div className="flex items-center justify-between border-b border-gray-100 bg-gray-50/50 px-4 py-3">
         <h2 className="flex items-center gap-2 text-base font-bold tracking-tight text-gray-900">
           <ShoppingCart className="text-primary" size={18} />

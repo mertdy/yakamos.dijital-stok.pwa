@@ -239,7 +239,7 @@ export const InvoicePanel: React.FC<Props> = ({
         'flex flex-col overflow-hidden bg-white',
         isCompact
           ? 'h-full border-0 shadow-none'
-          : 'rounded-3xl border border-gray-100 shadow-sm'
+          : 'rounded-2xl border border-gray-100 shadow-sm'
       )}>
       {!isCompact && (
         <div className="flex items-center border-b border-gray-100 bg-gray-50/50 px-4 py-3">
