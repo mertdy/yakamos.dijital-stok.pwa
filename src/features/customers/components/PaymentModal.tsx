@@ -21,7 +21,9 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 
 const paymentSchema = z.object({
-  amount: z.number().positive('Lütfen geçerli bir tutar girin')
+  amount: z
+    .number({ error: 'Ödenen tutarı girin' })
+    .positive('Lütfen 0’dan büyük bir tutar girin')
 });
 
 type PaymentFormData = z.infer<typeof paymentSchema>;
@@ -169,7 +171,9 @@ export const PaymentModal: React.FC<Props> = ({
                     onChange={value =>
                       setValue(
                         'amount',
-                        value === '' ? Number.NaN : Number(value),
+                        value === '' || !Number.isFinite(Number(value))
+                          ? (undefined as never)
+                          : Number(value),
                         { shouldDirty: true, shouldValidate: true }
                       )
                     }

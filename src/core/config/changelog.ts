@@ -84,6 +84,10 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
       {
         type: 'fixed',
         text: 'Satış geçmişi verisi, izni olmayan çalışanlar için arka planda da yüklenmez; gereksiz hata bildirimi gösterilmez.'
+      },
+      {
+        type: 'fixed',
+        text: 'Boş bırakılan sayı alanlarında teknik hata yerine anlaşılır doğrulama mesajları gösterilir.'
       }
     ]
   },

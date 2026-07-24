@@ -59,7 +59,12 @@ export const FormInput = <TFieldValues extends FieldValues>({
       return;
     }
 
-    updateField(nextValue === '' ? Number.NaN : Number(nextValue));
+    const numberValue = Number(nextValue);
+    updateField(
+      nextValue === '' || !Number.isFinite(numberValue)
+        ? undefined
+        : numberValue
+    );
   };
 
   return (

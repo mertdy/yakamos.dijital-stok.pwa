@@ -74,7 +74,10 @@ const companyProfileSchema = z.object({
   receiptHeader: z.string().optional(),
   phone: optionalPhoneNumberSchema,
   address: z.string().optional(),
-  defaultLowStockThreshold: z.number().int().min(0)
+  defaultLowStockThreshold: z
+    .number({ error: 'Varsayılan kritik stok seviyesini girin' })
+    .int('Kritik stok seviyesi tam sayı olmalıdır')
+    .min(0, 'Kritik stok seviyesi 0 veya daha büyük olmalıdır')
 });
 
 type CompanyProfileFormData = z.infer<typeof companyProfileSchema>;

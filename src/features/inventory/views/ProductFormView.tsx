@@ -58,8 +58,12 @@ const LabelPrintModal = lazy(() =>
 const productSchema = z.object({
   name: z.string().min(2, 'Ürün adı en az 2 karakter olmalıdır'),
   barcode: z.string().optional(),
-  stock: z.number().min(0, 'Stok 0 veya daha büyük olmalıdır'),
-  salePrice: z.number().min(0, 'Fiyat 0 veya daha büyük olmalıdır'),
+  stock: z
+    .number({ error: 'Stok miktarını girin' })
+    .min(0, 'Stok 0 veya daha büyük olmalıdır'),
+  salePrice: z
+    .number({ error: 'Satış fiyatını girin' })
+    .min(0, 'Fiyat 0 veya daha büyük olmalıdır'),
   costPrice: z.number().min(0).nullable().optional(),
   taxRate: z.union([z.literal(0), z.literal(1), z.literal(10), z.literal(20)]),
   priceIncludesTax: z.boolean().catch(true),
@@ -67,7 +71,7 @@ const productSchema = z.object({
   categoryId: z.string().nullable(),
   trackStock: z.boolean().catch(true),
   useCompanyLowStockThreshold: z.boolean().catch(true),
-  lowStockThreshold: z.number().min(0).nullable(),
+  lowStockThreshold: z.number().min(0).nullable().optional(),
   isActive: z.boolean().catch(true),
   note: z.string().max(500).nullable(),
   description: z.string().max(2000).nullable()
