@@ -238,6 +238,19 @@ export const useSalesHistoryStore = getSingletonStore('sales-history', () =>
       const companyId = useAuthStore.getState().profile?.activeCompanyId;
       if (!companyId) return;
 
+      const activeMembership = useAuthStore.getState().activeMembership;
+      const canViewSalesHistory =
+        activeMembership?.companyId === companyId &&
+        (activeMembership.role === 'OWNER' ||
+          activeMembership.permissions.includes('VIEW_SALES_HISTORY'));
+
+      if (!canViewSalesHistory) {
+        // The Firestore rules intentionally reject this query. Clear any data
+        // left by a previous company or support session before returning.
+        get().clearSales();
+        return;
+      }
+
       const state = get();
       if (!force && state.loadedCompanyId === companyId) return;
 

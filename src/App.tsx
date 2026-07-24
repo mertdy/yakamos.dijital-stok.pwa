@@ -51,6 +51,7 @@ function App() {
     isInitialized,
     isLoading,
     isLoggingOut,
+    hasLoadedMemberships,
     setUser
   } = useAuthStore();
   const { checkForUpdate } = usePWAUpdate(
@@ -87,10 +88,16 @@ function App() {
   );
 
   useEffect(() => {
-    if (activeCompanyId) {
+    if (activeCompanyId && hasLoadedMemberships) {
       void loadCompanyData();
     }
-  }, [activeCompanyId]);
+  }, [
+    activeCompanyId,
+    hasLoadedMemberships,
+    activeMembership?.companyId,
+    activeMembership?.role,
+    activeMembership?.permissions
+  ]);
 
   useEffect(() => {
     const refreshSalesAfterReconnect = () => {

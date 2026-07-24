@@ -10,7 +10,11 @@ const { batchMock, authState } = vi.hoisted(() => ({
   authState: {
     value: {
       profile: { activeCompanyId: 'test-company-id', name: 'Test Sahibi' },
-      activeMembership: { role: 'OWNER', permissions: ['VIEW_SALES_HISTORY'] }
+      activeMembership: {
+        companyId: 'test-company-id',
+        role: 'OWNER',
+        permissions: ['VIEW_SALES_HISTORY']
+      }
     }
   }
 }));
@@ -54,7 +58,11 @@ describe('useSalesHistoryStore', () => {
     batchMock.commit.mockResolvedValue(undefined);
     authState.value = {
       profile: { activeCompanyId: 'test-company-id', name: 'Test Sahibi' },
-      activeMembership: { role: 'OWNER', permissions: ['VIEW_SALES_HISTORY'] }
+      activeMembership: {
+        companyId: 'test-company-id',
+        role: 'OWNER',
+        permissions: ['VIEW_SALES_HISTORY']
+      }
     };
     const store = await buildStore();
     store.setState({
@@ -240,64 +248,28 @@ describe('useSalesHistoryStore', () => {
     expect(store.getState().loadedCompanyId).toBe('test-company-id');
   });
 
-  it('uses the current company membership when a switch completes mid-request', async () => {
-    let resolveSales: (value: unknown) => void;
-    vi.mocked(getDocs).mockReturnValueOnce(
-      new Promise(resolve => {
-        resolveSales = resolve;
-      }) as any
-    );
+  it('skips the sales query for employees without the view permission', async () => {
     authState.value = {
       profile: { activeCompanyId: 'test-company-id', name: 'Test Sahibi' },
-      activeMembership: { role: 'EMPLOYEE', permissions: [] }
+      activeMembership: {
+        companyId: 'test-company-id',
+        role: 'EMPLOYEE',
+        permissions: []
+      }
     };
 
     const store = await buildStore();
-    const pendingRequest = store.getState().fetchSales();
-
-    authState.value = {
-      profile: { activeCompanyId: 'test-company-id', name: 'Test Sahibi' },
-      activeMembership: { role: 'OWNER', permissions: ['VIEW_SALES_HISTORY'] }
-    };
-    resolveSales!({
-      docs: [
-        {
-          id: 'own-sale',
-          data: () => ({
-            userId: 'test-user-id',
-            sellerName: 'Test Sahibi',
-            companyId: 'test-company-id',
-            invoiceNumber: 'INV-OWN',
-            customerId: null,
-            subtotal: 100,
-            discount: 0,
-            totalAmount: 100,
-            paymentMethod: 'Cash',
-            createdAt: '2026-07-10T01:00:00Z',
-            cart: []
-          })
-        },
-        {
-          id: 'employee-sale',
-          data: () => ({
-            userId: 'employee-id',
-            sellerName: 'Çalışan',
-            companyId: 'test-company-id',
-            invoiceNumber: 'INV-EMPLOYEE',
-            customerId: null,
-            subtotal: 200,
-            discount: 0,
-            totalAmount: 200,
-            paymentMethod: 'Cash',
-            createdAt: '2026-07-10T02:00:00Z',
-            cart: []
-          })
-        }
-      ]
+    store.setState({
+      sales: [{ id: 'stale-sale' } as never],
+      rawSales: [{ id: 'stale-sale' } as never],
+      loadedCompanyId: 'test-company-id'
     });
-    await pendingRequest;
 
-    expect(store.getState().sales).toHaveLength(2);
+    await store.getState().fetchSales();
+
+    expect(getDocs).not.toHaveBeenCalled();
+    expect(store.getState().sales).toEqual([]);
+    expect(store.getState().rawSales).toEqual([]);
   });
 
   it('setFilters updates the visible sales without fetching again', async () => {

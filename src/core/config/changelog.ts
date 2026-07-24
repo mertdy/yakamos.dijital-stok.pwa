@@ -80,6 +80,10 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
       {
         type: 'fixed',
         text: 'Satış geçmişi izni olmayan çalışanlar artık bu sayfaya yönlendirilmez ve yetki hatasıyla karşılaşmaz.'
+      },
+      {
+        type: 'fixed',
+        text: 'Satış geçmişi verisi, izni olmayan çalışanlar için arka planda da yüklenmez; gereksiz hata bildirimi gösterilmez.'
       }
     ]
   },
