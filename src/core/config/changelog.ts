@@ -82,6 +82,10 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
         text: 'Mobil alt bardaki hesap sekmesi diğer menü öğeleriyle uyumlu görünür; navigasyon ikonları daha rahat seçilir ve hesap adının yalnız ilk adı, ad tanımlı değilse Profil etiketi gösterilir.'
       },
       {
+        type: 'improved',
+        text: 'Hızlı ekleme menüsünde seçilen ürün, sepete eklendiğini anlık görsel geri bildirimle belirtir.'
+      },
+      {
         type: 'fixed',
         text: 'Satış geçmişi izni olmayan çalışanlar artık bu sayfaya yönlendirilmez ve yetki hatasıyla karşılaşmaz.'
       },

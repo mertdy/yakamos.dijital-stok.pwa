@@ -1,6 +1,6 @@
-import React, { useMemo, useEffect, useState } from 'react';
+import React, { useMemo, useEffect, useRef, useState } from 'react';
 import { clsx } from 'clsx';
-import { Package, Settings2 } from 'lucide-react';
+import { Check, Package, Settings2 } from 'lucide-react';
 import { Spinner, Tabs } from '@heroui/react';
 import { useInventoryStore } from '@/features/inventory';
 import { useSalesStore } from '../store/useSalesStore';
@@ -32,11 +32,46 @@ export const ProductList: React.FC<ProductListProps> = ({
   const activeCompanyId = useAuthStore(state => state.profile?.activeCompanyId);
   const activeMembership = useAuthStore(state => state.activeMembership);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [recentlyAddedItemId, setRecentlyAddedItemId] = useState<string | null>(
+    null
+  );
+  const recentlyAddedTimer = useRef<number | null>(null);
 
   useEffect(() => {
     loadPreferences(activeCompanyId);
     loadCompanyQuickAddItems(activeCompanyId);
   }, [activeCompanyId, loadCompanyQuickAddItems, loadPreferences]);
+
+  useEffect(
+    () => () => {
+      if (recentlyAddedTimer.current !== null) {
+        window.clearTimeout(recentlyAddedTimer.current);
+      }
+    },
+    []
+  );
+
+  const handleQuickAdd = (item: any) => {
+    addToCart({
+      inventoryId: item.id,
+      name: item.name,
+      price: item.price,
+      quantity: 1,
+      barcode: item.barcode,
+      imageUrl: item.imageUrl,
+      sku: item.sku,
+      categoryId: item.categoryId
+    });
+
+    if (recentlyAddedTimer.current !== null) {
+      window.clearTimeout(recentlyAddedTimer.current);
+    }
+    setRecentlyAddedItemId(item.id);
+    recentlyAddedTimer.current = window.setTimeout(() => {
+      setRecentlyAddedItemId(null);
+      recentlyAddedTimer.current = null;
+    }, 1_100);
+  };
 
   const shortcutItems = useMemo(() => {
     const activeQuickAddItems =
@@ -116,43 +151,57 @@ export const ProductList: React.FC<ProductListProps> = ({
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-2">
-            {shortcutItems.map((item: any) => (
-              <button
-                key={item.id}
-                onClick={() =>
-                  addToCart({
-                    inventoryId: item.id,
-                    name: item.name,
-                    price: item.price,
-                    quantity: 1,
-                    barcode: item.barcode,
-                    imageUrl: item.imageUrl,
-                    sku: item.sku,
-                    categoryId: item.categoryId
-                  })
-                }
-                className="hover:border-primary/30 group flex h-full cursor-pointer flex-col items-center gap-1.5 rounded-xl border border-gray-100 bg-white p-2 text-center shadow-sm transition-all hover:shadow-md active:scale-95">
-                <div className="text-primary group-hover:bg-primary/10 flex h-10 w-10 items-center justify-center overflow-hidden rounded-lg bg-gray-50 transition-colors">
-                  {item.imageUrl ? (
-                    <img
-                      src={item.imageUrl}
-                      alt={item.name}
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    <Package className="h-5 w-5 opacity-50 transition-opacity group-hover:opacity-80" />
-                  )}
-                </div>
-                <h3 className="line-clamp-2 flex w-full flex-1 items-center justify-center text-[10px] leading-tight font-semibold text-gray-700">
-                  {item.name}
-                </h3>
-                <div className="mt-auto flex w-full flex-col items-center border-t border-gray-50 pt-1">
-                  <span className="text-primary text-xs font-bold">
-                    ₺{item.price.toFixed(2)}
-                  </span>
-                </div>
-              </button>
-            ))}
+            {shortcutItems.map((item: any) => {
+              const wasRecentlyAdded = recentlyAddedItemId === item.id;
+
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => handleQuickAdd(item)}
+                  className={clsx(
+                    'group flex h-full cursor-pointer flex-col items-center gap-1.5 rounded-xl border bg-white p-2 text-center shadow-sm transition-all active:scale-95',
+                    wasRecentlyAdded
+                      ? 'border-success bg-success/5 ring-success/20 shadow-md ring-1'
+                      : 'hover:border-primary/30 border-gray-100 hover:shadow-md'
+                  )}>
+                  <div
+                    className={clsx(
+                      'flex h-10 w-10 items-center justify-center overflow-hidden rounded-lg transition-colors',
+                      wasRecentlyAdded
+                        ? 'bg-success/10 text-success'
+                        : 'text-primary group-hover:bg-primary/10 bg-gray-50'
+                    )}>
+                    {wasRecentlyAdded ? (
+                      <Check className="h-5 w-5" strokeWidth={3} />
+                    ) : item.imageUrl ? (
+                      <img
+                        src={item.imageUrl}
+                        alt={item.name}
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <Package className="h-5 w-5 opacity-50 transition-opacity group-hover:opacity-80" />
+                    )}
+                  </div>
+                  <h3 className="line-clamp-2 flex w-full flex-1 items-center justify-center text-[10px] leading-tight font-semibold text-gray-700">
+                    {item.name}
+                  </h3>
+                  <div className="mt-auto flex w-full flex-col items-center border-t border-gray-50 pt-1">
+                    {wasRecentlyAdded ? (
+                      <span
+                        role="status"
+                        className="text-success text-[10px] font-bold">
+                        Sepete eklendi
+                      </span>
+                    ) : (
+                      <span className="text-primary text-xs font-bold">
+                        ₺{item.price.toFixed(2)}
+                      </span>
+                    )}
+                  </div>
+                </button>
+              );
+            })}
           </div>
         )}
       </div>
