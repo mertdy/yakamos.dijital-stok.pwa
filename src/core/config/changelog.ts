@@ -56,6 +56,14 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
       {
         type: 'improved',
         text: 'Giriş ekranındaki uygulama simgesi daha sade ve temiz bir görünümle görüntülenir.'
+      },
+      {
+        type: 'improved',
+        text: 'Yeni işletme kurulumundaki gereksiz adres alanı kaldırılarak form sadeleştirildi.'
+      },
+      {
+        type: 'improved',
+        text: 'E-posta ile kayıt olan kullanıcılar, işletme kurulumu sırasında ad soyad bilgilerini ekleyebilir.'
       }
     ]
   },

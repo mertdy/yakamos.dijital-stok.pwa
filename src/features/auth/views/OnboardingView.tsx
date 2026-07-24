@@ -30,16 +30,25 @@ const onboardingSchema = z.object({
     .string()
     .min(3, 'İşletme adı en az 3 karakter olmalıdır')
     .max(50, 'İşletme adı en fazla 50 karakter olmalıdır'),
+  fullName: z
+    .string()
+    .trim()
+    .max(100, 'Ad soyad en fazla 100 karakter olmalıdır')
+    .optional(),
   receiptHeader: z.string().optional(),
-  phone: optionalPhoneNumberSchema,
-  address: z.string().optional()
+  phone: optionalPhoneNumberSchema
 });
 
 type OnboardingFormData = z.infer<typeof onboardingSchema>;
 
 export const OnboardingView = () => {
-  const { user, createCompany, acceptInvitation, declineInvitation } =
-    useAuthStore();
+  const {
+    user,
+    createCompany,
+    updateDisplayName,
+    acceptInvitation,
+    declineInvitation
+  } = useAuthStore();
   const logout = useSecureLogout();
   const navigate = useNavigate();
   const [invitations, setInvitations] = useState<Invitation[]>([]);
@@ -47,9 +56,13 @@ export const OnboardingView = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [actionInviteId, setActionInviteId] = useState<string | null>(null);
 
-  const { control, handleSubmit } = useForm<OnboardingFormData>({
+  const { control, handleSubmit, setError } = useForm<OnboardingFormData>({
     resolver: zodResolver(onboardingSchema)
   });
+
+  const isEmailRegistered =
+    user?.providerData.some(provider => provider.providerId === 'password') ??
+    false;
 
   useEffect(() => {
     if (!user?.email) return;
@@ -77,11 +90,27 @@ export const OnboardingView = () => {
   }, [user?.email]);
 
   const handleCreateCompany = async (data: OnboardingFormData) => {
+    if (isEmailRegistered) {
+      const fullName = data.fullName?.trim();
+
+      if (!fullName) {
+        setError('fullName', { message: 'Adınızı ve soyadınızı girin' });
+        return;
+      }
+
+      try {
+        await updateDisplayName(fullName);
+      } catch (error) {
+        console.error('Failed to update user name:', error);
+        toast.danger('Adınız kaydedilirken bir hata oluştu.');
+        return;
+      }
+    }
+
     setIsSubmitting(true);
     try {
       await createCompany(data.name, {
         phone: normalizePhoneNumber(data.phone) || undefined,
-        address: data.address,
         receiptHeader: data.receiptHeader
       });
       toast.success('İşletme başarıyla kuruldu!');
@@ -255,6 +284,19 @@ export const OnboardingView = () => {
               <form
                 onSubmit={handleSubmit(handleCreateCompany)}
                 className="space-y-5">
+                {isEmailRegistered && (
+                  <FormInput
+                    control={control}
+                    name="fullName"
+                    label="Adınız ve soyadınız"
+                    isRequired
+                    type="text"
+                    autoComplete="name"
+                    maxLength={100}
+                    placeholder="Örn: Mert Yılmaz"
+                  />
+                )}
+
                 <FormInput
                   control={control}
                   name="name"
@@ -272,22 +314,12 @@ export const OnboardingView = () => {
                   placeholder="Örn: YAKAMOS GIDA LTD. ŞTİ."
                 />
 
-                <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-                  <PhoneInput
-                    control={control}
-                    name="phone"
-                    label="Telefon (Opsiyonel)"
-                    placeholder="555 555 55 55"
-                  />
-
-                  <FormInput
-                    control={control}
-                    name="address"
-                    label="Adres (Opsiyonel)"
-                    type="text"
-                    placeholder="Örn: Kadıköy, İstanbul"
-                  />
-                </div>
+                <PhoneInput
+                  control={control}
+                  name="phone"
+                  label="Telefon (Opsiyonel)"
+                  placeholder="555 555 55 55"
+                />
 
                 <div className="pt-4">
                   <Button
