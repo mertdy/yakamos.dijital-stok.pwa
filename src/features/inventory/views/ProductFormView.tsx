@@ -773,19 +773,26 @@ export const ProductFormView: React.FC = () => {
             />
           </div>
 
-          <div className="flex justify-end gap-3 border-t border-gray-100 pt-4">
-            {isEditMode && (
+          <div className="flex flex-col gap-3 border-t border-gray-100 pt-4 sm:flex-row sm:justify-end">
+            <div className="flex min-w-0 gap-3 sm:contents">
+              {isEditMode && (
+                <Button
+                  variant="secondary"
+                  type="button"
+                  className="flex-1 sm:flex-none"
+                  onPress={() => void openLabelPrint()}>
+                  <Printer className="mr-2" size={18} />
+                  Etiket Bas
+                </Button>
+              )}
               <Button
-                variant="secondary"
+                variant="ghost"
                 type="button"
-                onPress={() => void openLabelPrint()}>
-                <Printer className="mr-2" size={18} />
-                Etiket Bas
+                className="flex-1 sm:flex-none"
+                onPress={() => navigate(-1)}>
+                İptal
               </Button>
-            )}
-            <Button variant="ghost" type="button" onPress={() => navigate(-1)}>
-              İptal
-            </Button>
+            </div>
             <Button
               variant="primary"
               type="submit"
@@ -795,7 +802,7 @@ export const ProductFormView: React.FC = () => {
                 !Number.isFinite(salePrice) ||
                 salePrice < 0
               }
-              className="isDisabled:cursor-not-allowed px-8 disabled:opacity-50">
+              className="isDisabled:cursor-not-allowed w-full px-8 disabled:opacity-50 sm:w-auto">
               {isSaving ? (
                 <Loader2 className="mr-2 animate-spin" size={20} />
               ) : (

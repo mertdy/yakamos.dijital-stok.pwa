@@ -43,6 +43,8 @@ export const UserProfileMenu: FC<UserProfileMenuProps> = ({
 }) => {
   const isCompact = variant === 'compact';
   const isMobile = variant === 'mobile';
+  const mobileProfileLabel =
+    user.displayName?.trim().split(/\s+/)[0] || 'Profil';
 
   return (
     <Dropdown>
@@ -50,12 +52,12 @@ export const UserProfileMenu: FC<UserProfileMenuProps> = ({
         data-onboarding="profile-menu"
         aria-label="Kullanıcı menüsünü aç"
         className={clsx(
-          'group focus-visible:border-primary/40 flex items-center gap-3 rounded-xl border border-transparent text-left transition-all duration-200 outline-none hover:border-gray-200 hover:bg-gray-100/70 focus-visible:bg-gray-100/70',
+          'group focus-visible:border-primary/40 flex items-center rounded-xl border border-transparent text-left transition-all duration-200 outline-none hover:border-gray-200 hover:bg-gray-100/70 focus-visible:bg-gray-100/70',
           isMobile
-            ? 'h-14 min-w-0 flex-1 justify-center px-1'
+            ? 'focus-visible:bg-primary/5 h-14 min-w-0 flex-1 flex-col justify-center text-gray-500 hover:border-transparent hover:bg-transparent hover:text-gray-700'
             : isCompact
-              ? 'w-full justify-center p-1.5'
-              : 'w-full p-2.5'
+              ? 'w-full justify-center gap-3 p-1.5'
+              : 'w-full gap-3 p-2.5'
         )}>
         <img
           src={
@@ -64,10 +66,17 @@ export const UserProfileMenu: FC<UserProfileMenuProps> = ({
           }
           alt="Kullanıcı avatarı"
           className={clsx(
-            isCompact || isMobile ? 'h-8 w-8' : 'h-10 w-10',
-            'flex-shrink-0 rounded-full object-cover shadow-sm ring-2 ring-white transition-transform duration-200 group-hover:scale-[1.03]'
+            isMobile ? 'h-7 w-7' : isCompact ? 'h-8 w-8' : 'h-10 w-10',
+            'flex-shrink-0 rounded-full object-cover',
+            !isMobile &&
+              'shadow-sm ring-2 ring-white transition-transform duration-200 group-hover:scale-[1.03]'
           )}
         />
+        {isMobile && (
+          <span className="max-w-full truncate text-[10px] font-medium">
+            {mobileProfileLabel}
+          </span>
+        )}
         {!isCompact && !isMobile && (
           <>
             <div className="flex min-w-0 flex-1 flex-col overflow-hidden">

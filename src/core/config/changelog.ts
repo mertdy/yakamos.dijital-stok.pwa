@@ -78,6 +78,10 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
         text: 'Giriş denemesi sırasında yalnızca giriş butonu işlem durumunu gösterir; yanlış bilgilerde form ekranda kalır.'
       },
       {
+        type: 'improved',
+        text: 'Mobil alt bardaki hesap sekmesi diğer menü öğeleriyle uyumlu görünür; navigasyon ikonları daha rahat seçilir ve hesap adının yalnız ilk adı, ad tanımlı değilse Profil etiketi gösterilir.'
+      },
+      {
         type: 'fixed',
         text: 'Satış geçmişi izni olmayan çalışanlar artık bu sayfaya yönlendirilmez ve yetki hatasıyla karşılaşmaz.'
       },
@@ -88,6 +92,10 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
       {
         type: 'fixed',
         text: 'Boş bırakılan sayı alanlarında teknik hata yerine anlaşılır doğrulama mesajları gösterilir.'
+      },
+      {
+        type: 'fixed',
+        text: 'Mobil ürün düzenleme ekranındaki etiket basma ve kaydetme işlemleri ekrana taşmadan kullanılabilir.'
       }
     ]
   },
