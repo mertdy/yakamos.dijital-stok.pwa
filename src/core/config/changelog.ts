@@ -76,6 +76,10 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
       {
         type: 'improved',
         text: 'Giriş denemesi sırasında yalnızca giriş butonu işlem durumunu gösterir; yanlış bilgilerde form ekranda kalır.'
+      },
+      {
+        type: 'fixed',
+        text: 'Satış geçmişi izni olmayan çalışanlar artık bu sayfaya yönlendirilmez ve yetki hatasıyla karşılaşmaz.'
       }
     ]
   },

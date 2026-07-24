@@ -423,6 +423,15 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ onCheckForUpdate }) => {
 
   if (
     isEmployee &&
+    !activeMembership.permissions.includes('VIEW_SALES_HISTORY')
+  ) {
+    filteredNavItems = filteredNavItems.filter(
+      item => item.path !== ROUTES.SALES_HISTORY
+    );
+  }
+
+  if (
+    isEmployee &&
     !activeMembership.permissions.includes('MANAGE_CATEGORIES')
   ) {
     filteredNavItems = filteredNavItems.filter(

@@ -146,6 +146,10 @@ function App() {
     isOwner ||
     !isEmployee ||
     activeMembership?.permissions.includes('MANAGE_PROMOTIONS');
+  const hasSalesHistoryPermission =
+    isOwner ||
+    !isEmployee ||
+    activeMembership?.permissions.includes('VIEW_SALES_HISTORY');
 
   return (
     <Suspense
@@ -207,7 +211,16 @@ function App() {
           }>
           <Route path={ROUTES.DASHBOARD} element={<DashboardView />} />
           <Route path={ROUTES.SALES} element={<SalesView />} />
-          <Route path={ROUTES.SALES_HISTORY} element={<SalesHistoryView />} />
+          <Route
+            path={ROUTES.SALES_HISTORY}
+            element={
+              hasSalesHistoryPermission ? (
+                <SalesHistoryView />
+              ) : (
+                <Navigate to={ROUTES.DASHBOARD} replace />
+              )
+            }
+          />
           <Route
             path={ROUTES.PROMOTIONS}
             element={
